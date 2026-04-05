@@ -94,7 +94,6 @@ export async function signUpWithEmail(
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            phone,
             options: {
                 data: {
                     full_name: name,
