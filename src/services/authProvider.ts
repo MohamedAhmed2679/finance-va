@@ -40,8 +40,8 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
                 scopes: provider === 'google'
                     ? 'openid email profile https://www.googleapis.com/auth/drive.appdata'
                     : provider === 'azure'
-                    ? 'User.Read Files.ReadWrite.AppFolder'
-                    : 'name email',
+                    ? 'openid profile email User.Read Files.ReadWrite.AppFolder'
+                    : 'openid name email',
             },
         });
 
