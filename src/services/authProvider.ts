@@ -36,7 +36,7 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
         const { error } = await supabase.auth.signInWithOAuth({
             provider: provider as Provider,
             options: {
-                redirectTo: `${window.location.origin}/`,
+                redirectTo: getOAuthRedirectTo(),
                 scopes: provider === 'google'
                     ? 'openid email profile https://www.googleapis.com/auth/drive.appdata'
                     : provider === 'azure'
@@ -52,6 +52,19 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
     } catch (err: any) {
         return { success: false, error: err.message || 'OAuth sign-in failed' };
     }
+}
+
+function getOAuthRedirectTo(): string {
+    const configuredRedirect = import.meta.env.VITE_AUTH_REDIRECT_URL;
+    if (typeof configuredRedirect === 'string' && configuredRedirect.trim()) {
+        return configuredRedirect.trim();
+    }
+
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3000/';
+    }
+
+    return `${window.location.origin}/`;
 }
 
 // ─── Email/Password Sign-In ──────────────────────────────────────
