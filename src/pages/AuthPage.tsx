@@ -13,7 +13,7 @@ function FloatingInput({ label, type = 'text', value, onChange, required, disabl
     return (
         <div className={`floating-input-group ${value ? 'has-value' : ''}`}>
             <input type={type} className="floating-input" value={value}
-                onChange={e => onChange(e.target.value)} required={required}
+                onChange={e => onChange(e.target.value)} required={required} title={label}
                 disabled={disabled} maxLength={maxLength} autoFocus={autoFocus} placeholder=" " />
             <label className="floating-label">{label}</label>
             <div className="floating-bar" />
@@ -150,10 +150,10 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         return (
             <div className="auth-screen">
                 <div className="auth-glow" />
-                <div className="auth-card animate-slideUp" style={{ maxWidth: 440, padding: 40, background: 'var(--bg-card)', borderRadius: 20, boxShadow: '0 14px 60px rgba(0,0,0,0.5)' }}>
+                <div className="auth-card animate-slideUp">
                     <div className="auth-logo-icon" style={{ margin: '0 auto 12px' }}>FV</div>
                     <div className="auth-logo-title">Phone Sign In</div>
-                    {error && <div style={{ color: '#ef4444', marginBottom: 16, textAlign: 'center', fontSize: 14, background: 'rgba(239, 68, 68, 0.1)', padding: 8, borderRadius: 8 }}>{error}</div>}
+                    {error && <div className="auth-error-msg">{error}</div>}
                     <form onSubmit={handlePhoneSubmit}>
                         <FloatingInput label={t(lang, 'phone') || 'Phone Number'} type="tel" value={phone} onChange={setPhone} required disabled={codeSent} />
                         {codeSent && (
@@ -165,7 +165,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
                             {loading ? '...' : codeSent ? 'Verify' : 'Send Code'}
                         </button>
-                        <button type="button" className="btn btn-ghost w-full" style={{ marginTop: 8 }}
+                        <button type="button" className="btn btn-ghost w-full mt-2"
                             onClick={() => { setShowPhone(false); setCodeSent(false); }}>← Back</button>
                     </form>
                 </div>
@@ -184,7 +184,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         {!isSignUp ? (
                             <>
                                 <h2 className="auth-form-title">Sign in</h2>
-                                {error && <div style={{ color: '#ef4444', marginBottom: 16, textAlign: 'center', fontSize: 14, background: 'rgba(239, 68, 68, 0.1)', padding: 8, borderRadius: 8 }}>{error}</div>}
+                                {error && <div className="auth-error-msg">{error}</div>}
                                 {socialIcons}
                                 <div className="auth-divider"><span>or use your account</span></div>
                                 <form onSubmit={handleSignInSubmit}>
@@ -200,7 +200,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         ) : (
                             <>
                                 <h2 className="auth-form-title">Create Account</h2>
-                                {error && <div style={{ color: '#ef4444', marginBottom: 16, textAlign: 'center', fontSize: 14, background: 'rgba(239, 68, 68, 0.1)', padding: 8, borderRadius: 8 }}>{error}</div>}
+                                {error && <div className="auth-error-msg">{error}</div>}
                                 {socialIcons}
                                 <div className="auth-divider"><span>or register with your details</span></div>
                                 <form onSubmit={handleSignUpSubmit}>

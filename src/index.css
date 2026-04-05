@@ -1789,6 +1789,25 @@ body {
   width: 100%;
 }
 
+.auth-card {
+  max-width: 440px;
+  padding: 40px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: 0 14px 60px rgba(0, 0, 0, 0.5);
+  margin: 0 auto;
+}
+
+.auth-error-msg {
+  color: #ef4444;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 14px;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 8px;
+  border-radius: 8px;
+}
+
 /* ============================================= */
 /* ACTIVITY TIMELINE                             */
 /* ============================================= */
@@ -2077,33 +2096,18 @@ body {
     padding: 32px 24px;
   }
 
-  .auth-sign-up {
+  .auth-overlay-container-static {
     width: 100%;
-    height: auto;
-    position: relative;
+    padding: 32px 24px;
   }
 
-  .auth-overlay-container {
-    display: none;
+  .auth-overlay-title {
+    font-size: 24px;
   }
 
-  .auth-container.right-panel-active .auth-sign-in {
-    transform: none;
-    display: none;
-  }
-
-  .auth-container.right-panel-active .auth-sign-up {
-    opacity: 1;
-    pointer-events: all;
-    transform: none;
-  }
-
-  /* On mobile, show both sign in/sign up as a toggle */
-  .auth-form-inner::after {
-    content: '';
-    display: block;
-    text-align: center;
-    margin-top: 16px;
+  .auth-overlay-desc {
+    font-size: 13px;
+    margin-bottom: 20px;
   }
 
   .modal-overlay {
