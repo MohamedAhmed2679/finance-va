@@ -2264,3 +2264,17 @@ body {
 [data-theme="light"] .social-share-item {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
+
+/* ============================================= */
+/* DESKTOP SCALING                               */
+/* ============================================= */
+@media (min-width: 1200px) {
+  .app-shell, .auth-screen {
+    zoom: 1.35; /* Adjusted to be slightly more conservative than 1.6 */
+  }
+}
+@media (min-width: 1600px) {
+  .app-shell, .auth-screen {
+    zoom: 1.55;
+  }
+}

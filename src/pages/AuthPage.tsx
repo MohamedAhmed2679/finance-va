@@ -137,10 +137,17 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     async function handleSignUpSubmit(e: React.FormEvent) {
         e.preventDefault();
         
+        if (!country) {
+            setError('Please select your country.');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
         // Security checks
         const passError = validatePassword(password);
         if (passError) {
             setError(passError);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -367,7 +374,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                     <FloatingInput label="Phone Number (Include Country Code)" type="tel" value={phone} onChange={setPhone} required />
                                     <div className={`floating-input-group ${country ? 'has-value' : ''}`}>
                                         <select className="floating-input floating-select" title="Country" value={country}
-                                            onChange={e => setCountry(e.target.value)} required>
+                                            onChange={e => setCountry(e.target.value)}>
                                             <option value="" disabled hidden> </option>
                                             {COUNTRIES.map(c => (<option key={c} value={c}>{c}</option>))}
                                         </select>
