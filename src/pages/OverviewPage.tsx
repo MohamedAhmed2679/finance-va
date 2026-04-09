@@ -1,27 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore, type Expense } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Sparkles, RefreshCw, CalendarSync } from 'lucide-react';
+import { convertAmountSync, preloadRates } from '../services/exchangeRates';
 
 interface OverviewProps { onNavigate: (p: string) => void; onAddExpense: () => void; }
 
 const GEMINI_KEY = 'AIzaSyCZ5BXuhUFvaFslLwe8mqjXZNcqjKhtxRU';
 
-function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: string, endDate: string) {
+function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: string, endDate: string, baseCur: string) {
     const periodExp = expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate);
     const map: Record<string, number> = {};
     periodExp.forEach(e => {
         const day = e.purchaseAt.slice(0, 10);
-        map[day] = (map[day] || 0) + e.amount;
+        const amt = convertAmountSync(e.amount, e.currency, baseCur) ?? e.amount;
+        map[day] = (map[day] || 0) + amt;
     });
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0])).map(([date, amount]) => ({ date: date.slice(5), amount: +amount.toFixed(2) }));
 }
 
-function getCategoryData(expenses: Expense[], workspaceId: string, startDate: string, endDate: string) {
+function getCategoryData(expenses: Expense[], workspaceId: string, startDate: string, endDate: string, baseCur: string) {
     const map: Record<string, number> = {};
-    expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate).forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+    expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate).forEach(e => {
+        const amt = convertAmountSync(e.amount, e.currency, baseCur) ?? e.amount;
+        map[e.category] = (map[e.category] || 0) + amt;
+    });
     return Object.entries(map).map(([cat, val]) => { const info = getCategoryInfo(cat); return { name: info.label, value: +val.toFixed(2), color: info.color, emoji: info.emoji }; }).sort((a, b) => b.value - a.value).slice(0, 8);
 }
 
@@ -33,6 +38,9 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const hideAmounts = user?.hideAmounts ?? false;
     const cycleStartDay = ws?.cycleStartDay ?? 1;
 
+    // Preload exchange rates
+    useEffect(() => { preloadRates(); }, []);
+
     const todayDate = new Date();
     const today = todayDate.toISOString().slice(0, 10);
     const { start: cycleStart, end: cycleEnd } = getActiveCycleDates(todayDate, cycleStartDay);
@@ -43,14 +51,14 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const { start: lastCycleStart, end: lastCycleEnd } = getActiveCycleDates(lastMonthDate, cycleStartDay);
 
     const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
-    const todayTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) === today).reduce((s, e) => s + e.amount, 0);
+    const todayTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) === today).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
 
-    const monthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= cycleStart && e.purchaseAt.slice(0, 10) <= cycleEnd).reduce((s, e) => s + e.amount, 0);
-    const lastMonthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= lastCycleStart && e.purchaseAt.slice(0, 10) <= lastCycleEnd).reduce((s, e) => s + e.amount, 0);
+    const monthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= cycleStart && e.purchaseAt.slice(0, 10) <= cycleEnd).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
+    const lastMonthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= lastCycleStart && e.purchaseAt.slice(0, 10) <= lastCycleEnd).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
     const monthChange = lastMonthTotal ? ((monthTotal - lastMonthTotal) / lastMonthTotal * 100) : 0;
 
-    const spendData = getSpendByDay(expenses, activeWorkspaceId, cycleStart, cycleEnd);
-    const catData = getCategoryData(expenses, activeWorkspaceId, cycleStart, cycleEnd);
+    const spendData = getSpendByDay(expenses, activeWorkspaceId, cycleStart, cycleEnd, cur);
+    const catData = getCategoryData(expenses, activeWorkspaceId, cycleStart, cycleEnd, cur);
     const recentExp = wsExp.slice(0, 5);
 
     const currentDay = todayDate.getDate();

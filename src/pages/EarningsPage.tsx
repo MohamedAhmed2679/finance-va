@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getActiveCycleDates } from '../constants';
 import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { convertAmountSync, preloadRates } from '../services/exchangeRates';
 
 export default function EarningsPage() {
     const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome } = useStore();
@@ -33,8 +34,11 @@ export default function EarningsPage() {
         return i.date >= cycleStart && i.date <= cycleEnd;
     });
 
-    const fixedTotal = activeIncomes.filter(i => i.type === 'fixed').reduce((sum, i) => sum + i.amount, 0);
-    const variableTotal = activeIncomes.filter(i => i.type === 'variable').reduce((sum, i) => sum + i.amount, 0);
+    // Preload exchange rates
+    useEffect(() => { preloadRates(); }, []);
+
+    const fixedTotal = activeIncomes.filter(i => i.type === 'fixed').reduce((sum, i) => sum + (convertAmountSync(i.amount, i.currency, cur) ?? i.amount), 0);
+    const variableTotal = activeIncomes.filter(i => i.type === 'variable').reduce((sum, i) => sum + (convertAmountSync(i.amount, i.currency, cur) ?? i.amount), 0);
     const totalIncome = fixedTotal + variableTotal;
 
     // Calculate expenses for this exact cycle
@@ -44,7 +48,7 @@ export default function EarningsPage() {
         e.purchaseAt.slice(0, 10) >= cycleStart &&
         e.purchaseAt.slice(0, 10) <= cycleEnd
     );
-    const totalSpent = cycleExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpent = cycleExpenses.reduce((sum, e) => sum + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
     const leftover = totalIncome - totalSpent;
 
     function handleAddIncome(e: React.FormEvent) {

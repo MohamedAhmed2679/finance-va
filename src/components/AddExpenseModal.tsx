@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { CURRENCIES } from '../constants';
 import { X, Camera, Upload, RefreshCw, FileText } from 'lucide-react';
 import Webcam from 'react-webcam';
 import Tesseract from 'tesseract.js';
+import { convertAmount, preloadRates, areRatesStale } from '../services/exchangeRates';
 
 interface Props { onClose: () => void; editId?: string; }
 
@@ -28,9 +29,33 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
     const webcamRef = useRef<Webcam>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState('');
+    const [isConverting, setIsConverting] = useState(false);
+    const [ratesStale, setRatesStale] = useState(false);
 
     const uid = user?.id ?? 'user_demo_001';
     const userName = user?.name ?? 'User';
+
+    // Preload exchange rates on mount
+    useEffect(() => { preloadRates(); }, []);
+
+    // Handle live currency conversion
+    const prevCurrencyRef = useRef(currency);
+    async function handleCurrencyChange(newCurrency: string) {
+        const oldCurrency = prevCurrencyRef.current;
+        setCurrency(newCurrency);
+        if (amount && oldCurrency !== newCurrency) {
+            setIsConverting(true);
+            try {
+                const converted = await convertAmount(parseFloat(amount), oldCurrency, newCurrency);
+                setAmount(converted.toFixed(2));
+                setRatesStale(areRatesStale());
+            } catch {
+                // Keep the amount as-is if conversion fails
+            }
+            setIsConverting(false);
+        }
+        prevCurrencyRef.current = newCurrency;
+    }
 
     function handleKeypad(val: string) {
         if (val === '⌫') { setAmount(a => a.slice(0, -1)); return; }
@@ -167,10 +192,10 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
                         </div>
                         <div className="amount-display">
-                            <select className="form-select" value={currency} onChange={e => setCurrency(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
-                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                            <select className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
+                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                             </select>
-                            {amount || '0'}
+                            {isConverting ? <span style={{ opacity: 0.5 }}>...</span> : (amount || '0')}
                         </div>
                         <div className="keypad">
                             {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => (
@@ -195,9 +220,10 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Currency</label>
-                                <select className="form-input form-select" value={currency} onChange={e => setCurrency(e.target.value)}>
-                                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                                <select className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
+                                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>)}
                                 </select>
+                                {ratesStale && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>⚠ Rates may be outdated</div>}
                             </div>
                         </div>
 

@@ -8,6 +8,7 @@ export default function SavingsPage() {
     const { user, workspaces, savingsGoals, activeWorkspaceId, addSavingsGoal, addFundsToGoal, deleteSavingsGoal, incomes, expenses } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
+    const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const wsGoals = savingsGoals.filter(g => g.workspaceId === activeWorkspaceId);
 
@@ -22,7 +23,7 @@ export default function SavingsPage() {
         if (!name || !target) return;
         const colors = ['#7c3aed', '#06d6a0', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444'];
         const icons = ['🎯', '💰', '🏠', '✈️', '💻', '🎓', '🏖️', '🚗'];
-        addSavingsGoal({ workspaceId: activeWorkspaceId, name, reason, targetAmount: parseFloat(target), savedAmount: 0, currency: user?.defaultCurrency ?? 'USD', color: colors[Math.floor(Math.random() * colors.length)], icon: icons[Math.floor(Math.random() * icons.length)] });
+        addSavingsGoal({ workspaceId: activeWorkspaceId, name, reason, targetAmount: parseFloat(target), savedAmount: 0, currency: cur, color: colors[Math.floor(Math.random() * colors.length)], icon: icons[Math.floor(Math.random() * icons.length)] });
         setName(''); setReason(''); setTarget('');
     }
 
@@ -80,7 +81,7 @@ export default function SavingsPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'savings_goals')}</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length} active goals · {formatCurrency(totalSaved, 'USD')} saved of {formatCurrency(totalTarget, 'USD')}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length} active goals · {formatCurrency(totalSaved, cur)} saved of {formatCurrency(totalTarget, cur)}</p>
                 </div>
             </div>
 
@@ -90,11 +91,11 @@ export default function SavingsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>Total Progress</div>
-                            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}>{formatCurrency(totalSaved, 'USD')}</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of {formatCurrency(totalTarget, 'USD')} target</div>
+                            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}>{formatCurrency(totalSaved, cur)}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of {formatCurrency(totalTarget, cur)} target</div>
                             {rolloverSavings > 0 && (
                                 <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PiggyBank size={12} /> {formatCurrency(rolloverSavings, 'USD')} from past cycle rollovers
+                                    <PiggyBank size={12} /> {formatCurrency(rolloverSavings, cur)} from past cycle rollovers
                                 </div>
                             )}
                         </div>
