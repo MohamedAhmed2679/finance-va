@@ -1808,6 +1808,40 @@ body {
   border-radius: 8px;
 }
 
+.auth-success-msg {
+  color: #06d6a0;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 14px;
+  background: rgba(6, 214, 160, 0.1);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary);
+}
+
+.auth-back-btn {
+  margin-top: 8px;
+}
+
 /* ============================================= */
 /* ACTIVITY TIMELINE                             */
 /* ============================================= */

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp } from '../services/authProvider';
-
+import { Eye, EyeOff } from 'lucide-react';
 
 interface AuthPageProps { onAuth: () => void; }
 
@@ -20,6 +20,25 @@ function FloatingInput({ label, type = 'text', value, onChange, required, disabl
         </div>
     );
 }
+
+function PasswordInput({ label, value, onChange, required }: {
+    label: string; value: string; onChange: (v: string) => void; required?: boolean;
+}) {
+    const [show, setShow] = useState(false);
+    return (
+        <div className={`floating-input-group ${value ? 'has-value' : ''}`}>
+            <input type={show ? 'text' : 'password'} className="floating-input" value={value}
+                onChange={e => onChange(e.target.value)} required={required} title={label} placeholder=" " />
+            <label className="floating-label">{label}</label>
+            <div className="floating-bar" />
+            <button type="button" className="password-toggle-btn" onClick={() => setShow(!show)}
+                title={show ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                {show ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+        </div>
+    );
+}
+
 const COUNTRIES = [
     'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'India',
     'Saudi Arabia', 'UAE', 'Egypt', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Lebanon',
@@ -43,6 +62,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [loading, setLoading] = useState(false);
     const [showPhone, setShowPhone] = useState(false);
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
     const lang = 'en';
 
     // ─── OAuth Handlers (Google / Apple / Microsoft) ─────────────
@@ -50,6 +70,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(true); setError('');
         const result = await signInWithOAuth('google');
         if (!result.success) { setError(result.error || 'Google sign-in failed'); setLoading(false); return; }
+        // OAuth redirects the browser, so if we get a user back in popup mode, login
         if (result.user) doLogin(result.user.name, result.user.email, 'google');
         setLoading(false);
     }
@@ -81,10 +102,22 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     // ─── Email/Password Sign-Up ──────────────────────────────────
     async function handleSignUpSubmit(e: React.FormEvent) {
         e.preventDefault();
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
         setLoading(true); setError('');
         const result = await signUpWithEmail(email, password, name, phone, country);
-        if (!result.success) { setError(result.error || 'Sign-up failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email);
+        if (!result.success) {
+            setError(result.error || 'Sign-up failed');
+            setLoading(false);
+            return;
+        }
+        // If sign-up succeeded, log the user in directly
+        if (result.user) {
+            setSuccessMsg('Account created successfully! Signing you in...');
+            doLogin(result.user.name, result.user.email);
+        }
         setLoading(false);
     }
 
@@ -127,9 +160,6 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         onAuth();
     }
 
-
-    // FloatingInput is declared outside the component at module scope
-
     // Social icons row (reusable)
     const socialIcons = (
         <div className="auth-social-row">
@@ -151,7 +181,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
             <div className="auth-screen">
                 <div className="auth-glow" />
                 <div className="auth-card animate-slideUp">
-                    <div className="auth-logo-icon" style={{ margin: '0 auto 12px' }}>FV</div>
+                    <div className="auth-logo-icon">FV</div>
                     <div className="auth-logo-title">Phone Sign In</div>
                     {error && <div className="auth-error-msg">{error}</div>}
                     <form onSubmit={handlePhoneSubmit}>
@@ -165,8 +195,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
                             {loading ? '...' : codeSent ? 'Verify' : 'Send Code'}
                         </button>
-                        <button type="button" className="btn btn-ghost w-full mt-2"
-                            onClick={() => { setShowPhone(false); setCodeSent(false); }}>← Back</button>
+                        <button type="button" className="btn btn-ghost w-full auth-back-btn"
+                            onClick={() => { setShowPhone(false); setCodeSent(false); setError(''); }}>← Back</button>
                     </form>
                 </div>
             </div>
@@ -185,11 +215,12 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                             <>
                                 <h2 className="auth-form-title">Sign in</h2>
                                 {error && <div className="auth-error-msg">{error}</div>}
+                                {successMsg && <div className="auth-success-msg">{successMsg}</div>}
                                 {socialIcons}
                                 <div className="auth-divider"><span>or use your account</span></div>
                                 <form onSubmit={handleSignInSubmit}>
                                     <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
-                                    <FloatingInput label="Password" type="password" value={password} onChange={setPassword} required />
+                                    <PasswordInput label="Password" value={password} onChange={setPassword} required />
                                     <a href="#" className="auth-forgot-link">Forgot Your Password?</a>
                                     <button type="submit" className="btn auth-btn-submit" disabled={loading}>
                                         {loading ? 'Signing in...' : 'SIGN IN'}
@@ -201,6 +232,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                             <>
                                 <h2 className="auth-form-title">Create Account</h2>
                                 {error && <div className="auth-error-msg">{error}</div>}
+                                {successMsg && <div className="auth-success-msg">{successMsg}</div>}
                                 {socialIcons}
                                 <div className="auth-divider"><span>or register with your details</span></div>
                                 <form onSubmit={handleSignUpSubmit}>
@@ -216,7 +248,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         <label className="floating-label">Country</label>
                                         <div className="floating-bar" />
                                     </div>
-                                    <FloatingInput label="Password" type="password" value={password} onChange={setPassword} required />
+                                    <PasswordInput label="Password" value={password} onChange={setPassword} required />
                                     <button type="submit" className="btn auth-btn-submit" disabled={loading}>
                                         {loading ? 'Creating...' : 'SIGN UP'}
                                     </button>
@@ -233,13 +265,13 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                             <div className="auth-overlay-content animate-fadeIn">
                                 <h2 className="auth-overlay-title">Hello, Friend!</h2>
                                 <p className="auth-overlay-desc">Enter Your Personal Details and start your journey with us</p>
-                                <button className="btn auth-overlay-btn" onClick={() => setIsSignUp(true)}>SIGN UP</button>
+                                <button className="btn auth-overlay-btn" onClick={() => { setIsSignUp(true); setError(''); setSuccessMsg(''); }}>SIGN UP</button>
                             </div>
                         ) : (
                             <div className="auth-overlay-content animate-fadeIn">
                                 <h2 className="auth-overlay-title">Welcome Back</h2>
                                 <p className="auth-overlay-desc">To keep connected with us please login with your personal info</p>
-                                <button className="btn auth-overlay-btn" onClick={() => setIsSignUp(false)}>SIGN IN</button>
+                                <button className="btn auth-overlay-btn" onClick={() => { setIsSignUp(false); setError(''); setSuccessMsg(''); }}>SIGN IN</button>
                             </div>
                         )}
                     </div>
