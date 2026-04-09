@@ -132,6 +132,37 @@ export async function signUpWithEmail(
     }
 }
 
+// ─── Password Reset / Recovery ───────────────────────────────────
+export async function resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseReady() || !supabase) {
+        return { success: true };
+    }
+
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/?type=recovery',
+        });
+        if (error) throw error;
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to send reset email' };
+    }
+}
+
+export async function updatePassword(password: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseReady() || !supabase) {
+        return { success: true };
+    }
+
+    try {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to update password' };
+    }
+}
+
 // ─── Phone OTP ───────────────────────────────────────────────────
 export async function sendPhoneOtp(phone: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseReady() || !supabase) {

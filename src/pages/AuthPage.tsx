@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp } from '../services/authProvider';
+import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange } from '../services/authProvider';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface AuthPageProps { onAuth: () => void; }
@@ -49,9 +49,26 @@ const COUNTRIES = [
     'Greece', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Other',
 ];
 
+// Security Validation
+function validatePassword(password: string): string | null {
+    if (password.length < 8) return 'Password must be at least 8 characters long.';
+    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
+    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
+    if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password)) return 'Password must contain at least one special character.';
+    return null; // Valid
+}
+
 export default function AuthPage({ onAuth }: AuthPageProps) {
     const { login } = useStore();
     const [isSignUp, setIsSignUp] = useState(false);
+    
+    // View States
+    const [showPhone, setShowPhone] = useState(false);
+    const [showForgot, setShowForgot] = useState(false);
+    const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
+    // Form Fields
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -59,18 +76,36 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [country, setCountry] = useState('');
     const [code, setCode] = useState('');
     const [codeSent, setCodeSent] = useState(false);
+    
+    // Status
     const [loading, setLoading] = useState(false);
-    const [showPhone, setShowPhone] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const lang = 'en';
 
-    // ─── OAuth Handlers (Google / Apple / Microsoft) ─────────────
+    // Intercept Password Recovery Link
+    useEffect(() => {
+        const hash = window.location.hash;
+        const search = window.location.search;
+        if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+            setIsRecoveryMode(true);
+        }
+
+        // Also listen to Supabase events just in case
+        const { unsubscribe } = onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                setIsRecoveryMode(true);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // ─── OAuth Handlers ─────────────
     async function handleGoogleLogin() {
         setLoading(true); setError('');
         const result = await signInWithOAuth('google');
         if (!result.success) { setError(result.error || 'Google sign-in failed'); setLoading(false); return; }
-        // OAuth redirects the browser — user data comes after redirect
         if (result.user) doLogin(result.user.name, result.user.email, 'google');
         setLoading(false);
     }
@@ -89,27 +124,30 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(false);
     }
 
-    // ─── Email/Password Sign-In ──────────────────────────────────
+    // ─── Email/Password Handlers ──────────────────────────────────
     async function handleSignInSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true); setError('');
         const result = await signInWithEmail(email, password);
-        if (!result.success) { setError(result.error || 'Sign-in failed'); setLoading(false); return; }
+        if (!result.success) { setError(result.error || 'Invalid login credentials'); setLoading(false); return; }
         if (result.user) doLogin(result.user.name, result.user.email);
         setLoading(false);
     }
 
-    // ─── Email/Password Sign-Up ──────────────────────────────────
     async function handleSignUpSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters');
+        
+        // Security checks
+        const passError = validatePassword(password);
+        if (passError) {
+            setError(passError);
             return;
         }
+
         setLoading(true); setError('');
         const result = await signUpWithEmail(email, password, name, phone, country);
         if (!result.success) {
-            setError(result.error || 'Sign-up failed');
+            setError(result.error || 'Sign-up failed. Please check your details.');
             setLoading(false);
             return;
         }
@@ -123,12 +161,13 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     // ─── Phone OTP ───────────────────────────────────────────────
     async function handlePhoneSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setError('');
+        setError(''); setSuccessMsg('');
         if (!codeSent) {
             setLoading(true);
             const result = await sendPhoneOtp(phone);
-            if (!result.success) { setError(result.error || 'Failed to send code'); setLoading(false); return; }
+            if (!result.success) { setError(result.error || 'Failed to send code. Please ensure the number is correct.'); setLoading(false); return; }
             setCodeSent(true);
+            setSuccessMsg(`Code sent to ${phone}`);
             setLoading(false);
             return;
         }
@@ -136,6 +175,44 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         const result = await verifyPhoneOtp(phone, code);
         if (!result.success) { setError(result.error || 'Invalid code'); setLoading(false); return; }
         if (result.user) doLogin(result.user.name, result.user.email, 'phone');
+        setLoading(false);
+    }
+
+    // ─── Password Reset Flow ─────────────────────────────────────
+    async function handleForgotSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setLoading(true); setError(''); setSuccessMsg('');
+        const result = await resetPassword(email);
+        if (!result.success) {
+            setError(result.error || 'Failed to send reset email.');
+            setLoading(false);
+            return;
+        }
+        setSuccessMsg('If an account exists, a password reset link has been sent to your email.');
+        setLoading(false);
+    }
+
+    async function handleUpdatePasswordSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        const passError = validatePassword(password);
+        if (passError) {
+            setError(passError);
+            return;
+        }
+
+        setLoading(true); setError(''); setSuccessMsg('');
+        const result = await updatePassword(password);
+        if (!result.success) {
+            setError(result.error || 'Failed to update password.');
+            setLoading(false);
+            return;
+        }
+        setSuccessMsg('Password updated successfully. Signing you in...');
+        setTimeout(() => {
+            // After updating, we can proceed or mark recovery mode as done
+            setIsRecoveryMode(false);
+            onAuth(); // If they updated their password, Supabase created a session
+        }, 1500);
         setLoading(false);
     }
 
@@ -159,7 +236,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         onAuth();
     }
 
-    // Social icons row (reusable)
+    // Social icons row
     const socialIcons = (
         <div className="auth-social-row">
             <button className="auth-social-icon" onClick={handleGoogleLogin} disabled={loading} title="Google">
@@ -174,7 +251,54 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         </div>
     );
 
-    // Phone sign-in overlay
+    // Render Password Recovery Mode (from email link)
+    if (isRecoveryMode) {
+        return (
+            <div className="auth-screen">
+                <div className="auth-glow" />
+                <div className="auth-card animate-slideUp">
+                    <div className="auth-logo-icon">FV</div>
+                    <div className="auth-logo-title">Set New Password</div>
+                    {error && <div className="auth-error-msg">{error}</div>}
+                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
+                    <form onSubmit={handleUpdatePasswordSubmit}>
+                        <PasswordInput label="New Password" value={password} onChange={setPassword} required />
+                        <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
+                            {loading ? 'Updating...' : 'Update Password'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Forgot Password Screen
+    if (showForgot) {
+        return (
+            <div className="auth-screen">
+                <div className="auth-glow" />
+                <div className="auth-card animate-slideUp">
+                    <div className="auth-logo-icon">FV</div>
+                    <div className="auth-logo-title">Reset Password</div>
+                    <p style={{textAlign: 'center', color: 'var(--text-muted)', marginBottom: 20, fontSize: 14}}>
+                        Enter your email address and we'll send you a link to reset your password.
+                    </p>
+                    {error && <div className="auth-error-msg">{error}</div>}
+                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
+                    <form onSubmit={handleForgotSubmit}>
+                        <FloatingInput label="Email Address" type="email" value={email} onChange={setEmail} required />
+                        <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
+                            {loading ? 'Sending...' : 'Send Reset Link'}
+                        </button>
+                        <button type="button" className="btn btn-ghost w-full auth-back-btn"
+                            onClick={() => { setShowForgot(false); setError(''); setSuccessMsg(''); }}>← Back to Sign In</button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Phone sign-in overlay
     if (showPhone) {
         return (
             <div className="auth-screen">
@@ -183,19 +307,19 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                     <div className="auth-logo-icon">FV</div>
                     <div className="auth-logo-title">Phone Sign In</div>
                     {error && <div className="auth-error-msg">{error}</div>}
+                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
                     <form onSubmit={handlePhoneSubmit}>
-                        <FloatingInput label={t(lang, 'phone') || 'Phone Number'} type="tel" value={phone} onChange={setPhone} required disabled={codeSent} />
+                        <FloatingInput label={t(lang, 'phone') || 'Phone Number (e.g. +1234567)'} type="tel" value={phone} onChange={setPhone} required disabled={codeSent} />
                         {codeSent && (
                             <div className="animate-fadeIn">
                                 <FloatingInput label={t(lang, 'verify_code') || 'Verification Code'} value={code} onChange={setCode} required maxLength={6} autoFocus />
-                                <div className="auth-code-sent">✓ Code sent to {phone}</div>
                             </div>
                         )}
                         <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-                            {loading ? '...' : codeSent ? 'Verify' : 'Send Code'}
+                            {loading ? '...' : codeSent ? 'Verify Code' : 'Send SMS Code'}
                         </button>
                         <button type="button" className="btn btn-ghost w-full auth-back-btn"
-                            onClick={() => { setShowPhone(false); setCodeSent(false); setError(''); }}>← Back</button>
+                            onClick={() => { setShowPhone(false); setCodeSent(false); setError(''); setSuccessMsg(''); }}>← Back</button>
                     </form>
                 </div>
             </div>
@@ -220,12 +344,15 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 <form onSubmit={handleSignInSubmit}>
                                     <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
                                     <PasswordInput label="Password" value={password} onChange={setPassword} required />
-                                    <a href="#" className="auth-forgot-link">Forgot Your Password?</a>
+                                    <button type="button" className="auth-forgot-link" style={{background: 'none', border:'none', cursor:'pointer', padding:0}} 
+                                        onClick={() => { setShowForgot(true); setError(''); setSuccessMsg(''); }}>
+                                        Forgot Your Password?
+                                    </button>
                                     <button type="submit" className="btn auth-btn-submit" disabled={loading}>
                                         {loading ? 'Signing in...' : 'SIGN IN'}
                                     </button>
                                 </form>
-                                <button className="btn btn-ghost auth-phone-btn" onClick={() => setShowPhone(true)}>📱 Sign in with Phone</button>
+                                <button className="btn btn-ghost auth-phone-btn" onClick={() => { setShowPhone(true); setError(''); setSuccessMsg(''); }}>📱 Sign in with Phone</button>
                             </>
                         ) : (
                             <>
@@ -237,7 +364,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 <form onSubmit={handleSignUpSubmit}>
                                     <FloatingInput label="Full Name" value={name} onChange={setName} required />
                                     <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
-                                    <FloatingInput label="Phone Number" type="tel" value={phone} onChange={setPhone} required />
+                                    <FloatingInput label="Phone Number (Include Country Code)" type="tel" value={phone} onChange={setPhone} required />
                                     <div className={`floating-input-group ${country ? 'has-value' : ''}`}>
                                         <select className="floating-input floating-select" title="Country" value={country}
                                             onChange={e => setCountry(e.target.value)} required>
@@ -248,6 +375,9 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         <div className="floating-bar" />
                                     </div>
                                     <PasswordInput label="Password" value={password} onChange={setPassword} required />
+                                    <p style={{fontSize: 12, color: 'var(--text-muted)', marginTop: -10, marginBottom: 16}}>
+                                        Must be 8+ chars and contain upper, lower, number, and special character.
+                                    </p>
                                     <button type="submit" className="btn auth-btn-submit" disabled={loading}>
                                         {loading ? 'Creating...' : 'SIGN UP'}
                                     </button>
