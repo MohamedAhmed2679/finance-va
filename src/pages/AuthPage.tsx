@@ -1,21 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp } from '../services/authProvider';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface AuthPageProps { onAuth: () => void; }
-
-function getOAuthErrorFromUrl(): string {
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const queryParams = new URLSearchParams(window.location.search);
-    const errorCode = queryParams.get('error_code') || hashParams.get('error_code');
-    const errorDescription = queryParams.get('error_description') || hashParams.get('error_description');
-    const oauthError = queryParams.get('error') || hashParams.get('error');
-    const decodedDescription = errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, ' ')) : '';
-
-    return decodedDescription || errorCode || oauthError || '';
-}
 
 function FloatingInput({ label, type = 'text', value, onChange, required, disabled, maxLength, autoFocus }: {
     label: string; type?: string; value: string; onChange: (v: string) => void;
@@ -62,7 +51,6 @@ const COUNTRIES = [
 
 export default function AuthPage({ onAuth }: AuthPageProps) {
     const { login } = useStore();
-    const oauthErrorMessage = getOAuthErrorFromUrl();
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -73,22 +61,16 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [codeSent, setCodeSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showPhone, setShowPhone] = useState(false);
-    const [error, setError] = useState(oauthErrorMessage);
+    const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
     const lang = 'en';
-
-    useEffect(() => {
-        if (!oauthErrorMessage) return;
-
-        const cleanedUrl = `${window.location.origin}${window.location.pathname}`;
-        window.history.replaceState({}, document.title, cleanedUrl);
-    }, [oauthErrorMessage]);
 
     // ─── OAuth Handlers (Google / Apple / Microsoft) ─────────────
     async function handleGoogleLogin() {
         setLoading(true); setError('');
         const result = await signInWithOAuth('google');
         if (!result.success) { setError(result.error || 'Google sign-in failed'); setLoading(false); return; }
-        // OAuth redirects the browser, so if we get a user back in popup mode, login
+        // OAuth redirects the browser — user data comes after redirect
         if (result.user) doLogin(result.user.name, result.user.email, 'google');
         setLoading(false);
     }
@@ -131,7 +113,6 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
             setLoading(false);
             return;
         }
-        // If sign-up succeeded, log the user in directly
         if (result.user) {
             setSuccessMsg('Account created successfully! Signing you in...');
             doLogin(result.user.name, result.user.email);
