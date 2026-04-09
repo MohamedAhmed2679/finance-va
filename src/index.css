@@ -1075,7 +1075,8 @@ body {
   background: var(--bg-base);
   padding: var(--space-6);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .auth-glow {
@@ -1486,7 +1487,8 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--bg-base);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .auth-stars {
@@ -2269,12 +2271,12 @@ body {
 /* DESKTOP SCALING                               */
 /* ============================================= */
 @media (min-width: 1200px) {
-  .app-shell, .auth-screen {
+  .app-shell, .auth-container, .auth-card {
     zoom: 1.35; /* Adjusted to be slightly more conservative than 1.6 */
   }
 }
 @media (min-width: 1600px) {
-  .app-shell, .auth-screen {
+  .app-shell, .auth-container, .auth-card {
     zoom: 1.55;
   }
 }
