@@ -293,10 +293,31 @@ export async function fetchSavingsGoalsFromCloud(workspaceId: string) {
 
 export async function fetchUserWorkspaces(userId: string) {
     if (!isSupabaseReady() || !supabase) return null;
-    // Fetch workspaces owned by user
+    // Ensure userId is a valid UUID format before querying the owner_id column
+    // to prevent 500 status errors on the database side.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isUuid) return [];
+
     const { data, error } = await supabase.from('workspaces').select('*').eq('owner_id', userId);
     if (error) return null;
     return data;
+}
+
+export async function fetchWorkspacesByEmail(email: string) {
+    if (!isSupabaseReady() || !supabase || !email) return [];
+    
+    // Fallback search: find workspaces where owner_id is the email string 
+    // (for legacy accounts) or find via members table.
+    const { data, error } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('owner_id', email);
+        
+    if (error) {
+        console.error('[Sync] Error searching workspaces by email:', error.message);
+        return [];
+    }
+    return data || [];
 }
 
 export async function fetchNotifications(userId: string) {

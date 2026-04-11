@@ -2101,15 +2101,16 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
   .sidebar {
     position: fixed;
     bottom: 0;
+    top: auto !important;
     left: 0;
     right: 0;
     width: 100% !important;
-    height: auto;
+    height: 65px !important;
     flex-direction: row;
     padding: 0;
     border-right: none;
     border-top: 1px solid var(--border);
-    z-index: 100;
+    z-index: 9999 !important;
     overflow-x: auto;
     overflow-y: hidden;
     min-height: unset;

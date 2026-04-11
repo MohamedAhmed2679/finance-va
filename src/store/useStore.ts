@@ -7,7 +7,7 @@ import {
     syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
     syncWorkspaceToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
-    updateUserProfile
+    updateUserProfile, fetchWorkspacesByEmail
 } from '../services/supabaseSync';
 
 export type CategoryKey = string;
@@ -647,17 +647,21 @@ export const useStore = create<AppState>()(
                     // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,
                     // even if the UUID account already exists.
                     if (s.user.email) {
-                        const orphaned = await fetchUserWorkspaces(s.user.email);
-                        if (orphaned && orphaned.length > 0) {
-                            console.log('[Sync] Found orphaned workspaces for email, checking migration...');
-                            for (const w of orphaned) {
-                                // Only migrate if it's NOT already correctly owned by this UUID
-                                if (w.ownerId === s.user.email) {
-                                    await syncWorkspaceToCloud({ ...w, ownerId: s.user.id });
+                        try {
+                            const orphaned = await fetchWorkspacesByEmail(s.user.email);
+                            if (orphaned && orphaned.length > 0) {
+                                console.log('[Sync] Found orphaned workspaces for email, checking migration...');
+                                for (const w of orphaned) {
+                                    // Only migrate if it's NOT already correctly owned by this UUID (and it's owned by the email)
+                                    if (w.owner_id === s.user.email || w.ownerId === s.user.email) {
+                                        await syncWorkspaceToCloud({ ...w, ownerId: s.user.id });
+                                    }
                                 }
+                                // Re-fetch to get the merged list for the UUID
+                                ws = await fetchUserWorkspaces(s.user.id);
                             }
-                            // Re-fetch to get the merged list
-                            ws = await fetchUserWorkspaces(s.user.id);
+                        } catch (e) {
+                            console.error('[Sync] Migration check failed (safe skip):', e);
                         }
                     }
 
