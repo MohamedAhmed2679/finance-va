@@ -106,21 +106,21 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(true); setError('');
         const result = await signInWithOAuth('google');
         if (!result.success) { setError(result.error || 'Google sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email, 'google');
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'google');
         setLoading(false);
     }
     async function handleAppleLogin() {
         setLoading(true); setError('');
         const result = await signInWithOAuth('apple');
         if (!result.success) { setError(result.error || 'Apple sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email, 'apple');
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'apple');
         setLoading(false);
     }
     async function handleMicrosoftLogin() {
         setLoading(true); setError('');
         const result = await signInWithOAuth('azure');
         if (!result.success) { setError(result.error || 'Microsoft sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email, 'microsoft');
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'microsoft');
         setLoading(false);
     }
 
@@ -130,7 +130,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(true); setError('');
         const result = await signInWithEmail(email, password);
         if (!result.success) { setError(result.error || 'Invalid login credentials'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email);
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
         setLoading(false);
     }
 
@@ -160,7 +160,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         }
         if (result.user) {
             setSuccessMsg('Account created successfully! Signing you in...');
-            doLogin(result.user.name, result.user.email);
+            doLogin(result.user.id, result.user.name, result.user.email);
         }
         setLoading(false);
     }
@@ -181,7 +181,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(true);
         const result = await verifyPhoneOtp(phone, code);
         if (!result.success) { setError(result.error || 'Invalid code'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.name, result.user.email, 'phone');
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'phone');
         setLoading(false);
     }
 
@@ -224,15 +224,15 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     }
 
     // ─── Final Login → Zustand Store ─────────────────────────────
-    function doLogin(userName: string, userEmail: string, provider?: string) {
+    function doLogin(userId: string, userName: string, userEmail: string, provider?: string) {
         // We set the basic user info, then the store's 'login' 
         // will trigger 'hydrateStore' to pull real data from Supabase.
         login({
-            id: email, // Temporary or dummy ID if not synced yet, but preferably we get the real UID
+            id: userId,
             name: userName,
             email: userEmail,
             phone: phone || undefined,
-            referralCode: `FV-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+            referralCode: `FV-${userId.slice(0, 6).toUpperCase()}`,
             defaultCurrency: 'USD',
             language: 'en',
             theme: 'dark',
