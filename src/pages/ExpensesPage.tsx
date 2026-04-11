@@ -13,6 +13,8 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const lang = user?.language ?? 'en';
     const currency = user?.defaultCurrency ?? 'USD';
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+    const userRole = activeWorkspace?.members.find(m => m.uid === user?.id)?.role || 'viewer';
+    const isViewer = userRole === 'viewer';
 
     // Automatically set default date filters to active cycle if none are set.
     useEffect(() => {
@@ -65,8 +67,8 @@ export default function ExpensesPage({ }: ExpensesProps) {
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{filtered.length} transactions</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-secondary" onClick={() => setShowBudget(true)}><Target size={16} /> Budget</button>
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={16} />{t(lang, 'add_expense')}</button>
+                    {!isViewer && <button className="btn btn-secondary" onClick={() => setShowBudget(true)}><Target size={16} /> Budget</button>}
+                    {!isViewer && <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={16} />{t(lang, 'add_expense')}</button>}
                 </div>
             </div>
 
@@ -136,7 +138,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                         <div className="empty-icon">🔍</div>
                         <div className="empty-title">No expenses found</div>
                         <div className="empty-desc">Try adjusting your filters or add a new expense</div>
-                        <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add Expense</button>
+                        {!isViewer && <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add Expense</button>}
                     </div>
                 ) : (
                     <table className="data-table">
@@ -148,7 +150,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                 <th>{t(lang, 'date')}</th>
                                 <th>{t(lang, 'user')}</th>
                                 <th style={{ textAlign: 'right' }}>{t(lang, 'amount')}</th>
-                                <th style={{ width: 80, textAlign: 'center' }}>Actions</th>
+                                {!isViewer && <th style={{ width: 80, textAlign: 'center' }}>Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -176,26 +178,28 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                             </div>
                                         </td>
                                         <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 15, color: e.amount > 100 ? 'var(--danger)' : e.amount > 50 ? 'var(--warning)' : 'var(--text-primary)' }}><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></td>
-                                        <td style={{ width: 80, textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                                                <button
-                                                    className="btn btn-ghost btn-icon btn-sm"
-                                                    title="Edit"
-                                                    onClick={() => { setEditId(e.id); setShowAdd(true); }}
-                                                    style={{ color: 'var(--primary-light)' }}
-                                                >
-                                                    <Edit2 size={15} />
-                                                </button>
-                                                <button
-                                                    className="btn btn-ghost btn-icon btn-sm"
-                                                    title="Delete"
-                                                    onClick={() => setDeleteConfirmId(e.id)}
-                                                    style={{ color: 'var(--danger)' }}
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            </div>
-                                        </td>
+                                        {!isViewer && (
+                                            <td style={{ width: 80, textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                                                    <button
+                                                        className="btn btn-ghost btn-icon btn-sm"
+                                                        title="Edit"
+                                                        onClick={() => { setEditId(e.id); setShowAdd(true); }}
+                                                        style={{ color: 'var(--primary-light)' }}
+                                                    >
+                                                        <Edit2 size={15} />
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-ghost btn-icon btn-sm"
+                                                        title="Delete"
+                                                        onClick={() => setDeleteConfirmId(e.id)}
+                                                        style={{ color: 'var(--danger)' }}
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })}

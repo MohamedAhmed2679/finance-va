@@ -12,6 +12,8 @@ export default function EarningsPage() {
     const lang = user?.language ?? 'en';
 
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
+    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
+    const isViewer = userRole === 'viewer';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const cur = ws?.currency ?? 'USD';
     const hideAmounts = user?.hideAmounts ?? false;
@@ -85,9 +87,11 @@ export default function EarningsPage() {
                             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>(Starts on the {cycleStartDay}{cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})</span>
                         </div>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-                        <Plus size={16} /> Add Income
-                    </button>
+                    {!isViewer && (
+                        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+                            <Plus size={16} /> Add Income
+                        </button>
+                    )}
                 </header>
 
                 <div className="card-grid card-grid-3 mb-6">
@@ -172,9 +176,11 @@ export default function EarningsPage() {
                                         <span style={{ fontWeight: 700, fontSize: 16 }}>
                                             <CurrencyDisplay amount={inc.amount} currency={inc.currency} hideAmounts={hideAmounts} />
                                         </span>
-                                        <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm('Delete income source?')) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {!isViewer && (
+                                            <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm('Delete income source?')) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

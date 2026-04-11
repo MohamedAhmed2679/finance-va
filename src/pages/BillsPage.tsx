@@ -22,6 +22,8 @@ export default function BillsPage() {
     const [editBillDueDay, setEditBillDueDay] = useState<number>(1);
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+    const userRole = activeWorkspace?.members.find(m => m.uid === user?.id)?.role || 'viewer';
+    const isViewer = userRole === 'viewer';
     const currentMonth = format(new Date(), 'yyyy-MM');
 
     // Filter bills for current workspace
@@ -86,7 +88,7 @@ export default function BillsPage() {
 
         return (
             <div key={bill.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', opacity: isPaid ? 0.6 : 1, transition: 'all 0.2s ease-in-out' }}>
-                <div onClick={() => !isPaid && markBillPaid(bill.id, currentMonth)} style={{ cursor: isPaid ? 'default' : 'pointer' }}>
+                <div onClick={() => !isPaid && !isViewer && markBillPaid(bill.id, currentMonth)} style={{ cursor: isPaid || isViewer ? 'default' : 'pointer' }}>
                     {isPaid ? (
                         <CheckCircle size={28} style={{ color: 'var(--success)' }} />
                     ) : (
@@ -127,14 +129,16 @@ export default function BillsPage() {
                     })()}
                 </div>
 
-                <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
-                    <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); startEdit(bill); }}>
-                        <Edit2 size={16} />
-                    </button>
-                    <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('Delete this commitment?')) deleteBill(bill.id); }}>
-                        <Trash2 size={16} style={{ color: 'var(--danger)' }} />
-                    </button>
-                </div>
+                 {!isViewer && (
+                    <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); startEdit(bill); }}>
+                            <Edit2 size={16} />
+                        </button>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('Delete this commitment?')) deleteBill(bill.id); }}>
+                            <Trash2 size={16} style={{ color: 'var(--danger)' }} />
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -147,9 +151,11 @@ export default function BillsPage() {
                         <h1 className="page-title">{t(lang, 'bills_commitments')}</h1>
                         <p className="page-subtitle">Track recurring payments and automatically log expenses</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || 'Add Bill'}>
-                        <Plus size={16} /> Add Bill
-                    </button>
+                    {!isViewer && (
+                        <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || 'Add Bill'}>
+                            <Plus size={16} /> Add Bill
+                        </button>
+                    )}
                 </header>
 
                 {showAdd && (

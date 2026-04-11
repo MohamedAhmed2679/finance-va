@@ -12,7 +12,7 @@ import {
 export type CategoryKey = string;
 export type PaymentMethod = string;
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
-export type AppNotificationType = 'invite' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added';
+export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added';
 
 export interface CategoryDef {
     key: string;
@@ -270,6 +270,12 @@ interface AppState {
     declineInvite: (workspaceId: string, uid: string, notificationId: string) => void;
     markNotificationActioned: (id: string) => void;
     addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'actioned'>) => void;
+    
+    // Join Requests
+    requestJoin: (workspaceId: string) => void;
+    acceptJoinRequest: (notificationId: string) => void;
+    declineJoinRequest: (notificationId: string) => void;
+
     addExpense: (exp: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'deleted'>) => void;
     updateExpense: (id: string, data: Partial<Expense>) => void;
     deleteExpense: (id: string) => void;
@@ -404,6 +410,55 @@ export const useStore = create<AppState>()(
             })),
             markNotificationActioned: (id) => set(s => ({ notifications: s.notifications.map(n => n.id === id ? { ...n, actioned: true } : n) })),
             addNotification: (n) => set(s => ({ notifications: [{ ...n, id: generateId(), actioned: false, createdAt: new Date().toISOString() }, ...s.notifications] })),
+            
+            requestJoin: (workspaceId) => set(s => {
+                const ws = s.workspaces.find(w => w.id === workspaceId);
+                if (!ws || !s.user) return s;
+                
+                // Don't duplicate requests
+                const existing = s.notifications.find(n => n.workspaceId === workspaceId && n.targetUid === s.user?.id && n.type === 'join_request' && !n.actioned);
+                if (existing) return s;
+
+                const newNotif: AppNotification = {
+                    id: generateId(),
+                    type: 'join_request',
+                    workspaceId: ws.id,
+                    workspaceName: ws.name,
+                    message: `${s.user.name} has requested to join "${ws.name}".`,
+                    actioned: false,
+                    createdAt: new Date().toISOString(),
+                    senderName: s.user.name,
+                    targetUid: s.user.id // The requester
+                };
+                return { notifications: [newNotif, ...s.notifications] };
+            }),
+
+            acceptJoinRequest: (notificationId) => set(s => {
+                const notif = s.notifications.find(n => n.id === notificationId);
+                if (!notif || !notif.workspaceId || !notif.targetUid) return s;
+
+                const ws = s.workspaces.find(w => w.id === notif.workspaceId);
+                if (!ws) return s;
+
+                const newMember: WorkspaceMember = {
+                    uid: notif.targetUid,
+                    name: notif.senderName || 'Anonymous',
+                    email: '', // In a real app we'd fetch this from the user ID
+                    role: 'viewer', // Default role for new members
+                    status: 'active',
+                    joinedAt: new Date().toISOString()
+                };
+
+                return {
+                    workspaces: s.workspaces.map(w => w.id === ws.id ? { ...w, members: [...w.members.filter(m => m.uid !== newMember.uid), newMember] } : w),
+                    notifications: s.notifications.map(n => n.id === notificationId ? { ...n, actioned: true } : n)
+                };
+            }),
+
+            declineJoinRequest: (notificationId) => set(s => ({
+                notifications: s.notifications.map(n => n.id === notificationId ? { ...n, actioned: true } : n)
+            })),
+
             addExpense: (exp) => set(s => {
                 const now = new Date().toISOString();
                 const newExp: Expense = { ...exp, id: generateId(), createdAt: now, updatedAt: now, deleted: false };

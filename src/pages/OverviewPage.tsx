@@ -36,6 +36,8 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const { user, expenses, bills, activeWorkspaceId, workspaces, currency, markBillPaid } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
+    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
+    const isViewer = userRole === 'viewer';
     const cur = ws?.currency ?? currency;
     const hideAmounts = user?.hideAmounts ?? false;
     const cycleStartDay = ws?.cycleStartDay ?? 1;
@@ -108,7 +110,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
-                <button className="btn btn-primary" onClick={onAddExpense}>+ {t(lang, 'add_expense')}</button>
+                {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}>+ {t(lang, 'add_expense')}</button>}
             </div>
 
             {/* Stat cards */}
@@ -218,7 +220,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                         <span style={{ fontWeight: 700, fontSize: 14 }}><CurrencyDisplay amount={b.amount} currency={b.currency} hideAmounts={hideAmounts} /></span>
-                                        <button className="btn btn-primary btn-sm" onClick={() => markBillPaid(b.id, monthStr)} style={{ padding: '4px 12px', minHeight: 'unset', fontSize: 12 }}>Pay</button>
+                                        {!isViewer && <button className="btn btn-primary btn-sm" onClick={() => markBillPaid(b.id, monthStr)} style={{ padding: '4px 12px', minHeight: 'unset', fontSize: 12 }}>Pay</button>}
                                     </div>
                                 </div>
                             );

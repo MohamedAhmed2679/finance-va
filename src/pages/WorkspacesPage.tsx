@@ -23,6 +23,7 @@ export default function WorkspacesPage() {
     const [inviting, setInviting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
+    const isOwner = (ws: typeof workspaces[0]) => ws.ownerId === user?.id;
     const isOwnerOrAdmin = (ws: typeof workspaces[0]) => ws.ownerId === user?.id || ws.members.find(m => m.uid === user?.id)?.role === 'admin';
 
     function handleCreateWorkspace(e: React.FormEvent) {
@@ -150,9 +151,9 @@ export default function WorkspacesPage() {
                             <div className="form-group">
                                 <label className="form-label">Role</label>
                                 <select className="form-input form-select" value={inviteRole} onChange={e => setInviteRole(e.target.value as WorkspaceRole)}>
-                                    <option value="admin">Admin – Full access</option>
-                                    <option value="member">Member – Add & edit own expenses</option>
-                                    <option value="viewer">Viewer – View only</option>
+                                    <option value="admin">Admin – Full access (Edit/View)</option>
+                                    <option value="viewer">Member – View only access</option>
+                                    <option value="owner">Co-Owner – Manage users & data</option>
                                 </select>
                             </div>
                             <button type="submit" className="btn btn-primary w-full" disabled={inviting}>{inviting ? 'Sending…' : 'Send Invitation'}</button>
@@ -196,18 +197,18 @@ export default function WorkspacesPage() {
                                         <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${ws.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{m.name[0]}</div>
                                         <span style={{ fontWeight: 600 }}>{m.name.split(' ')[0]}</span>
 
-                                        {isOwnerOrAdmin(ws) && m.uid !== user?.id && m.role !== 'owner' ? (
+                                        {isOwner(ws) && m.uid !== user?.id && m.role !== 'owner' ? (
                                             <select className="form-input" style={{ padding: '0px 6px', height: 22, fontSize: 11, background: 'transparent', border: 'none', color: roleColor[m.role], cursor: 'pointer', appearance: 'none' }} value={m.role} onChange={(e) => updateMemberRole(ws.id, m.uid, e.target.value as WorkspaceRole)}>
+                                                <option value="owner">Owner</option>
                                                 <option value="admin">Admin</option>
-                                                <option value="member">Member</option>
-                                                <option value="viewer">Viewer</option>
+                                                <option value="viewer">Member (View Only)</option>
                                             </select>
                                         ) : (
                                             <span style={{ color: roleColor[m.role], display: 'flex', alignItems: 'center', gap: 3 }}>{roleIcon[m.role]} {m.role}</span>
                                         )}
                                         {m.status === 'invited' && <span className="badge badge-warning" style={{ fontSize: 9, padding: '1px 6px' }}>invited</span>}
 
-                                        {isOwnerOrAdmin(ws) && m.uid !== user?.id && m.role !== 'owner' && (
+                                        {isOwner(ws) && m.uid !== user?.id && m.role !== 'owner' && (
                                             <X size={12} style={{ color: 'var(--danger)', cursor: 'pointer', opacity: 0.6, marginLeft: 4 }} onClick={() => { if (confirm(`Remove ${m.name} from workspace?`)) removeMember(ws.id, m.uid); }} />
                                         )}
                                     </div>

@@ -16,7 +16,7 @@ interface TimelineItem {
 }
 
 export default function ActivityPage() {
-    const { user, notifications, workspaces, activeWorkspaceId, acceptInvite, declineInvite, markNotificationActioned } = useStore();
+    const { user, notifications, workspaces, activeWorkspaceId, acceptInvite, declineInvite, acceptJoinRequest, declineJoinRequest, markNotificationActioned } = useStore();
     const lang = user?.language ?? 'en';
 
     // Merge notifications + workspace activity logs into a single timeline
@@ -32,7 +32,7 @@ export default function ActivityPage() {
                 timestamp: n.createdAt,
                 workspaceName: n.workspaceName,
                 actioned: n.actioned,
-                isInvite: n.type === 'invite' && !n.actioned,
+                isInvite: (n.type === 'invite' || n.type === 'join_request') && !n.actioned,
                 targetUid: n.targetUid,
                 workspaceId: n.workspaceId,
             });
@@ -67,7 +67,8 @@ export default function ActivityPage() {
 
     function getIconForType(type: string) {
         switch (type) {
-            case 'invite': return <UserPlus size={16} />;
+            case 'invite':
+            case 'join_request': return <UserPlus size={16} />;
             case 'role_change': return <Shield size={16} />;
             case 'expense_added':
             case 'expense': return <Receipt size={16} />;
@@ -86,7 +87,8 @@ export default function ActivityPage() {
             case 'expense_deleted': return 'var(--danger)';
             case 'expense_edited': return 'var(--warning)';
             case 'income': return '#22c55e';
-            case 'invite': return 'var(--primary-light)';
+            case 'invite':
+            case 'join_request': return 'var(--primary-light)';
             default: return 'var(--text-muted)';
         }
     }
@@ -131,8 +133,14 @@ export default function ActivityPage() {
                                 <div className="activity-invite-msg">{n.message}</div>
                                 <div className="activity-invite-time">{formatTimestamp(n.timestamp)}</div>
                                 <div className="activity-invite-actions">
-                                    <button className="btn btn-secondary w-full" onClick={() => declineInvite(n.workspaceId!, n.targetUid!, n.id)}>Decline</button>
-                                    <button className="btn btn-primary w-full" onClick={() => acceptInvite(n.workspaceId!, n.targetUid!, n.id)}>Accept</button>
+                                    <button className="btn btn-secondary w-full" onClick={() => {
+                                        if (n.type === 'invite') declineInvite(n.workspaceId!, n.targetUid!, n.id);
+                                        else declineJoinRequest(n.id);
+                                    }}>Decline</button>
+                                    <button className="btn btn-primary w-full" onClick={() => {
+                                        if (n.type === 'invite') acceptInvite(n.workspaceId!, n.targetUid!, n.id);
+                                        else acceptJoinRequest(n.id);
+                                    }}>Accept</button>
                                 </div>
                             </div>
                         ))}

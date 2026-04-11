@@ -9,6 +9,8 @@ export default function SavingsPage() {
     const { user, workspaces, savingsGoals, activeWorkspaceId, addSavingsGoal, addFundsToGoal, deleteSavingsGoal, incomes, expenses } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
+    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
+    const isViewer = userRole === 'viewer';
     const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const wsGoals = savingsGoals.filter(g => g.workspaceId === activeWorkspaceId);
@@ -114,30 +116,32 @@ export default function SavingsPage() {
                 </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isViewer ? '1fr' : '1fr 2fr', gap: 24, alignItems: 'start' }}>
                 {/* Add new goal */}
-                <div className="card animate-fadeIn" style={{ animationDelay: '60ms' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t(lang, 'add_goal')}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>What are you saving for?</div>
-                    <form onSubmit={handleAdd}>
-                        <div className="form-group">
-                            <label className="form-label">{t(lang, 'dream_goal')}</label>
-                            <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. New Car" required />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Reason / Story</label>
-                            <textarea className="form-input" value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this important to you?" rows={2} style={{ resize: 'none' }} />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">{t(lang, 'target_amount')}</label>
-                            <div className="input-with-icon">
-                                <DollarSign size={16} className="input-icon" />
-                                <input type="number" className="form-input" value={target} onChange={e => setTarget(e.target.value)} placeholder="1000.00" step="0.01" min="1" required />
+                {!isViewer && (
+                    <div className="card animate-fadeIn" style={{ animationDelay: '60ms' }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t(lang, 'add_goal')}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>What are you saving for?</div>
+                        <form onSubmit={handleAdd}>
+                            <div className="form-group">
+                                <label className="form-label">{t(lang, 'dream_goal')}</label>
+                                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. New Car" required />
                             </div>
-                        </div>
-                        <button type="submit" className="btn btn-primary w-full"><Plus size={16} />{t(lang, 'add_goal')}</button>
-                    </form>
-                </div>
+                            <div className="form-group">
+                                <label className="form-label">Reason / Story</label>
+                                <textarea className="form-input" value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this important to you?" rows={2} style={{ resize: 'none' }} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t(lang, 'target_amount')}</label>
+                                <div className="input-with-icon">
+                                    <DollarSign size={16} className="input-icon" />
+                                    <input type="number" className="form-input" value={target} onChange={e => setTarget(e.target.value)} placeholder="1000.00" step="0.01" min="1" required />
+                                </div>
+                            </div>
+                            <button type="submit" className="btn btn-primary w-full"><Plus size={16} />{t(lang, 'add_goal')}</button>
+                        </form>
+                    </div>
+                )}
 
                 {/* Goals list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -180,8 +184,8 @@ export default function SavingsPage() {
                                     </form>
                                 ) : (
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <button className="btn btn-secondary btn-sm" onClick={() => { setFundsId(goal.id); setFundsAmt(''); }}><Plus size={14} />{t(lang, 'add_funds')}</button>
-                                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm('Delete this goal?')) deleteSavingsGoal(goal.id); }}><Trash2 size={14} />{t(lang, 'delete')}</button>
+                                        {!isViewer && <button className="btn btn-secondary btn-sm" onClick={() => { setFundsId(goal.id); setFundsAmt(''); }}><Plus size={14} />{t(lang, 'add_funds')}</button>}
+                                        {!isViewer && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm('Delete this goal?')) deleteSavingsGoal(goal.id); }}><Trash2 size={14} />{t(lang, 'delete')}</button>}
                                     </div>
                                 )}
                             </div>
