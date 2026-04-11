@@ -13,8 +13,8 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const lang = user?.language ?? 'en';
     const currency = user?.defaultCurrency ?? 'USD';
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
-    const isOwner = user?.id && (activeWorkspace?.ownerId === user.id || activeWorkspace?.ownerId === user.email);
-    const userRole = activeWorkspace?.members.find(m => m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
+    const isOwner = user?.dbId && (activeWorkspace?.ownerId === user.dbId || activeWorkspace?.ownerId === user.id || activeWorkspace?.ownerId === user.email);
+    const userRole = activeWorkspace?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
     const isViewer = userRole === 'viewer' && !isOwner;
 
     // Automatically set default date filters to active cycle if none are set.

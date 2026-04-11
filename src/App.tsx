@@ -52,8 +52,10 @@ export default function App() {
                     if (sbUser) {
                         // Fetch the full profile to restore preferences
                         fetchUserProfile(sbUser.id).then((profile: any) => {
+                            if (!profile) return;
                             login({
                                 id: sbUser.id,
+                                dbId: profile.id, // THE INTERNAL UUID
                                 name: profile?.name || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
                                 email: sbUser.email || '',
                                 phone: sbUser.phone,

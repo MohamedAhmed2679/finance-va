@@ -23,8 +23,8 @@ export default function WorkspacesPage() {
     const [inviting, setInviting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
-    const isOwner = (ws: typeof workspaces[0]) => user?.id && (ws.ownerId === user.id || ws.ownerId === user.email);
-    const isOwnerOrAdmin = (ws: typeof workspaces[0]) => isOwner(ws) || ws.members.find(m => m.uid === user?.id || (m.email === user?.email && m.email))?.role === 'admin';
+    const isOwner = (ws: typeof workspaces[0]) => user?.dbId && (ws.ownerId === user.dbId || ws.ownerId === user.id || ws.ownerId === user.email);
+    const isOwnerOrAdmin = (ws: typeof workspaces[0]) => isOwner(ws) || ws.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role === 'admin';
 
     function handleCreateWorkspace(e: React.FormEvent) {
         e.preventDefault();

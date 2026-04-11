@@ -29,7 +29,8 @@ export interface PaymentMethodDef {
 }
 
 export interface User {
-    id: string;
+    id: string; // Auth ID (Supabase)
+    dbId?: string; // Internal User UUID (public.users)
     name: string;
     email: string;
     phone?: string;
@@ -642,7 +643,9 @@ export const useStore = create<AppState>()(
                 if (!s.user) return;
                 set({ syncStatus: 'syncing' });
                 try {
-                    let ws = await fetchUserWorkspaces(s.user.id);
+                    // Use the internal dbId if available (fixes the Auth vs internal ID mismatch)
+                    const userId = s.user.dbId || s.user.id;
+                    let ws = await fetchUserWorkspaces(userId);
                     
                     // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,
                     // even if the UUID account already exists.
