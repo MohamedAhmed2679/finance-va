@@ -36,8 +36,9 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const { user, expenses, bills, activeWorkspaceId, workspaces, currency, markBillPaid } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
-    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
-    const isViewer = userRole === 'viewer';
+    const isOwner = user?.id && ws?.ownerId === user.id;
+    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || (isOwner ? 'owner' : 'viewer');
+    const isViewer = userRole === 'viewer' && !isOwner;
     const cur = ws?.currency ?? currency;
     const hideAmounts = user?.hideAmounts ?? false;
     const cycleStartDay = ws?.cycleStartDay ?? 1;

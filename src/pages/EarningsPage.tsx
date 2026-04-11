@@ -11,9 +11,11 @@ export default function EarningsPage() {
     const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome } = useStore();
     const lang = user?.language ?? 'en';
 
-    const ws = workspaces.find(w => w.id === activeWorkspaceId);
-    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
-    const isViewer = userRole === 'viewer';
+    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+    const isOwner = user?.id && activeWorkspace?.ownerId === user.id;
+    const userRole = activeWorkspace?.members.find(m => m.uid === user?.id)?.role || (isOwner ? 'owner' : 'viewer');
+    const isViewer = userRole === 'viewer' && !isOwner;
+    const ws = activeWorkspace;
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const cur = ws?.currency ?? 'USD';
     const hideAmounts = user?.hideAmounts ?? false;
