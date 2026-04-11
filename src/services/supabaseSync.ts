@@ -306,15 +306,24 @@ export async function fetchUserWorkspaces(userId: string) {
 export async function fetchWorkspacesByEmail(email: string) {
     if (!isSupabaseReady() || !supabase || !email) return [];
     
-    // Fallback search: find workspaces where owner_id is the email string 
-    // (for legacy accounts) or find via members table.
+    // Find workspaces where this email is a member (safest way to find legacy links)
+    const { data: memberEntries, error: mErr } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('email', email);
+        
+    if (mErr || !memberEntries || memberEntries.length === 0) {
+        return [];
+    }
+
+    const wsIds = memberEntries.map(m => m.workspace_id);
     const { data, error } = await supabase
         .from('workspaces')
         .select('*')
-        .eq('owner_id', email);
+        .in('id', wsIds);
         
     if (error) {
-        console.error('[Sync] Error searching workspaces by email:', error.message);
+        console.error('[Sync] Error fetching workspaces for email members:', error.message);
         return [];
     }
     return data || [];

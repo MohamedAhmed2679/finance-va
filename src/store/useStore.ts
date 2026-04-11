@@ -676,28 +676,30 @@ export const useStore = create<AppState>()(
                             fetchIncomesFromCloud(ws[0].id),
                             fetchBillsFromCloud(ws[0].id),
                             fetchSavingsGoalsFromCloud(ws[0].id),
-                            fetchNotifications(s.user.id)
+                            fetchNotifications(userId)
                         ]);
                         set({ 
                             expenses: expenses || [], 
                             incomes: incomes || [], 
                             bills: bills || [], 
                             savingsGoals: goals || [],
-                            notifications: notifs || []
+                            notifications: notifs || [],
+                            syncStatus: 'synced'
                         });
-                    } else if (ws?.length === 0) {
-                        // Create a default workspace for new user
+                    } else {
+                        // Create a default workspace for new user using the safe internal ID
+                        console.log('[Sync] Creating default workspace for ID:', userId);
                         const wsId = generateId();
                         const personalWs: Workspace = {
                             id: wsId,
                             name: 'Personal',
                             type: 'personal',
-                            ownerId: s.user.id,
+                            ownerId: userId,
                             currency: s.user.defaultCurrency || 'USD',
                             icon: '👤',
                             color: '#7c3aed',
                             members: [{
-                                uid: s.user.id,
+                                uid: userId,
                                 name: s.user.name,
                                 email: s.user.email,
                                 role: 'owner',

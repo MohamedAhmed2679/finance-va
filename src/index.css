@@ -2106,8 +2106,10 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
     right: 0;
     width: 100% !important;
     height: 65px !important;
+    display: flex !important;
     flex-direction: row;
     padding: 0;
+    background: var(--bg-body) !important;
     border-right: none;
     border-top: 1px solid var(--border);
     z-index: 9999 !important;
