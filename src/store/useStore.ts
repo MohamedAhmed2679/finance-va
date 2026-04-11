@@ -38,6 +38,10 @@ export interface User {
     language: string;
     theme: 'dark' | 'light';
     biometricEnabled: boolean;
+    pin?: string;
+    lockTimeout?: number;
+    voiceEnabled?: boolean;
+    smsEnabled?: boolean;
     hideAmounts: boolean;
     storeOcr?: boolean;
     notifyDaily?: boolean;
@@ -46,6 +50,7 @@ export interface User {
     monthlyBudget?: number;
     connectedClouds?: string[];
     backupInterval?: 'daily' | 'weekly' | 'monthly' | 'manual';
+    geminiKey?: string;
     createdAt: string;
 }
 
@@ -184,6 +189,9 @@ const DEMO_USER: User = {
     language: 'en',
     theme: 'dark',
     biometricEnabled: false,
+    lockTimeout: 5,
+    voiceEnabled: true,
+    smsEnabled: true,
     hideAmounts: false,
     createdAt: new Date().toISOString(),
 };
@@ -242,9 +250,12 @@ interface AppState {
     categories: CategoryDef[];
     paymentMethods: PaymentMethodDef[];
 
-    // Actions
     login: (user: User) => void;
     logout: () => void;
+    
+    // Security
+    isLocked: boolean;
+    setLocked: (locked: boolean) => void;
     deleteAllData: () => void;
     updateUser: (data: Partial<User>) => void;
     completeOnboarding: () => void;
@@ -315,9 +326,11 @@ export const useStore = create<AppState>()(
             syncStatus: 'synced',
             categories: [...CATEGORIES],
             paymentMethods: [...PAYMENT_METHODS],
+            isLocked: false,
 
             login: (user) => set({ isAuthenticated: true, user, showOnboarding: true }),
             logout: () => set({ isAuthenticated: false, user: null }),
+            setLocked: (locked) => set({ isLocked: locked }),
             deleteAllData: () => set({ expenses: [], savingsGoals: [] }),
             updateUser: (data) => set(s => ({ user: s.user ? { ...s.user, ...data } : null })),
             completeOnboarding: () => set({ showOnboarding: false }),

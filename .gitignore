@@ -10,7 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron
 *.local
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.production
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +30,6 @@ dist-ssr
 *.sln
 *.sw?
 release/
+
+# Build artifacts
+tmp_bundle.js

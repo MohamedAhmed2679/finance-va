@@ -55,7 +55,7 @@ function validatePassword(password: string): string | null {
     if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
     if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
     if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password)) return 'Password must contain at least one special character.';
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(password)) return 'Password must contain at least one special character.';
     return null; // Valid
 }
 
@@ -88,7 +88,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         const hash = window.location.hash;
         const search = window.location.search;
         if (hash.includes('type=recovery') || search.includes('type=recovery')) {
-            setIsRecoveryMode(true);
+            setTimeout(() => setIsRecoveryMode(true), 0);
         }
 
         // Also listen to Supabase events just in case
@@ -245,15 +245,18 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
     // Social icons row
     const socialIcons = (
-        <div className="auth-social-row">
-            <button className="auth-social-icon" onClick={handleGoogleLogin} disabled={loading} title="Google">
-                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>
+        <div className="auth-social-grid">
+            <button className="social-login-btn google" onClick={handleGoogleLogin} disabled={loading} title="Continue with Google">
+                <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>
+                <span>Google</span>
             </button>
-            <button className="auth-social-icon" onClick={handleAppleLogin} disabled={loading} title="Apple">
-                <svg width="18" height="18" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-116.1-55.8-168-110.8S78 802.2 69 742.4c-9.7-64.7-5.5-182.7 66.9-298.1 38.6-60.8 99.2-120.2 167.3-120.2 82.1 0 136.9 43 197.7 43 59.5 0 102.2-43 197.7-43 51 0 99.9 30.6 133.4 53.7z" /></svg>
+            <button className="social-login-btn apple" onClick={handleAppleLogin} disabled={loading} title="Continue with Apple">
+                <svg width="20" height="20" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-116.1-55.8-168-110.8S78 802.2 69 742.4c-9.7-64.7-5.5-182.7 66.9-298.1 38.6-60.8 99.2-120.2 167.3-120.2 82.1 0 136.9 43 197.7 43 59.5 0 102.2-43 197.7-43 51 0 99.9 30.6 133.4 53.7z" /></svg>
+                <span>Apple</span>
             </button>
-            <button className="auth-social-icon" onClick={handleMicrosoftLogin} disabled={loading} title="Microsoft">
-                <svg width="18" height="18" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>
+            <button className="social-login-btn microsoft" onClick={handleMicrosoftLogin} disabled={loading} title="Continue with Microsoft">
+                <svg width="20" height="20" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>
+                <span>Microsoft</span>
             </button>
         </div>
     );
@@ -287,7 +290,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 <div className="auth-card animate-slideUp">
                     <div className="auth-logo-icon">FV</div>
                     <div className="auth-logo-title">Reset Password</div>
-                    <p style={{textAlign: 'center', color: 'var(--text-muted)', marginBottom: 20, fontSize: 14}}>
+                    <p className="auth-form-description">
                         Enter your email address and we'll send you a link to reset your password.
                     </p>
                     {error && <div className="auth-error-msg">{error}</div>}
@@ -347,11 +350,11 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 {error && <div className="auth-error-msg">{error}</div>}
                                 {successMsg && <div className="auth-success-msg">{successMsg}</div>}
                                 {socialIcons}
-                                <div className="auth-divider"><span>or use your account</span></div>
+                                <div className="auth-divider"><span>or continue with email</span></div>
                                 <form onSubmit={handleSignInSubmit}>
                                     <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
                                     <PasswordInput label="Password" value={password} onChange={setPassword} required />
-                                    <button type="button" className="auth-forgot-link" style={{background: 'none', border:'none', cursor:'pointer', padding:0}} 
+                                    <button type="button" className="auth-forgot-link" 
                                         onClick={() => { setShowForgot(true); setError(''); setSuccessMsg(''); }}>
                                         Forgot Your Password?
                                     </button>
@@ -367,7 +370,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 {error && <div className="auth-error-msg">{error}</div>}
                                 {successMsg && <div className="auth-success-msg">{successMsg}</div>}
                                 {socialIcons}
-                                <div className="auth-divider"><span>or register with your details</span></div>
+                                <div className="auth-divider"><span>or continue with email</span></div>
                                 <form onSubmit={handleSignUpSubmit}>
                                     <FloatingInput label="Full Name" value={name} onChange={setName} required />
                                     <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
@@ -382,7 +385,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         <div className="floating-bar" />
                                     </div>
                                     <PasswordInput label="Password" value={password} onChange={setPassword} required />
-                                    <p style={{fontSize: 12, color: 'var(--text-muted)', marginTop: -10, marginBottom: 16}}>
+                                    <p className="auth-password-hint">
                                         Must be 8+ chars and contain upper, lower, number, and special character.
                                     </p>
                                     <button type="submit" className="btn auth-btn-submit" disabled={loading}>

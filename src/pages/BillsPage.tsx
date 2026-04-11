@@ -147,6 +147,9 @@ export default function BillsPage() {
                         <h1 className="page-title">{t(lang, 'bills_commitments')}</h1>
                         <p className="page-subtitle">Track recurring payments and automatically log expenses</p>
                     </div>
+                    <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || 'Add Bill'}>
+                        <Plus size={16} /> Add Bill
+                    </button>
                 </header>
 
                 {showAdd && (
@@ -239,10 +242,6 @@ export default function BillsPage() {
                     )}
                 </div>
             </div>
-
-            <button className="fab animate-slideUp" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                <Plus size={24} />
-            </button>
         </>
     );
 }

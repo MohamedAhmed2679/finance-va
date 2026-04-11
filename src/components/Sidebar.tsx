@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { LayoutDashboard, Receipt, PiggyBank, ArrowLeftRight, Settings, ChevronDown, LogOut, Moon, Sun, Bell, CalendarSync, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, ChevronDown, LogOut, Moon, Sun, Bell, CalendarDays, TrendingUp, FolderOpen, Plus } from 'lucide-react';
 
 interface SidebarProps { active: string; onNavigate: (page: string) => void; }
 
@@ -15,10 +15,10 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
 
     const navItems = [
         { key: 'overview', label: t(lang, 'overview'), icon: LayoutDashboard },
-        { key: 'earnings', label: t(lang, 'earnings'), icon: Briefcase },
+        { key: 'earnings', label: t(lang, 'earnings'), icon: TrendingUp },
         { key: 'expenses', label: t(lang, 'expenses'), icon: Receipt },
-        { key: 'bills', label: t(lang, 'bills_commitments'), icon: CalendarSync },
-        { key: 'savings', label: t(lang, 'savings'), icon: PiggyBank },
+        { key: 'bills', label: t(lang, 'bills_commitments'), icon: CalendarDays },
+        { key: 'savings', label: t(lang, 'savings'), icon: Target },
         { key: 'converter', label: t(lang, 'converter'), icon: ArrowLeftRight },
         { key: 'settings', label: t(lang, 'settings'), icon: Settings },
     ];
@@ -33,7 +33,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             {/* Workspace switcher */}
             <div style={{ padding: '16px 12px 0', position: 'relative' }} ref={wsRef}>
                 <div className="workspace-chip" onClick={() => setWsOpen(!wsOpen)} style={{ width: '100%' }}>
-                    <span style={{ fontSize: 18 }}>{activeWs?.icon}</span>
+                    <div style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: activeWs?.color || 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                        {activeWs?.name?.charAt(0).toUpperCase()}
+                    </div>
                     <span style={{ flex: 1, fontSize: 13 }}>{activeWs?.name}</span>
                     <ChevronDown size={14} style={{ color: 'var(--text-muted)', transition: 'transform 200ms', transform: wsOpen ? 'rotate(180deg)' : 'none' }} />
                 </div>
@@ -42,7 +44,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         {workspaces.map(ws => (
                             <div key={ws.id} className={`dropdown-item ${ws.id === activeWorkspaceId ? 'active' : ''}`}
                                 onClick={() => { setActiveWorkspace(ws.id); setWsOpen(false); }}>
-                                <span style={{ fontSize: 18 }}>{ws.icon}</span>
+                                <div style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: ws.color || 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                                    {ws.name?.charAt(0).toUpperCase()}
+                                </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600 }}>{ws.name}</div>
                                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ws.type === 'personal' ? t(lang, 'personal') : t(lang, 'shared')}</div>
@@ -51,7 +55,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         ))}
                         <div className="dropdown-divider" />
                         <div className="dropdown-item" onClick={() => { onNavigate('workspaces'); setWsOpen(false); }}>
-                            <span style={{ fontSize: 18 }}>➕</span>
+                            <Plus size={18} />
                             <span>{t(lang, 'new_workspace')}</span>
                         </div>
                     </div>
@@ -67,7 +71,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     </div>
                 ))}
                 <div className={`nav-item ${active === 'workspaces' ? 'active' : ''}`} onClick={() => onNavigate('workspaces')} style={{ marginTop: 8 }}>
-                    <span style={{ fontSize: 18 }}>🏢</span>
+                    <FolderOpen size={18} />
                     <span>{t(lang, 'workspaces')}</span>
                 </div>
                 <div className={`nav-item ${active === 'activity' ? 'active' : ''}`} onClick={() => onNavigate('activity')} style={{ display: 'flex', justifyContent: 'space-between' }}>

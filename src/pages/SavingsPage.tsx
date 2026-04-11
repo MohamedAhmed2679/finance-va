@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { formatCurrency, getActiveCycleDates } from '../constants';
+import { getActiveCycleDates } from '../constants';
 import { Plus, Trash2, DollarSign, PiggyBank } from 'lucide-react';
+import CurrencyDisplay from '../components/CurrencyDisplay';
 
 export default function SavingsPage() {
     const { user, workspaces, savingsGoals, activeWorkspaceId, addSavingsGoal, addFundsToGoal, deleteSavingsGoal, incomes, expenses } = useStore();
@@ -11,6 +12,7 @@ export default function SavingsPage() {
     const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const wsGoals = savingsGoals.filter(g => g.workspaceId === activeWorkspaceId);
+    const hideAmounts = user?.hideAmounts ?? false;
 
     const [name, setName] = useState('');
     const [reason, setReason] = useState('');
@@ -81,7 +83,7 @@ export default function SavingsPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'savings_goals')}</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length} active goals · {formatCurrency(totalSaved, cur)} saved of {formatCurrency(totalTarget, cur)}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length} active goals · <CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} /> saved of <CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /></p>
                 </div>
             </div>
 
@@ -91,11 +93,11 @@ export default function SavingsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>Total Progress</div>
-                            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}>{formatCurrency(totalSaved, cur)}</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of {formatCurrency(totalTarget, cur)} target</div>
+                            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}><CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} /></div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of <CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /> target</div>
                             {rolloverSavings > 0 && (
                                 <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PiggyBank size={12} /> {formatCurrency(rolloverSavings, cur)} from past cycle rollovers
+                                    <PiggyBank size={12} /> <CurrencyDisplay amount={rolloverSavings} currency={cur} hideAmounts={hideAmounts} /> from past cycle rollovers
                                 </div>
                             )}
                         </div>
@@ -159,13 +161,13 @@ export default function SavingsPage() {
                                     <div style={{ fontWeight: 800, fontSize: 16, color: goal.color }}>{pct}%</div>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
-                                    <span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(goal.savedAmount, goal.currency)}</span> saved</span>
-                                    <span>of <span style={{ fontWeight: 600 }}>{formatCurrency(goal.targetAmount, goal.currency)}</span></span>
+                                    <span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}><CurrencyDisplay amount={goal.savedAmount} currency={goal.currency} hideAmounts={hideAmounts} /></span> saved</span>
+                                    <span>of <span style={{ fontWeight: 600 }}><CurrencyDisplay amount={goal.targetAmount} currency={goal.currency} hideAmounts={hideAmounts} /></span></span>
                                 </div>
                                 <div className="progress" style={{ height: 8, marginBottom: 12 }}>
                                     <div className="progress-bar" style={{ width: `${Math.min(pct, 100)}%`, background: goal.color }} />
                                 </div>
-                                {remaining > 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>💡 {formatCurrency(remaining, goal.currency)} more to reach your goal</div>}
+                                {remaining > 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, display: 'flex', gap: 4 }}>💡 <CurrencyDisplay amount={remaining} currency={goal.currency} hideAmounts={hideAmounts} /> more to reach your goal</div>}
 
                                 {fundsId === goal.id ? (
                                     <form onSubmit={handleAddFunds} style={{ display: 'flex', gap: 8 }} className="animate-fadeIn">

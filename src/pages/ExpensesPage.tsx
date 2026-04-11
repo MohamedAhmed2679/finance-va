@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { formatCurrency, getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
+import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
 import { Search, Filter, X, Trash2, Plus, Edit2, Target } from 'lucide-react';
 import AddExpenseModal from '../components/AddExpenseModal';
+import CurrencyDisplay from '../components/CurrencyDisplay';
 
 interface ExpensesProps { }
 
@@ -174,7 +175,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{e.createdByName.split(' ')[0]}</span>
                                             </div>
                                         </td>
-                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 15, color: e.amount > 100 ? 'var(--danger)' : e.amount > 50 ? 'var(--warning)' : 'var(--text-primary)' }}>{formatCurrency(e.amount, e.currency, hideAmounts)}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 15, color: e.amount > 100 ? 'var(--danger)' : e.amount > 50 ? 'var(--warning)' : 'var(--text-primary)' }}><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></td>
                                         <td style={{ width: 80, textAlign: 'center' }}>
                                             <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                                                 <button

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
-import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase } from 'lucide-react';
+import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2 } from 'lucide-react';
 import { exportToPDF } from '../utils/pdfExport';
 
 export default function SettingsPage() {
@@ -38,6 +38,12 @@ export default function SettingsPage() {
         setLanguage(langDraft);
         setCurrency(curDraft);
         if (user) updateUser({ language: langDraft, defaultCurrency: curDraft });
+        
+        // Also update the active workspace currency so the dashboard reflects it
+        if (activeWorkspaceId) {
+            updateWorkspace(activeWorkspaceId, { currency: curDraft });
+        }
+
         setSaveSuccess(true);
         // Apply RTL if Arabic
         document.documentElement.dir = langDraft === 'ar' ? 'rtl' : 'ltr';
@@ -89,6 +95,7 @@ export default function SettingsPage() {
         { id: 'language', label: t(lang, 'language_region'), icon: Globe },
         { id: 'security', label: t(lang, 'security_privacy'), icon: Lock },
         { id: 'categories', label: t(lang, 'categories_methods'), icon: Tags },
+        { id: 'integrations', label: 'AI Integrations', icon: Wand2 },
         { id: 'referral', label: t(lang, 'referral_id'), icon: Copy },
         { id: 'export', label: t(lang, 'export_data'), icon: Download },
         { id: 'cloud', label: t(lang, 'cloud_backup'), icon: Cloud },
@@ -164,6 +171,27 @@ export default function SettingsPage() {
                         </div>
                     )}
 
+                    {activeSection === 'integrations' && (
+                        <div className="card animate-fadeIn">
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>AI Integrations</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Configure your personal API keys for AI functionalities.</div>
+
+                            <div className="form-group">
+                                <label className="form-label">Gemini API Key</label>
+                                <input 
+                                    type="password" 
+                                    className="form-input" 
+                                    value={user?.geminiKey || ''} 
+                                    onChange={e => updateUser({ geminiKey: e.target.value })} 
+                                    placeholder="AIzaSy..." 
+                                />
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                                    Your personal Gemini API Key from Google AI Studio. Stored securely on your device. Used for AI Health Summary and Expense Parsing.
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeSection === 'workspace' && (
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Workspace Settings</div>
@@ -220,7 +248,7 @@ export default function SettingsPage() {
                             </div>
 
                             {saveSuccess && (
-                                <div className="animate-fadeIn" style={{ background: 'var(--accent-soft)', border: '1px solid rgba(6,214,160,0.3)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--accent)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div className="animate-fadeIn flex-row items-center gap-2 mb-3" style={{ background: 'var(--accent-soft)', border: '1px solid rgba(6,214,160,0.3)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--accent)' }}>
                                     <Check size={14} /> Language and currency updated!
                                 </div>
                             )}
@@ -230,24 +258,56 @@ export default function SettingsPage() {
 
                     {activeSection === 'security' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>Security & Privacy</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div className="font-bold mb-5" style={{ fontSize: 16 }}>Security & Privacy</div>
+                            <div className="flex-col gap-4">
                                 {[
                                     { label: t(lang, 'biometric_lock'), desc: 'Use Face ID or fingerprint to unlock the app', key: 'biometricEnabled' },
                                     { label: t(lang, 'store_ocr'), desc: 'Keep extracted receipt text for debugging', key: 'storeOcr' },
                                 ].map(item => (
-                                    <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                    <div key={item.key} className="flex-row items-center gap-4 rounded-xl" style={{ padding: '14px 16px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
                                         <Shield size={20} style={{ color: 'var(--primary-light)', flexShrink: 0 }} />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 14 }}>{item.label}</div>
-                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</div>
+                                        <div className="flex-1">
+                                            <div className="font-bold" style={{ fontSize: 14 }}>{item.label}</div>
+                                            <div className="text-muted text-xs mt-1">{item.desc}</div>
                                         </div>
-                                        <div onClick={() => { updateUser({ [item.key]: !(user as any)?.[item.key] }); }}
-                                            style={{ width: 44, height: 24, borderRadius: 99, background: (user as any)?.[item.key] ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
-                                            <div style={{ position: 'absolute', left: (user as any)?.[item.key] ? 'calc(100% - 22px)' : 2, top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 200ms' }} />
+                                        <div onClick={() => { updateUser({ [item.key]: !(user as unknown as Record<string, boolean>)?.[item.key] }); }}
+                                            className="relative cursor-pointer"
+                                            style={{ width: 44, height: 24, borderRadius: 99, background: (user as unknown as Record<string, boolean>)?.[item.key] ? 'var(--primary)' : 'var(--border)', flexShrink: 0, transition: 'background 200ms' }}>
+                                            <div className="absolute bg-white rounded-full" style={{ left: (user as unknown as Record<string, boolean>)?.[item.key] ? 'calc(100% - 22px)' : 2, top: 2, width: 20, height: 20, transition: 'left 200ms' }} />
                                         </div>
                                     </div>
                                 ))}
+
+                                <div style={{ marginTop: 8, padding: '14px 16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Auto-Lock Setup</div>
+                                    
+                                    <div className="form-group">
+                                        <label className="form-label">App PIN (4 digits)</label>
+                                        <input 
+                                            type="password" 
+                                            maxLength={4}
+                                            className="form-input" 
+                                            placeholder="Enter 4-digit PIN"
+                                            value={user?.pin || ''} 
+                                            onChange={e => updateUser({ pin: e.target.value.replace(/[^0-9]/g, '').slice(0,4) })} 
+                                        />
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Required for auto-lock and biometric fallback.</div>
+                                    </div>
+
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <label className="form-label">Auto-Lock Timeout (minutes)</label>
+                                        <select 
+                                            className="form-input form-select" 
+                                            value={user?.lockTimeout || 5} 
+                                            onChange={e => updateUser({ lockTimeout: parseInt(e.target.value) })}
+                                        >
+                                            <option value={1}>1 Minute</option>
+                                            <option value={5}>5 Minutes</option>
+                                            <option value={15}>15 Minutes</option>
+                                            <option value={30}>30 Minutes</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             <div style={{ marginTop: 20, padding: '16px', background: 'var(--danger-soft)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)' }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--danger)', marginBottom: 4 }}>{t(lang, 'danger_zone')}</div>

@@ -5,10 +5,12 @@ import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constan
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Sparkles, RefreshCw, CalendarSync } from 'lucide-react';
 import { convertAmountSync, preloadRates } from '../services/exchangeRates';
+import CurrencyDisplay from '../components/CurrencyDisplay';
 
 interface OverviewProps { onNavigate: (p: string) => void; onAddExpense: () => void; }
 
-const GEMINI_KEY = 'AIzaSyCZ5BXuhUFvaFslLwe8mqjXZNcqjKhtxRU';
+// Gemini API key: user's personal key (Settings) → env var → empty (disabled)
+const ENV_GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: string, endDate: string, baseCur: string) {
     const periodExp = expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate);
@@ -73,11 +75,26 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     async function generateAdvice() {
         setAiLoading(true);
         try {
+            const apiKeyToUse = user?.geminiKey || ENV_GEMINI_KEY;
+            if (!apiKeyToUse) {
+                setAiText('No Gemini API key configured. Go to Settings → AI Integrations to add your key.');
+                return;
+            }
             const topCats = catData.slice(0, 3).map(c => `${c.name}: ${formatCurrency(c.value, cur)}`).join(', ');
             const prompt = `You are a friendly personal finance advisor. Analyze these monthly expenses: Total this month: ${formatCurrency(monthTotal, cur)}. Top spending categories: ${topCats}. Provide 3 concise, actionable tips to save money and improve financial health. Be encouraging and specific. Max 120 words.`;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKeyToUse}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
             const data = await res.json();
-            setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time.');
+            
+            if (data.error) {
+                 if (data.error.code === 429) {
+                     setAiText('AI advice is unavailable due to quota exhaustion. Please set your personal Gemini API Key in Settings to continue using AI features.');
+                 } else {
+                     setAiText(`AI Error: ${data.error.message}`);
+                 }
+                 return;
+            }
+            
+            setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time. Please check your API key in Settings.');
         } catch { setAiText('AI advice is temporarily unavailable. Check your internet connection.'); }
         setAiLoading(false);
     }
@@ -98,12 +115,12 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
             <div className="card-grid card-grid-4 mb-6">
                 <div className="card stat-card animate-fadeIn">
                     <div className="stat-label">{t(lang, 'today_spend')}</div>
-                    <div className="stat-value animate-countUp">{formatCurrency(todayTotal, cur, hideAmounts)}</div>
+                    <div className="stat-value animate-countUp"><CurrencyDisplay amount={todayTotal} currency={cur} hideAmounts={hideAmounts} /></div>
                     <TrendingDown size={20} className="stat-icon" />
                 </div>
                 <div className="card stat-card animate-fadeIn" style={{ animationDelay: '60ms' }}>
                     <div className="stat-label">{t(lang, 'this_month')}</div>
-                    <div className="stat-value animate-countUp">{formatCurrency(monthTotal, cur, hideAmounts)}</div>
+                    <div className="stat-value animate-countUp"><CurrencyDisplay amount={monthTotal} currency={cur} hideAmounts={hideAmounts} /></div>
                     <div className={`stat-change ${monthChange <= 0 ? 'stat-positive' : 'stat-negative'}`}>
                         {monthChange <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
                         {Math.abs(monthChange).toFixed(1)}% vs last month
@@ -170,7 +187,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                 <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                                     <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{c.emoji} {c.name}</span>
-                                    <span style={{ fontWeight: 700, fontSize: 11 }}>{formatCurrency(c.value, cur, hideAmounts)}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 11 }}><CurrencyDisplay amount={c.value} currency={cur} hideAmounts={hideAmounts} /></span>
                                 </div>
                             ))}
                         </div>
@@ -200,7 +217,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                         <div style={{ fontSize: 11, color: statusColor, fontWeight: days <= 0 ? 600 : 400 }}>{statusText}</div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                        <span style={{ fontWeight: 700, fontSize: 14 }}>{formatCurrency(b.amount, b.currency, hideAmounts)}</span>
+                                        <span style={{ fontWeight: 700, fontSize: 14 }}><CurrencyDisplay amount={b.amount} currency={b.currency} hideAmounts={hideAmounts} /></span>
                                         <button className="btn btn-primary btn-sm" onClick={() => markBillPaid(b.id, monthStr)} style={{ padding: '4px 12px', minHeight: 'unset', fontSize: 12 }}>Pay</button>
                                     </div>
                                 </div>
@@ -237,7 +254,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                         </td>
                                         <td><span className={`badge badge-${e.category}`}>{catInfo.label}</span></td>
                                         <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{new Date(e.purchaseAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 14 }}>{formatCurrency(e.amount, e.currency, hideAmounts)}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 14 }}><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></td>
                                     </tr>
                                 );
                             })}

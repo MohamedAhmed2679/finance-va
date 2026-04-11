@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { CURRENCIES } from '../constants';
 import { ArrowLeftRight, RefreshCw, TrendingUp } from 'lucide-react';
+import CurrencySelect from '../components/CurrencySelect';
 
 const OPEN_EXCHANGE_URL = 'https://api.exchangerate-api.com/v4/latest/';
 
@@ -52,6 +53,16 @@ export default function ConverterPage() {
 
     useEffect(() => { fetchRates('USD'); }, []);
 
+    // Auto-convert on input change
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (amount && !isNaN(parseFloat(amount))) {
+                handleConvert();
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [amount, fromCur, toCur, allRates]);
+
     const popularPairs = [
         { from: 'USD', to: 'EUR' }, { from: 'USD', to: 'GBP' }, { from: 'USD', to: 'JPY' },
         { from: 'EUR', to: 'USD' }, { from: 'GBP', to: 'USD' }, { from: 'USD', to: 'EGP' },
@@ -68,10 +79,10 @@ export default function ConverterPage() {
                 <button className="btn btn-ghost btn-sm" onClick={() => fetchRates('USD')}><RefreshCw size={14} /> Refresh</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
                 {/* Main converter */}
-                <div className="card" style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.08),rgba(6,214,160,0.04))' }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Real-Time Converter</div>
+                <div className="card">
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Real-Time Converter</div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Get up-to-date exchange rates powered by ExchangeRate API</div>
 
                     <div className="form-group">
@@ -84,37 +95,27 @@ export default function ConverterPage() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 12, alignItems: 'end', marginBottom: 24 }}>
-                        <div>
-                            <label className="form-label">{t(lang, 'from')}</label>
-                            <select className="form-input form-select" value={fromCur} onChange={e => { setFromCur(e.target.value); setResult(null); }}>
-                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} – {c.name}</option>)}
-                            </select>
-                        </div>
-                        <button onClick={swap} className="btn btn-ghost btn-icon" style={{ border: '1px solid var(--border)', marginBottom: 0 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 12, alignItems: 'center', marginBottom: 24 }}>
+                        <CurrencySelect label={t(lang, 'from')} value={fromCur} onChange={setFromCur} />
+                        <button onClick={swap} className="btn btn-ghost btn-icon" style={{ border: '1px solid var(--border-default)', marginTop: 24 }}>
                             <ArrowLeftRight size={18} />
                         </button>
-                        <div>
-                            <label className="form-label">{t(lang, 'to')}</label>
-                            <select className="form-input form-select" value={toCur} onChange={e => { setToCur(e.target.value); setResult(null); }}>
-                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} – {c.name}</option>)}
-                            </select>
-                        </div>
+                        <CurrencySelect label={t(lang, 'to')} value={toCur} onChange={setToCur} />
                     </div>
 
-                    <button className="btn btn-primary w-full btn-lg" onClick={handleConvert} disabled={loading}>
+                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleConvert} disabled={loading}>
                         {loading ? <><RefreshCw size={16} className="animate-spin" />Converting…</> : <><ArrowLeftRight size={16} />{t(lang, 'convert')}</>}
                     </button>
 
                     {error && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--warning-soft)', borderRadius: 8, fontSize: 13, color: 'var(--warning)' }}>{error}</div>}
 
                     {result !== null && (
-                        <div className="animate-slideUp" style={{ marginTop: 24, padding: 24, background: 'var(--primary-soft)', borderRadius: 16, border: '1px solid rgba(124,58,237,0.2)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>{amount} {fromCur} =</div>
-                            <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-1.5px', color: 'var(--primary-light)', marginBottom: 8 }}>
+                        <div className="animate-slideUp" style={{ marginTop: 24, padding: 24, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{amount} {fromCur} =</div>
+                            <div className="amount" style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-1.5px', color: 'var(--accent)', marginBottom: 8 }}>
                                 {result.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} {toCur}
                             </div>
-                            {rate && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>1 {fromCur} = {rate.toFixed(4)} {toCur}</div>}
+                            {rate && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>1 {fromCur} = {rate.toFixed(4)} {toCur}</div>}
                         </div>
                     )}
                 </div>
@@ -124,7 +125,7 @@ export default function ConverterPage() {
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <TrendingUp size={16} style={{ color: 'var(--primary-light)' }} /> Popular Pairs
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                         {popularPairs.map(pair => {
                             const r = allRates[pair.to] && allRates[pair.from] ? allRates[pair.to] / allRates[pair.from] : null;
                             return (

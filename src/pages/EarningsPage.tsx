@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { formatCurrency, getActiveCycleDates } from '../constants';
+import { getActiveCycleDates } from '../constants';
 import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { convertAmountSync, preloadRates } from '../services/exchangeRates';
+import CurrencyDisplay from '../components/CurrencyDisplay';
 
 export default function EarningsPage() {
     const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome } = useStore();
@@ -84,23 +85,26 @@ export default function EarningsPage() {
                             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>(Starts on the {cycleStartDay}{cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})</span>
                         </div>
                     </div>
+                    <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+                        <Plus size={16} /> Add Income
+                    </button>
                 </header>
 
                 <div className="card-grid card-grid-3 mb-6">
                     <div className="card stat-card animate-fadeIn" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1), transparent)' }}>
                         <div className="stat-label">Total Income (This Cycle)</div>
-                        <div className="stat-value">{formatCurrency(totalIncome, cur, hideAmounts)}</div>
+                        <div className="stat-value"><CurrencyDisplay amount={totalIncome} currency={cur} hideAmounts={hideAmounts} /></div>
                         <TrendingUp size={20} className="stat-icon" style={{ color: '#22c55e' }} />
                     </div>
                     <div className="card stat-card animate-fadeIn" style={{ animationDelay: '60ms' }}>
                         <div className="stat-label">Total Spent</div>
-                        <div className="stat-value">{formatCurrency(totalSpent, cur, hideAmounts)}</div>
+                        <div className="stat-value"><CurrencyDisplay amount={totalSpent} currency={cur} hideAmounts={hideAmounts} /></div>
                         <TrendingDown size={20} className="stat-icon" style={{ color: 'var(--danger)' }} />
                     </div>
                     <div className="card stat-card animate-fadeIn" style={{ animationDelay: '120ms', borderColor: leftover >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)' }}>
                         <div className="stat-label">Leftover (Expected Savings)</div>
                         <div className="stat-value" style={{ color: leftover >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                            {formatCurrency(leftover, cur, hideAmounts)}
+                            <CurrencyDisplay amount={leftover} currency={cur} hideAmounts={hideAmounts} />
                         </div>
                         <Briefcase size={20} className="stat-icon" style={{ color: leftover >= 0 ? 'var(--success)' : 'var(--danger)' }} />
                     </div>
@@ -166,7 +170,7 @@ export default function EarningsPage() {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                                         <span style={{ fontWeight: 700, fontSize: 16 }}>
-                                            {formatCurrency(inc.amount, inc.currency, hideAmounts)}
+                                            <CurrencyDisplay amount={inc.amount} currency={inc.currency} hideAmounts={hideAmounts} />
                                         </span>
                                         <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm('Delete income source?')) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>
                                             <Trash2 size={18} />
@@ -178,10 +182,6 @@ export default function EarningsPage() {
                     )}
                 </div>
             </div>
-
-            <button className="fab animate-slideUp" onClick={() => setShowAdd(true)} title="Add Income" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                <Plus size={24} />
-            </button>
         </>
     );
 }

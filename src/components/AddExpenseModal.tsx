@@ -141,20 +141,20 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
             <div className="modal animate-slideUp">
                 <div className="modal-header">
                     <h2 className="modal-title">{editId ? 'Edit Expense' : 'Add Expense'}</h2>
-                    <button className="modal-close" onClick={onClose}><X size={20} /></button>
+                    <button className="modal-close" title="Close" onClick={onClose}><X size={20} /></button>
                 </div>
 
                 {step === 'scan' && !editId ? (
-                    <div className="animate-fadeIn" style={{ textAlign: 'center' }}>
-                        <div style={{ marginBottom: 24 }}>
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                                <button className={`btn btn-primary`} style={{ flex: 1 }} onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
-                                <button className={`btn btn-ghost`} style={{ flex: 1 }} onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
+                    <div className="animate-fadeIn text-center">
+                        <div className="mb-6">
+                            <div className="flex-row gap-2 mb-5">
+                                <button className="btn btn-primary flex-1" title="Scan" onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
+                                <button className="btn btn-ghost flex-1" title="Manual" onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
                             </div>
 
-                            <div style={{ position: 'relative', background: '#000', borderRadius: 16, overflow: 'hidden', height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div className="relative bg-black rounded-2xl overflow-hidden flex-col items-center justify-center p-4" style={{ height: 280 }}>
                                 {isScanning ? (
-                                    <div style={{ color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                                    <div className="text-white flex-col items-center gap-3">
                                         <RefreshCw className="animate-spin" size={32} />
                                         <p>Scanning receipt...</p>
                                     </div>
@@ -164,52 +164,53 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                                             audio={false}
                                             ref={webcamRef}
                                             screenshotFormat="image/jpeg"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            className="w-full h-full"
+                                            style={{ objectFit: 'cover' }}
                                             videoConstraints={{ facingMode: "environment" }}
                                         />
-                                        <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(255,255,255,0.4)', margin: 24, borderRadius: 12, pointerEvents: 'none' }} />
+                                        <div className="absolute inset-0 scanner-overlay" />
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        {scanError && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 16 }}>{scanError}</div>}
+                        {scanError && <div className="text-danger text-sm mb-4">{scanError}</div>}
 
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <label className="btn btn-secondary" style={{ flex: 1, cursor: 'pointer' }}>
+                        <div className="flex-row gap-3">
+                            <label className="btn btn-secondary flex-1 cursor-pointer" title="Upload Image">
                                 <Upload size={16} /> Upload Image
-                                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} title="Upload File" />
                             </label>
-                            <button className="btn btn-primary" style={{ flex: 2 }} onClick={capture} disabled={isScanning}>
+                            <button className="btn btn-primary flex-2" title="Capture Receipt" onClick={capture} disabled={isScanning}>
                                 <Camera size={16} /> Capture Receipt
                             </button>
                         </div>
                     </div>
                 ) : step === 'amount' && !editId ? (
                     <div className="animate-fadeIn">
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
-                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
+                        <div className="flex-row gap-2 mb-5">
+                            <button className="btn btn-ghost flex-1" title="Scan" onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
+                            <button className="btn btn-primary flex-1" title="Manual" onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
                         </div>
                         <div className="amount-display">
-                            <select className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
+                            <select aria-label="Select currency" className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                             </select>
-                            {isConverting ? <span style={{ opacity: 0.5 }}>...</span> : (amount || '0')}
+                            {isConverting ? <span className="opacity-50">...</span> : (amount || '0')}
                         </div>
                         <div className="keypad">
                             {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => (
-                                <button key={k} className="keypad-btn" onClick={() => handleKeypad(k)}>{k}</button>
+                                <button key={k} aria-label={`Dial ${k}`} className="keypad-btn" onClick={() => handleKeypad(k)}>{k}</button>
                             ))}
                         </div>
-                        <button className="btn btn-primary w-full" style={{ marginTop: 24 }} onClick={() => setStep('details')} disabled={!amount || amount === '0'}>Continue →</button>
+                        <button className="btn btn-primary w-full mt-6" title="Continue" onClick={() => setStep('details')} disabled={!amount || amount === '0'}>Continue →</button>
                     </div>
                 ) : (
                     <div className="animate-fadeIn">
                         {!editId && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, background: 'var(--primary-soft)', borderRadius: 12, padding: '12px 16px', cursor: 'pointer' }} onClick={() => setStep('amount')}>
-                                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary-light)' }}>{currency} {amount}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>tap to change</div>
+                            <div className="flex-row items-center gap-3 mb-5 cursor-pointer" style={{ background: 'var(--primary-soft)', borderRadius: 12, padding: '12px 16px' }} onClick={() => setStep('amount')}>
+                                <div className="font-extrabold" style={{ fontSize: 28, color: 'var(--primary-light)' }}>{currency} {amount}</div>
+                                <div className="text-muted text-xs ml-auto">tap to change</div>
                             </div>
                         )}
 
@@ -220,10 +221,10 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Currency</label>
-                                <select className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
+                                <select aria-label="Currency" className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
                                     {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>)}
                                 </select>
-                                {ratesStale && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>⚠ Rates may be outdated</div>}
+                                {ratesStale && <div className="text-muted text-xs mt-2">⚠ Rates may be outdated</div>}
                             </div>
                         </div>
 
@@ -245,36 +246,36 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
 
                         <div className="form-group">
                             <label className="form-label">Payment Method</label>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <div className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
                                 {paymentMethods.map(pm => (
                                     <div key={pm.key} className={`category-chip ${paymentMethod === pm.key ? 'selected' : ''}`} onClick={() => setPaymentMethod(pm.key)}>
                                         {pm.emoji} {pm.label}
                                     </div>
                                 ))}
                             </div>
-                            {paymentMethod === 'card' && <input className="form-input" style={{ marginTop: 8 }} value={last4} onChange={e => setLast4(e.target.value.slice(-4))} placeholder="Last 4 digits (optional)" maxLength={4} />}
+                            {paymentMethod === 'card' && <input className="form-input mt-2" value={last4} onChange={e => setLast4(e.target.value.slice(-4))} placeholder="Last 4 digits (optional)" title="Last 4 digits" maxLength={4} />}
                         </div>
 
                         <div className="form-group">
                             <label className="form-label">Date & Time</label>
-                            <input type="datetime-local" className="form-input" value={purchaseAt} onChange={e => setPurchaseAt(e.target.value)} />
+                            <input type="datetime-local" className="form-input" value={purchaseAt} onChange={e => setPurchaseAt(e.target.value)} title="Date and Time" placeholder="Select Date and Time" />
                         </div>
 
                         {editId && (
                             <div className="form-group">
                                 <label className="form-label">Amount ({ws?.currency ?? 'USD'})</label>
-                                <input type="number" className="form-input" value={amount} onChange={e => setAmount(e.target.value)} step="0.01" min="0" />
+                                <input type="number" className="form-input" value={amount} onChange={e => setAmount(e.target.value)} step="0.01" min="0" title="Amount" placeholder="Amount" />
                             </div>
                         )}
 
                         <div className="form-group">
                             <label className="form-label">Notes</label>
-                            <textarea className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any additional notes..." rows={2} style={{ resize: 'none' }} />
+                            <textarea className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any additional notes..." title="Notes" rows={2} style={{ resize: 'none' }} />
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            {!editId && <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setStep('amount')}>← Back</button>}
-                            <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleSave} disabled={!merchant || !amount}>
+                        <div className="flex-row gap-3">
+                            {!editId && <button className="btn btn-ghost flex-1" onClick={() => setStep('amount')} title="Back">← Back</button>}
+                            <button className="btn btn-primary flex-2" onClick={handleSave} disabled={!merchant || !amount} title="Save Expense">
                                 {editId ? 'Save Changes' : '✓ Add Expense'}
                             </button>
                         </div>

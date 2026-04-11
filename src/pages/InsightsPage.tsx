@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getPaymentMethodInfo } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import CurrencyDisplay from '../components/CurrencyDisplay';
 
 export default function InsightsPage() {
     const { user, expenses, activeWorkspaceId, currency } = useStore();
@@ -53,9 +54,9 @@ export default function InsightsPage() {
             {/* Summary stats */}
             <div className="card-grid card-grid-3 mb-6">
                 {[
-                    { label: 'Total Spent', value: formatCurrency(total, cur, hideAmounts) },
-                    { label: 'Avg Transaction', value: formatCurrency(avg, cur, hideAmounts) },
-                    { label: 'Largest Expense', value: maxExpense ? formatCurrency(maxExpense.amount, cur, hideAmounts) : '-' },
+                    { label: 'Total Spent', value: <CurrencyDisplay amount={total} currency={cur} hideAmounts={hideAmounts} /> },
+                    { label: 'Avg Transaction', value: <CurrencyDisplay amount={avg} currency={cur} hideAmounts={hideAmounts} /> },
+                    { label: 'Largest Expense', value: maxExpense ? <CurrencyDisplay amount={maxExpense.amount} currency={cur} hideAmounts={hideAmounts} /> : '-' },
                 ].map((stat, i) => (
                     <div key={i} className="card stat-card animate-fadeIn" style={{ animationDelay: `${i * 60}ms` }}>
                         <div className="stat-label">{stat.label}</div>
@@ -142,7 +143,7 @@ export default function InsightsPage() {
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                     <span style={{ fontWeight: 600, fontSize: 13 }}>{m.name}</span>
-                                    <span style={{ fontWeight: 700, fontSize: 13 }}>{formatCurrency(m.value, cur, hideAmounts)}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 13 }}><CurrencyDisplay amount={m.value} currency={cur} hideAmounts={hideAmounts} /></span>
                                 </div>
                                 <div className="progress"><div className="progress-bar" style={{ width: `${pct}%` }} /></div>
                             </div>

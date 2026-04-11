@@ -15,12 +15,21 @@ import EarningsPage from './pages/EarningsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import AddExpenseModal from './components/AddExpenseModal';
-import SocialShareMenu from './components/SocialShareMenu';
+import QuickAddMenu from './components/QuickAddMenu';
+import VoiceExpenseEntry from './components/VoiceExpenseEntry';
+import SMSParser from './components/SMSParser';
+import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
+import LockScreen from './components/LockScreen';
+import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
+import type { ParsedExpense } from './services/aiExpenseParser';
 
 export default function App() {
-  const { isAuthenticated, showOnboarding, theme, checkBillReminders } = useStore();
+  const { isAuthenticated, showOnboarding, theme, checkBillReminders, isLocked } = useStore();
   const [page, setPage] = useState('overview');
   const [showAdd, setShowAdd] = useState(false);
+  const [showVoiceEntry, setShowVoiceEntry] = useState(false);
+  const [showSMSParser, setShowSMSParser] = useState(false);
+  const [pendingAIExpenses, setPendingAIExpenses] = useState<ParsedExpense[] | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -33,11 +42,12 @@ export default function App() {
     }
   }, [theme]);
 
-  // Check for bill reminders on app load
   useEffect(() => {
     if (isAuthenticated) {
       checkBillReminders();
+      initSessionManager();
     }
+    return () => cleanupSessionManager();
   }, [isAuthenticated, checkBillReminders]);
 
   useEffect(() => {
@@ -78,6 +88,10 @@ export default function App() {
   // Simple check to see if we are running in the Electron environment
   const isElectron = navigator.userAgent.includes('Electron');
 
+  if (isLocked) {
+    return <LockScreen />;
+  }
+
   return (
     <div className={`app-shell ${isElectron ? 'electron-mode' : ''}`} data-theme={theme}>
       <div className="animated-bg" />
@@ -86,15 +100,60 @@ export default function App() {
         {renderPage()}
       </main>
 
-      {/* FAB for adding expense */}
-      {(page === 'overview' || page === 'expenses') && (
-        <button className="fab" onClick={() => setShowAdd(true)} title="Add Expense" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        </button>
+      <QuickAddMenu 
+        onManualAdd={() => setShowAdd(true)} 
+        onVoiceAdd={() => setShowVoiceEntry(true)} 
+        onScanAdd={() => setShowSMSParser(true)} 
+      />
+      {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
+      
+      {showVoiceEntry && (
+        <VoiceExpenseEntry 
+          onClose={() => setShowVoiceEntry(false)} 
+          onAdd={(expenses) => {
+             setShowVoiceEntry(false);
+             setPendingAIExpenses(expenses);
+          }} 
+        />
       )}
 
-      {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
-      <SocialShareMenu />
+      {showSMSParser && (
+        <SMSParser 
+          onClose={() => setShowSMSParser(false)} 
+          onAdd={(expenses) => {
+             setShowSMSParser(false);
+             setPendingAIExpenses(expenses);
+          }} 
+        />
+      )}
+
+      {pendingAIExpenses && (
+        <ExpenseConfirmationCards 
+          expenses={pendingAIExpenses}
+          onCancel={() => setPendingAIExpenses(null)}
+          onConfirm={(expenses) => {
+            const store = useStore.getState();
+            expenses.forEach(exp => {
+                store.addExpense({
+                    workspaceId: store.activeWorkspaceId,
+                    createdByUid: store.user?.id || 'guest',
+                    createdByName: store.user?.name || 'Guest',
+                    purchaseAt: new Date().toISOString(),
+                    merchant: exp.merchant,
+                    description: exp.description,
+                    amount: exp.amount,
+                    currency: exp.currency || store.currency,
+                    category: exp.category,
+                    paymentMethod: 'cash',
+                    tags: [],
+                    notes: 'Added via AI Entry',
+                    source: 'import',
+                });
+            });
+            setPendingAIExpenses(null);
+          }}
+        />
+      )}
     </div>
   );
 }

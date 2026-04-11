@@ -12,6 +12,8 @@ export default function OnboardingPage() {
     const [currency, setCurrency] = useState(user?.defaultCurrency ?? 'USD');
     const [language, setLanguage] = useState(user?.language ?? 'en');
     const [biometric, setBiometric] = useState(false);
+    const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [smsEnabled, setSmsEnabled] = useState(true);
 
     function handleNext() {
         if (step === 1 && !name) return;
@@ -19,7 +21,7 @@ export default function OnboardingPage() {
             setStep(step + 1);
         } else {
             // Finish
-            updateUser({ name, defaultCurrency: currency, language, biometricEnabled: biometric });
+            updateUser({ name, defaultCurrency: currency, language, biometricEnabled: biometric, voiceEnabled, smsEnabled });
             completeOnboarding();
         }
     }
@@ -78,16 +80,44 @@ export default function OnboardingPage() {
                         <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Security</div>
                         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Protect your financial data with biometric authentication.</div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 15 }}>Enable Face/Touch ID</div>
+                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Quick and secure access.</div>
+                                </div>
+                                <div onClick={() => setBiometric(!biometric)} style={{ width: 50, height: 28, borderRadius: 99, background: biometric ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
+                                    <div style={{ position: 'absolute', left: biometric ? 'calc(100% - 24px)' : 2, top: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                                </div>
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: 15 }}>Enable Face/Touch ID</div>
-                                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Quick and secure access.</div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--info-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 15 }}>Voice Entry</div>
+                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Speak expenses in multiple languages.</div>
+                                </div>
+                                <div onClick={() => setVoiceEnabled(!voiceEnabled)} style={{ width: 50, height: 28, borderRadius: 99, background: voiceEnabled ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
+                                    <div style={{ position: 'absolute', left: voiceEnabled ? 'calc(100% - 24px)' : 2, top: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                                </div>
                             </div>
-                            <div onClick={() => setBiometric(!biometric)} style={{ width: 50, height: 28, borderRadius: 99, background: biometric ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
-                                <div style={{ position: 'absolute', left: biometric ? 'calc(100% - 24px)' : 2, top: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--income-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--income)' }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 15 }}>SMS Scanning</div>
+                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Extract data from bank messages.</div>
+                                </div>
+                                <div onClick={() => setSmsEnabled(!smsEnabled)} style={{ width: 50, height: 28, borderRadius: 99, background: smsEnabled ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
+                                    <div style={{ position: 'absolute', left: smsEnabled ? 'calc(100% - 24px)' : 2, top: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
