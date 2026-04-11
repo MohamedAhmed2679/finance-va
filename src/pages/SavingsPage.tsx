@@ -8,8 +8,8 @@ import CurrencyDisplay from '../components/CurrencyDisplay';
 export default function SavingsPage() {
     const { user, workspaces, savingsGoals, activeWorkspaceId, addSavingsGoal, addFundsToGoal, deleteSavingsGoal, incomes, expenses } = useStore();
     const lang = user?.language ?? 'en';
-    const ws = workspaces.find(w => w.id === activeWorkspaceId);
-    const isOwner = user?.dbId && (ws?.ownerId === user.dbId || ws?.ownerId === user.id || ws?.ownerId === user.email);
+    const ws = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
+    const isOwner = user && ws && (ws.ownerId === user.dbId || ws.ownerId === user.id || ws.ownerId === user.email);
     const userRole = ws?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
     const isViewer = userRole === 'viewer' && !isOwner;
     const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';

@@ -12,8 +12,8 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const { workspaces, activeWorkspaceId, expenses, filters, setFilters, resetFilters, deleteExpense, user, updateUser, categories, paymentMethods } = useStore();
     const lang = user?.language ?? 'en';
     const currency = user?.defaultCurrency ?? 'USD';
-    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
-    const isOwner = user?.dbId && (activeWorkspace?.ownerId === user.dbId || activeWorkspace?.ownerId === user.id || activeWorkspace?.ownerId === user.email);
+    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
+    const isOwner = user && activeWorkspace && (activeWorkspace.ownerId === user.dbId || activeWorkspace.ownerId === user.id || activeWorkspace.ownerId === user.email);
     const userRole = activeWorkspace?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
     const isViewer = userRole === 'viewer' && !isOwner;
 

@@ -2102,8 +2102,8 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
     position: fixed;
     bottom: 0;
     top: auto !important;
-    left: 0;
-    right: 0;
+    left: 0 !important;
+    right: 0 !important;
     width: 100% !important;
     height: 65px !important;
     display: flex !important;
@@ -2116,6 +2116,7 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
     overflow-x: auto;
     overflow-y: hidden;
     min-height: unset;
+    transform: none !important;
   }
 
   .sidebar-logo,
