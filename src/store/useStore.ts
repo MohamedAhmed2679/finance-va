@@ -325,7 +325,6 @@ export const useStore = create<AppState>()(
             }),
             setLocked: (locked) => set({ isLocked: locked }),
             deleteAllData: () => set({ expenses: [], savingsGoals: [] }),
-            updateUser: (data) => set(s => ({ user: s.user ? { ...s.user, ...data } : null })),
             completeOnboarding: () => set({ showOnboarding: false }),
             setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
             addWorkspace: (ws) => {
