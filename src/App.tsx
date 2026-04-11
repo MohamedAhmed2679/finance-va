@@ -142,6 +142,7 @@ export default function App() {
         onManualAdd={() => setShowAdd(true)} 
         onVoiceAdd={() => setShowVoiceEntry(true)} 
         onScanAdd={() => setShowSMSParser(true)} 
+        onAddIncome={() => setPage('earnings')}
       />
       {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
       

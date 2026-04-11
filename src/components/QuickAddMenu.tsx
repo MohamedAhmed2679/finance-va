@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus, Mic, ReceiptText, PenLine } from 'lucide-react';
+import { Plus, Mic, ReceiptText, PenLine, TrendingUp } from 'lucide-react';
 
 
 interface QuickAddMenuProps {
     onManualAdd: () => void;
     onVoiceAdd: () => void;
     onScanAdd: () => void;
+    onAddIncome: () => void;
 }
 
-export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd }: QuickAddMenuProps) {
+export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onAddIncome }: QuickAddMenuProps) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -20,13 +21,28 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd }: Qui
                 pointerEvents: open ? 'auto' : 'none'
             }}>
                 <button 
-                    onClick={() => { setOpen(false); onScanAdd(); }}
+                    onClick={() => { setOpen(false); onAddIncome(); }}
                     style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px',
                         background: 'var(--bg-surface)', border: '1px solid var(--border-default)', 
                         borderRadius: 'var(--radius-full)', color: 'var(--text-primary)',
                         cursor: 'pointer', transform: `scale(${open ? 1 : 0})`, opacity: open ? 1 : 0,
                         transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 0ms'
+                    }}
+                >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Add Income</span>
+                    <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--success-muted)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUp size={18} />
+                    </div>
+                </button>
+                <button 
+                    onClick={() => { setOpen(false); onScanAdd(); }}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px',
+                        background: 'var(--bg-surface)', border: '1px solid var(--border-default)', 
+                        borderRadius: 'var(--radius-full)', color: 'var(--text-primary)',
+                        cursor: 'pointer', transform: `scale(${open ? 1 : 0})`, opacity: open ? 1 : 0,
+                        transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 40ms'
                     }}
                 >
                     <span style={{ fontSize: 14, fontWeight: 500 }}>Scan receipt</span>
@@ -41,7 +57,7 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd }: Qui
                         background: 'var(--bg-surface)', border: '1px solid var(--border-default)', 
                         borderRadius: 'var(--radius-full)', color: 'var(--text-primary)',
                         cursor: 'pointer', transform: `scale(${open ? 1 : 0})`, opacity: open ? 1 : 0,
-                        transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 50ms'
+                        transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms'
                     }}
                 >
                     <span style={{ fontSize: 14, fontWeight: 500 }}>Voice entry</span>
@@ -56,10 +72,10 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd }: Qui
                         background: 'var(--bg-surface)', border: '1px solid var(--border-default)', 
                         borderRadius: 'var(--radius-full)', color: 'var(--text-primary)',
                         cursor: 'pointer', transform: `scale(${open ? 1 : 0})`, opacity: open ? 1 : 0,
-                        transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms'
+                        transition: 'all 200ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms'
                     }}
                 >
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>Manual entry</span>
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Add Expense</span>
                     <div style={{ width: 36, height: 36, borderRadius: 18, background: 'var(--warning-muted)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <PenLine size={18} />
                     </div>

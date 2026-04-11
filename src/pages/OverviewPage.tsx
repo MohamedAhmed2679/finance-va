@@ -38,7 +38,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const ws = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
     const isOwner = user && ws && (ws.ownerId === user.dbId || ws.ownerId === user.id || ws.ownerId === user.email);
     const userRole = ws?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
-    const isViewer = userRole === 'viewer' && !isOwner;
+    const isViewer = workspaces.length > 0 && userRole === 'viewer' && !isOwner;
     const cur = ws?.currency ?? currency;
     const hideAmounts = user?.hideAmounts ?? false;
     const cycleStartDay = ws?.cycleStartDay ?? 1;

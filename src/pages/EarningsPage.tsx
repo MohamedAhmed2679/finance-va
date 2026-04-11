@@ -14,7 +14,7 @@ export default function EarningsPage() {
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
     const isOwner = user && activeWorkspace && (activeWorkspace.ownerId === user.dbId || activeWorkspace.ownerId === user.id || activeWorkspace.ownerId === user.email);
     const userRole = activeWorkspace?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
-    const isViewer = userRole === 'viewer' && !isOwner;
+    const isViewer = workspaces.length > 0 && userRole === 'viewer' && !isOwner;
     const ws = activeWorkspace;
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const cur = ws?.currency ?? 'USD';
