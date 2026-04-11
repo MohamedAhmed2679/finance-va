@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from './store/useStore';
+import { fetchUserProfile } from './services/supabaseSync';
 import { onAuthStateChange } from './services/authProvider';
 import Sidebar from './components/Sidebar';
 import AuthPage from './pages/AuthPage';
@@ -42,27 +43,33 @@ export default function App() {
     }
 
     // Restore session on boot
-    const { user: storeUser, login } = useStore.getState();
+    const { user: storeUser, login, hydrateStore } = useStore.getState();
     if (!storeUser) {
         import('./lib/supabase').then(({ supabase, isSupabaseReady }) => {
             if (isSupabaseReady() && supabase) {
                 supabase.auth.getSession().then(({ data }) => {
                     const sbUser = data.session?.user;
                     if (sbUser) {
-                        login({
-                            id: sbUser.id,
-                            name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
-                            email: sbUser.email || '',
-                            phone: sbUser.phone,
-                            referralCode: `FV-${sbUser.id.slice(0, 6).toUpperCase()}`,
-                            defaultCurrency: 'USD',
-                            language: 'en',
-                            theme: 'dark',
-                            biometricEnabled: false,
-                            hideAmounts: false,
-                            connectedClouds: [],
-                            backupInterval: 'weekly',
-                            createdAt: sbUser.created_at
+                        // Fetch the full profile to restore preferences
+                        fetchUserProfile(sbUser.id).then((profile: any) => {
+                            login({
+                                id: sbUser.id,
+                                name: profile?.name || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+                                email: sbUser.email || '',
+                                phone: sbUser.phone,
+                                referralCode: profile?.referral_code || `FV-${sbUser.id.slice(0, 6).toUpperCase()}`,
+                                defaultCurrency: profile?.default_currency || 'USD',
+                                language: profile?.language || 'en',
+                                theme: profile?.theme || 'dark',
+                                biometricEnabled: profile?.biometric_enabled || false,
+                                hideAmounts: profile?.hide_amounts || false,
+                                showOnboarding: profile ? (profile.show_onboarding ?? false) : true,
+                                connectedClouds: [],
+                                backupInterval: profile?.backup_interval || 'weekly',
+                                createdAt: sbUser.created_at
+                            });
+                            // Hydrate the store to fetch all workspace data and trigger migration
+                            hydrateStore();
                         });
                     }
                 });

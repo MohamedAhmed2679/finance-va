@@ -9,8 +9,9 @@ export default function SavingsPage() {
     const { user, workspaces, savingsGoals, activeWorkspaceId, addSavingsGoal, addFundsToGoal, deleteSavingsGoal, incomes, expenses } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId);
-    const userRole = ws?.members.find(m => m.uid === user?.id)?.role || 'viewer';
-    const isViewer = userRole === 'viewer';
+    const isOwner = user?.id && (ws?.ownerId === user.id || ws?.ownerId === user.email);
+    const userRole = ws?.members.find(m => m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
+    const isViewer = userRole === 'viewer' && !isOwner;
     const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const wsGoals = savingsGoals.filter(g => g.workspaceId === activeWorkspaceId);

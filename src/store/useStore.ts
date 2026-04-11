@@ -6,7 +6,8 @@ import {
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
     syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
-    syncWorkspaceToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications
+    syncWorkspaceToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
+    updateUserProfile
 } from '../services/supabaseSync';
 
 export type CategoryKey = string;
@@ -43,6 +44,7 @@ export interface User {
     voiceEnabled?: boolean;
     smsEnabled?: boolean;
     hideAmounts: boolean;
+    showOnboarding?: boolean;
     storeOcr?: boolean;
     notifyDaily?: boolean;
     notifyMonthly?: boolean;
@@ -299,7 +301,7 @@ export const useStore = create<AppState>()(
                 set({ 
                     isAuthenticated: true, 
                     user, 
-                    showOnboarding: true,
+                    // showOnboarding: true, // REMOVED: Don't force onboarding every time
                     workspaces: [],
                     expenses: [],
                     incomes: [],
@@ -620,19 +622,48 @@ export const useStore = create<AppState>()(
             setCurrency: (c) => set({ currency: c }),
             addCategory: (cat) => set(s => ({ categories: [...s.categories, cat] })),
             updateCategory: (key, data) => set(s => ({ categories: s.categories.map(c => c.key === key ? { ...c, ...data } : c) })),
-            deleteCategory: (key) => set(s => ({ categories: s.categories.filter(c => c.key !== key) })),
+                deleteCategory: (key) => set(s => ({ categories: s.categories.filter(c => c.key !== key) })),
             addPaymentMethod: (pm) => set(s => ({ paymentMethods: [...s.paymentMethods, pm] })),
             updatePaymentMethod: (key, data) => set(s => ({ paymentMethods: s.paymentMethods.map(p => p.key === key ? { ...p, ...data } : p) })),
             deletePaymentMethod: (key) => set(s => ({ paymentMethods: s.paymentMethods.filter(p => p.key !== key) })),
+
+            updateUser: async (updates) => {
+                const { user } = get();
+                if (!user) return;
+                const newUser = { ...user, ...updates };
+                set({ user: newUser });
+                if (updates.showOnboarding === false) {
+                   set({ showOnboarding: false });
+                }
+                await updateUserProfile(user.id, updates);
+            },
 
             hydrateStore: async () => {
                 const s = get();
                 if (!s.user) return;
                 set({ syncStatus: 'syncing' });
                 try {
-                    const ws = await fetchUserWorkspaces(s.user.id);
+                    let ws = await fetchUserWorkspaces(s.user.id);
+                    
+                    // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,
+                    // even if the UUID account already exists.
+                    if (s.user.email) {
+                        const orphaned = await fetchUserWorkspaces(s.user.email);
+                        if (orphaned && orphaned.length > 0) {
+                            console.log('[Sync] Found orphaned workspaces for email, checking migration...');
+                            for (const w of orphaned) {
+                                // Only migrate if it's NOT already correctly owned by this UUID
+                                if (w.ownerId === s.user.email) {
+                                    await syncWorkspaceToCloud({ ...w, ownerId: s.user.id });
+                                }
+                            }
+                            // Re-fetch to get the merged list
+                            ws = await fetchUserWorkspaces(s.user.id);
+                        }
+                    }
+
                     if (ws && ws.length > 0) {
-                        set({ workspaces: ws, activeWorkspaceId: ws[0].id });
+                        set({ workspaces: ws, activeWorkspaceId: ws[0].id, showOnboarding: false });
                         // Fetch all data for the active workspace
                         const [expenses, incomes, bills, goals, notifs] = await Promise.all([
                             fetchExpensesFromCloud(ws[0].id),
@@ -671,7 +702,7 @@ export const useStore = create<AppState>()(
                             createdAt: new Date().toISOString()
                         };
                         await syncWorkspaceToCloud(personalWs);
-                        set({ workspaces: [personalWs], activeWorkspaceId: wsId });
+                        set({ workspaces: [personalWs], activeWorkspaceId: wsId, showOnboarding: true });
                     }
                     set({ syncStatus: 'synced' });
                 } catch (e) {

@@ -1,17 +1,16 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, ChevronDown, LogOut, Moon, Sun, Bell, CalendarDays, TrendingUp, FolderOpen, Plus } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, ChevronDown, LogOut, Moon, Sun, CalendarDays, TrendingUp, FolderOpen, Plus } from 'lucide-react';
 
 interface SidebarProps { active: string; onNavigate: (page: string) => void; }
 
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
-    const { user, workspaces, notifications, activeWorkspaceId, setActiveWorkspace, logout, theme, setTheme } = useStore();
+    const { user, workspaces, activeWorkspaceId, setActiveWorkspace, logout, theme, setTheme } = useStore();
     const lang = user?.language ?? 'en';
     const [wsOpen, setWsOpen] = useState(false);
     const wsRef = useRef<HTMLDivElement>(null);
     const activeWs = workspaces.find(w => w.id === activeWorkspaceId) ?? workspaces[0];
-    const unactionedNotifs = notifications.filter(n => !n.actioned);
 
     const navItems = [
         { key: 'overview', label: t(lang, 'overview'), icon: LayoutDashboard },
@@ -66,22 +65,13 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                 {navItems.map(item => (
                     <div key={item.key} className={`nav-item ${active === item.key ? 'active' : ''}`}
                         onClick={() => onNavigate(item.key)}>
-                        <item.icon size={18} />
+                        <item.icon size={20} />
                         <span>{item.label}</span>
                     </div>
                 ))}
-                <div className={`nav-item ${active === 'workspaces' ? 'active' : ''}`} onClick={() => onNavigate('workspaces')} style={{ marginTop: 8 }}>
-                    <FolderOpen size={18} />
+                <div className={`nav-item ${active === 'workspaces' ? 'active' : ''}`} onClick={() => onNavigate('workspaces')}>
+                    <FolderOpen size={20} />
                     <span>{t(lang, 'workspaces')}</span>
-                </div>
-                <div className={`nav-item ${active === 'activity' ? 'active' : ''}`} onClick={() => onNavigate('activity')} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <Bell size={18} />
-                        <span>{t(lang, 'activity')}</span>
-                    </div>
-                    {unactionedNotifs.length > 0 && (
-                        <span className="badge badge-primary" style={{ padding: '2px 6px', fontSize: 10 }}>{unactionedNotifs.length}</span>
-                    )}
                 </div>
             </nav>
 
