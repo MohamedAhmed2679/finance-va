@@ -2,11 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CATEGORIES, PAYMENT_METHODS } from '../constants';
 import {
-    syncExpenseToCloud, deleteExpenseFromCloud,
-    syncIncomeToCloud, deleteIncomeFromCloud,
-    syncBillToCloud, deleteBillFromCloud,
-    syncSavingsGoalToCloud, deleteSavingsGoalFromCloud,
-    syncWorkspaceToCloud, logActivityToCloud
+    syncExpenseToCloud, deleteExpenseFromCloud, fetchExpensesFromCloud,
+    syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
+    syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
+    syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
+    syncWorkspaceToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications
 } from '../services/supabaseSync';
 
 export type CategoryKey = string;
@@ -180,49 +180,7 @@ export interface AppFilters {
 
 function generateId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
 
-const DEMO_USER: User = {
-    id: 'user_demo_001',
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    referralCode: 'FV-AJ2024',
-    defaultCurrency: 'USD',
-    language: 'en',
-    theme: 'dark',
-    biometricEnabled: false,
-    lockTimeout: 5,
-    voiceEnabled: true,
-    smsEnabled: true,
-    hideAmounts: false,
-    createdAt: new Date().toISOString(),
-};
-
-const DEMO_EXPENSES: Expense[] = [
-    { id: 'e1', workspaceId: 'ws1', createdByUid: 'user_demo_001', createdByName: 'Alex Johnson', createdAt: '2026-02-27T10:00:00Z', updatedAt: '2026-02-27T10:00:00Z', purchaseAt: '2026-02-27T09:30:00Z', amount: 124.56, currency: 'USD', merchant: 'Whole Foods Market', description: 'Weekly groceries', category: 'groceries', paymentMethod: 'card', last4: '4242', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e2', workspaceId: 'ws1', createdByUid: 'user_demo_002', createdByName: 'Maria Garcia', createdAt: '2026-02-26T14:00:00Z', updatedAt: '2026-02-26T14:00:00Z', purchaseAt: '2026-02-26T13:30:00Z', amount: 15.75, currency: 'USD', merchant: 'Sweetgreen', description: 'Lunch', category: 'dining', paymentMethod: 'card', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e3', workspaceId: 'ws1', createdByUid: 'user_demo_001', createdByName: 'Alex Johnson', createdAt: '2026-02-26T08:00:00Z', updatedAt: '2026-02-26T08:00:00Z', purchaseAt: '2026-02-26T07:45:00Z', amount: 2.90, currency: 'USD', merchant: 'MTA Omny', description: 'Subway fare', category: 'transport', paymentMethod: 'card', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e4', workspaceId: 'ws1', createdByUid: 'user_demo_003', createdByName: 'Kenji Tanaka', createdAt: '2026-02-25T16:00:00Z', updatedAt: '2026-02-25T16:00:00Z', purchaseAt: '2026-02-25T15:30:00Z', amount: 78.99, currency: 'USD', merchant: 'Amazon', description: 'Tech accessories', category: 'shopping', paymentMethod: 'card', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e5', workspaceId: 'ws1', createdByUid: 'user_demo_002', createdByName: 'Maria Garcia', createdAt: '2026-02-23T20:00:00Z', updatedAt: '2026-02-23T20:00:00Z', purchaseAt: '2026-02-23T19:00:00Z', amount: 15.49, currency: 'USD', merchant: 'Netflix', description: 'Monthly subscription', category: 'entertainment', paymentMethod: 'card', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e6', workspaceId: 'ws1', createdByUid: 'user_demo_001', createdByName: 'Alex Johnson', createdAt: '2026-02-22T10:00:00Z', updatedAt: '2026-02-22T10:00:00Z', purchaseAt: '2026-02-22T09:00:00Z', amount: 88.20, currency: 'USD', merchant: 'Con Edison', description: 'Electric bill', category: 'utilities', paymentMethod: 'bank_transfer', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e7', workspaceId: 'ws1', createdByUid: 'user_demo_003', createdByName: 'Kenji Tanaka', createdAt: '2026-02-21T12:00:00Z', updatedAt: '2026-02-21T12:00:00Z', purchaseAt: '2026-02-21T11:30:00Z', amount: 25.10, currency: 'USD', merchant: 'CVS Pharmacy', description: 'Vitamins', category: 'healthcare', paymentMethod: 'cash', tags: [], notes: '', source: 'manual', deleted: false },
-    { id: 'e8', workspaceId: 'ws1', createdByUid: 'user_demo_001', createdByName: 'Alex Johnson', createdAt: '2023-10-20T10:00:00Z', updatedAt: '2023-10-20T10:00:00Z', purchaseAt: '2023-10-20T09:00:00Z', amount: 6.50, currency: 'USD', merchant: 'Starbucks', description: 'Morning coffee', category: 'dining', paymentMethod: 'wallet', tags: [], notes: '', source: 'manual', deleted: false },
-];
-
-const DEMO_INCOMES: Income[] = [
-    { id: 'i1', workspaceId: 'ws1', createdByUid: 'user_demo_001', name: 'Software Engineer Salary', amount: 8500, currency: 'USD', type: 'fixed', date: '2026-03-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z' },
-    { id: 'i2', workspaceId: 'ws1', createdByUid: 'user_demo_001', name: 'Freelance Website', amount: 1200, currency: 'USD', type: 'variable', date: '2026-03-10T00:00:00Z', createdAt: '2026-03-10T00:00:00Z' }
-];
-
-const DEMO_SAVINGS: SavingsGoal[] = [
-    { id: 'sg1', workspaceId: 'ws1', name: 'Dream Vacation to Japan', reason: 'Visit Tokyo and Kyoto for 2 weeks', targetAmount: 5000, savedAmount: 1250, currency: 'USD', createdAt: '2024-01-01T00:00:00Z', color: '#7c3aed', icon: '✈️' },
-    { id: 'sg2', workspaceId: 'ws1', name: 'New MacBook Pro', reason: 'For my design work and video editing', targetAmount: 2500, savedAmount: 2000, currency: 'USD', createdAt: '2024-02-01T00:00:00Z', color: '#06d6a0', icon: '💻' },
-    { id: 'sg3', workspaceId: 'ws1', name: 'House Down Payment', reason: 'Buy my first home', targetAmount: 50000, savedAmount: 15000, currency: 'USD', createdAt: '2024-03-01T00:00:00Z', color: '#f59e0b', icon: '🏠' },
-];
-
-const DEMO_WORKSPACES: Workspace[] = [
-    { id: 'ws1', name: 'Personal', type: 'personal', ownerId: 'user_demo_001', currency: 'USD', icon: '👤', color: '#7c3aed', members: [{ uid: 'user_demo_001', name: 'Alex Johnson', email: 'alex@example.com', role: 'owner', status: 'active', joinedAt: '2024-01-01T00:00:00Z' }], activityLog: [], createdAt: '2024-01-01T00:00:00Z', inviteLink: 'https://financeva.app/join/ws1abc' },
-    { id: 'ws2', name: 'Family', type: 'shared', ownerId: 'user_demo_001', currency: 'USD', icon: '👨‍👩‍👧', color: '#06d6a0', members: [{ uid: 'user_demo_001', name: 'Alex Johnson', email: 'alex@example.com', role: 'owner', status: 'active', joinedAt: '2024-01-01T00:00:00Z' }, { uid: 'user_demo_002', name: 'Maria Garcia', email: 'maria@example.com', role: 'member', status: 'active', joinedAt: '2024-01-15T00:00:00Z' }], activityLog: [], createdAt: '2024-01-01T00:00:00Z', inviteLink: 'https://financeva.app/join/ws2def' },
-    { id: 'ws3', name: 'Work Trip', type: 'shared', ownerId: 'user_demo_001', currency: 'USD', icon: '💼', color: '#f59e0b', members: [{ uid: 'user_demo_001', name: 'Alex Johnson', email: 'alex@example.com', role: 'owner', status: 'active', joinedAt: '2024-06-01T00:00:00Z' }, { uid: 'user_demo_003', name: 'Kenji Tanaka', email: 'kenji@example.com', role: 'member', status: 'active', joinedAt: '2024-06-05T00:00:00Z' }], activityLog: [], createdAt: '2024-06-01T00:00:00Z', inviteLink: 'https://financeva.app/join/ws3ghi' },
-];
+// Demo data removed to ensure clean start for all users.
 
 interface AppState {
     // Auth
@@ -308,24 +266,26 @@ interface AppState {
     addPaymentMethod: (pm: PaymentMethodDef) => void;
     updatePaymentMethod: (key: string, data: Partial<PaymentMethodDef>) => void;
     deletePaymentMethod: (key: string) => void;
+
+    hydrateStore: () => Promise<void>;
 }
 
 const defaultFilters: AppFilters = { search: '', categories: [], paymentMethods: [], sortBy: 'date_desc' };
 
 export const useStore = create<AppState>()(
     persist(
-        (set) => ({
-            isAuthenticated: true,
-            user: DEMO_USER,
+        (set, get) => ({
+            isAuthenticated: false,
+            user: null,
             showOnboarding: false,
-            workspaces: DEMO_WORKSPACES,
-            activeWorkspaceId: 'ws1',
+            workspaces: [],
+            activeWorkspaceId: '',
             notifications: [],
             bills: [],
-            expenses: DEMO_EXPENSES,
+            expenses: [],
             filters: defaultFilters,
-            savingsGoals: DEMO_SAVINGS,
-            incomes: DEMO_INCOMES,
+            savingsGoals: [],
+            incomes: [],
             theme: 'dark',
             language: 'en',
             currency: 'USD',
@@ -334,8 +294,33 @@ export const useStore = create<AppState>()(
             paymentMethods: [...PAYMENT_METHODS],
             isLocked: false,
 
-            login: (user) => set({ isAuthenticated: true, user, showOnboarding: true }),
-            logout: () => set({ isAuthenticated: false, user: null }),
+            login: (user) => {
+                // Clear any existing local state to prevent leakage between accounts
+                set({ 
+                    isAuthenticated: true, 
+                    user, 
+                    showOnboarding: true,
+                    workspaces: [],
+                    expenses: [],
+                    incomes: [],
+                    bills: [],
+                    savingsGoals: [],
+                    notifications: [],
+                    activeWorkspaceId: ''
+                });
+                get().hydrateStore();
+            },
+            logout: () => set({ 
+                isAuthenticated: false, 
+                user: null, 
+                workspaces: [], 
+                expenses: [], 
+                incomes: [], 
+                bills: [], 
+                savingsGoals: [], 
+                notifications: [],
+                activeWorkspaceId: ''
+            }),
             setLocked: (locked) => set({ isLocked: locked }),
             deleteAllData: () => set({ expenses: [], savingsGoals: [] }),
             updateUser: (data) => set(s => ({ user: s.user ? { ...s.user, ...data } : null })),
@@ -639,6 +624,61 @@ export const useStore = create<AppState>()(
             addPaymentMethod: (pm) => set(s => ({ paymentMethods: [...s.paymentMethods, pm] })),
             updatePaymentMethod: (key, data) => set(s => ({ paymentMethods: s.paymentMethods.map(p => p.key === key ? { ...p, ...data } : p) })),
             deletePaymentMethod: (key) => set(s => ({ paymentMethods: s.paymentMethods.filter(p => p.key !== key) })),
+
+            hydrateStore: async () => {
+                const s = get();
+                if (!s.user) return;
+                set({ syncStatus: 'syncing' });
+                try {
+                    const ws = await fetchUserWorkspaces(s.user.id);
+                    if (ws && ws.length > 0) {
+                        set({ workspaces: ws, activeWorkspaceId: ws[0].id });
+                        // Fetch all data for the active workspace
+                        const [expenses, incomes, bills, goals, notifs] = await Promise.all([
+                            fetchExpensesFromCloud(ws[0].id),
+                            fetchIncomesFromCloud(ws[0].id),
+                            fetchBillsFromCloud(ws[0].id),
+                            fetchSavingsGoalsFromCloud(ws[0].id),
+                            fetchNotifications(s.user.id)
+                        ]);
+                        set({ 
+                            expenses: expenses || [], 
+                            incomes: incomes || [], 
+                            bills: bills || [], 
+                            savingsGoals: goals || [],
+                            notifications: notifs || []
+                        });
+                    } else if (ws?.length === 0) {
+                        // Create a default workspace for new user
+                        const wsId = generateId();
+                        const personalWs: Workspace = {
+                            id: wsId,
+                            name: 'Personal',
+                            type: 'personal',
+                            ownerId: s.user.id,
+                            currency: s.user.defaultCurrency || 'USD',
+                            icon: '👤',
+                            color: '#7c3aed',
+                            members: [{
+                                uid: s.user.id,
+                                name: s.user.name,
+                                email: s.user.email,
+                                role: 'owner',
+                                status: 'active',
+                                joinedAt: new Date().toISOString()
+                            }],
+                            activityLog: [],
+                            createdAt: new Date().toISOString()
+                        };
+                        await syncWorkspaceToCloud(personalWs);
+                        set({ workspaces: [personalWs], activeWorkspaceId: wsId });
+                    }
+                    set({ syncStatus: 'synced' });
+                } catch (e) {
+                    console.error('Hydration failed', e);
+                    set({ syncStatus: 'error' });
+                }
+            }
         }),
         { name: 'financeva-store', partialize: (s) => ({ user: s.user, workspaces: s.workspaces, notifications: s.notifications, bills: s.bills, expenses: s.expenses, savingsGoals: s.savingsGoals, incomes: s.incomes, theme: s.theme, language: s.language, currency: s.currency, activeWorkspaceId: s.activeWorkspaceId, isAuthenticated: s.isAuthenticated, showOnboarding: s.showOnboarding, categories: s.categories, paymentMethods: s.paymentMethods }) }
     )

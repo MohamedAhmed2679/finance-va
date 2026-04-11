@@ -40,6 +40,35 @@ export default function App() {
     } else {
       document.documentElement.style.setProperty('--titlebar-height', '0px');
     }
+
+    // Restore session on boot
+    const { user: storeUser, login } = useStore.getState();
+    if (!storeUser) {
+        import('./lib/supabase').then(({ supabase, isSupabaseReady }) => {
+            if (isSupabaseReady() && supabase) {
+                supabase.auth.getSession().then(({ data }) => {
+                    const sbUser = data.session?.user;
+                    if (sbUser) {
+                        login({
+                            id: sbUser.id,
+                            name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+                            email: sbUser.email || '',
+                            phone: sbUser.phone,
+                            referralCode: `FV-${sbUser.id.slice(0, 6).toUpperCase()}`,
+                            defaultCurrency: 'USD',
+                            language: 'en',
+                            theme: 'dark',
+                            biometricEnabled: false,
+                            hideAmounts: false,
+                            connectedClouds: [],
+                            backupInterval: 'weekly',
+                            createdAt: sbUser.created_at
+                        });
+                    }
+                });
+            }
+        });
+    }
   }, [theme]);
 
   useEffect(() => {

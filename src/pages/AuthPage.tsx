@@ -225,8 +225,10 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
     // ─── Final Login → Zustand Store ─────────────────────────────
     function doLogin(userName: string, userEmail: string, provider?: string) {
+        // We set the basic user info, then the store's 'login' 
+        // will trigger 'hydrateStore' to pull real data from Supabase.
         login({
-            id: `user_${Date.now()}`,
+            id: email, // Temporary or dummy ID if not synced yet, but preferably we get the real UID
             name: userName,
             email: userEmail,
             phone: phone || undefined,

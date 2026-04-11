@@ -269,3 +269,39 @@ export async function fetchUserProfile(authId: string) {
 
     return data;
 }
+
+export async function fetchIncomesFromCloud(workspaceId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.from('incomes').select('*').eq('workspace_id', workspaceId);
+    if (error) return null;
+    return data;
+}
+
+export async function fetchBillsFromCloud(workspaceId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.from('monthly_bills').select('*').eq('workspace_id', workspaceId);
+    if (error) return null;
+    return data;
+}
+
+export async function fetchSavingsGoalsFromCloud(workspaceId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.from('savings_goals').select('*').eq('workspace_id', workspaceId);
+    if (error) return null;
+    return data;
+}
+
+export async function fetchUserWorkspaces(userId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    // Fetch workspaces owned by user
+    const { data, error } = await supabase.from('workspaces').select('*').eq('owner_id', userId);
+    if (error) return null;
+    return data;
+}
+
+export async function fetchNotifications(userId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) return null;
+    return data;
+}
