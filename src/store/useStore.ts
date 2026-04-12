@@ -4,10 +4,10 @@ import { CATEGORIES, PAYMENT_METHODS } from '../constants';
 import {
     syncExpenseToCloud, deleteExpenseFromCloud, fetchExpensesFromCloud,
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
-    syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
+    syncBillToCloud, deleteBillFromCloud, fetchIncomesFromCloud as fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
-    updateUserProfile, fetchWorkspacesByEmail
+    updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile
 } from '../services/supabaseSync';
 
 export type CategoryKey = string;
@@ -478,6 +478,12 @@ export const useStore = create<AppState>()(
             addExpense: (exp) => set(s => {
                 const now = new Date().toISOString();
                 const userId = s.user?.dbId || s.user?.id || '';
+                
+                // CRITICAL: Log if we are falling back to Auth ID (which causes 500 errors)
+                if (s.user && !s.user.dbId) {
+                    console.warn('[Store] Warning: Adding expense without dbId. Falling back to Auth ID:', s.user.id);
+                }
+
                 const newExp: Expense = { ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false };
                 const ws = s.workspaces.find(w => w.id === exp.workspaceId);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'expense_added', workspaceId: ws.id, workspaceName: ws.name, message: `New expense of ${exp.amount} ${exp.currency} added in "${ws.name}" by ${exp.createdByName}.`, actioned: false, createdAt: now } : null;
@@ -507,7 +513,13 @@ export const useStore = create<AppState>()(
             // Bills Implementation
             addBill: (bill) => set(s => {
                 const now = new Date().toISOString();
-                const newBill = { ...bill, id: generateId(), createdAt: now };
+                const userId = s.user?.dbId || s.user?.id || '';
+                
+                if (s.user && !s.user.dbId) {
+                    console.warn('[Store] Warning: Adding bill without dbId. Falling back to Auth ID:', s.user.id);
+                }
+
+                const newBill = { ...bill, id: generateId(), createdByUid: userId, createdAt: now };
                 const ws = s.workspaces.find(w => w.id === bill.workspaceId);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: bill.createdByUid, userName: s.user?.name || 'User', action: 'added bill', entityType: 'bill', entityId: newBill.id, timestamp: now } : null;
 
@@ -552,7 +564,7 @@ export const useStore = create<AppState>()(
                 const newExp: Expense = {
                     id: generateId(),
                     workspaceId: bill.workspaceId,
-                    createdByUid: bill.createdByUid,
+                    createdByUid: s.user?.dbId || bill.createdByUid,
                     createdByName: s.user?.name || 'User',
                     amount: bill.amount,
                     currency: bill.currency,
@@ -612,7 +624,13 @@ export const useStore = create<AppState>()(
             }),
 
             addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'createdAt'>) => set(s => {
+                const userId = s.user?.dbId || s.user?.id || '';
                 const newGoal = { ...goal, id: generateId(), createdAt: new Date().toISOString() };
+                
+                if (s.user && !s.user.dbId) {
+                    console.warn('[Store] Warning: Adding savings goal without dbId. Falling back to Auth ID:', s.user.id);
+                }
+
                 syncSavingsGoalToCloud(newGoal).catch(console.error);
                 return { savingsGoals: [...s.savingsGoals, newGoal] };
             }),
@@ -628,6 +646,11 @@ export const useStore = create<AppState>()(
             addIncome: (inc) => set(s => {
                 const now = new Date().toISOString();
                 const userId = s.user?.dbId || s.user?.id || '';
+                
+                if (s.user && !s.user.dbId) {
+                    console.warn('[Store] Warning: Adding income without dbId. Falling back to Auth ID:', s.user.id);
+                }
+
                 const newInc = { ...inc, id: generateId(), createdByUid: userId, createdAt: now };
                 const ws = s.workspaces.find(w => w.id === inc.workspaceId);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
@@ -687,9 +710,23 @@ export const useStore = create<AppState>()(
                 const s = get();
                 if (!s.user) return;
                 set({ syncStatus: 'syncing' });
+
+                // CRITICAL: Ensure we have the dbId before fetching data
+                // If it's missing (e.g. legacy session), force fetch profile once
+                let userId: string = s.user.dbId || '';
+                if (!userId) {
+                    console.log('[Store] dbId missing in store, attempting fresh profile fetch for Auth ID:', s.user.id);
+                    const profile = await fetchUserProfile(s.user.id);
+                    if (profile) {
+                        userId = profile.id;
+                        set(state => ({ user: state.user ? { ...state.user, dbId: profile.id } : null }));
+                    } else {
+                        // Fallback but log it - this is usually where 500 errors start
+                        userId = s.user.id;
+                    }
+                }
+
                 try {
-                    // Use the internal dbId if available (fixes the Auth vs internal ID mismatch)
-                    const userId = s.user.dbId || s.user.id;
                     let ws = await fetchUserWorkspaces(userId);
                     
                     // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,

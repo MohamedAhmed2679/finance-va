@@ -34,7 +34,7 @@ export async function syncExpenseToCloud(expense: {
     await supabase.from('expenses').upsert({
         id: expense.id,
         workspace_id: expense.workspaceId,
-        created_by: expense.createdByUid,
+        created_by: expense.createdByUid, // MUST BE dbId from profile
         amount: expense.amount,
         currency: expense.currency,
         merchant: expense.merchant,
@@ -46,6 +46,9 @@ export async function syncExpenseToCloud(expense: {
         purchased_at: expense.purchaseAt,
         source: expense.source || 'manual',
     });
+    
+    // Debug log to confirm which ID is being sent to Supabase
+    console.log(`[Sync] Expense synced for internal user ${expense.createdByUid}`);
 }
 
 export async function deleteExpenseFromCloud(id: string) {
@@ -179,6 +182,7 @@ export async function syncWorkspaceToCloud(workspace: {
     icon: string;
     color: string;
     cycleStartDay?: number;
+    isArchived?: boolean;
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
@@ -186,12 +190,14 @@ export async function syncWorkspaceToCloud(workspace: {
         id: workspace.id,
         name: workspace.name,
         type: workspace.type,
-        owner_id: workspace.ownerId,
+        owner_id: workspace.ownerId, // MUST BE internal dbId
         currency: workspace.currency,
         icon: workspace.icon,
         color: workspace.color,
         cycle_start_day: workspace.cycleStartDay || 1,
+        is_archived: workspace.isArchived
     });
+    console.log(`[Sync] Workspace ${workspace.name} synced for owner ${workspace.ownerId}`);
 }
 
 export async function syncWorkspaceMemberToCloud(member: {
@@ -277,7 +283,7 @@ export async function fetchUserProfile(authId: string) {
         .from('users')
         .select('*')
         .eq('auth_id', authId)
-        .single();
+        .maybeSingle(); // Switch from .single() to avoid erroring if not found yet
 
     if (error) {
         console.error('[Sync] Failed to fetch user profile:', error.message);

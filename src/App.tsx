@@ -52,10 +52,11 @@ export default function App() {
                     if (sbUser) {
                         // Fetch the full profile to restore preferences
                         fetchUserProfile(sbUser.id).then((profile: any) => {
-                            if (!profile) return;
+                            // Even if profile is null (just signed up), the trigger is likely still running.
+                            // We can use the login data and the store will try to fetch again during hydration if dbId is missing.
                             login({
                                 id: sbUser.id,
-                                dbId: profile.id, // THE INTERNAL UUID
+                                dbId: profile?.id || '', // Capture internal ID
                                 name: profile?.name || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
                                 email: sbUser.email || '',
                                 phone: sbUser.phone,
