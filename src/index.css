@@ -2090,6 +2090,13 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
   right: -10px;
 }
 
+.quick-add-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+}
+
 /* ============================================= */
 /* RESPONSIVE: Mobile ≤ 768px                    */
 /* ============================================= */
@@ -2251,6 +2258,11 @@ h1, h2, h3, h4, h5, h6, .page-title, .auth-title {
   .social-share-menu {
     bottom: 80px;
     right: 80px;
+  }
+
+  .quick-add-container {
+    bottom: 85px;
+    right: 16px;
   }
 
   .table-responsive {

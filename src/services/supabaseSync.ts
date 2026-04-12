@@ -194,6 +194,23 @@ export async function syncWorkspaceToCloud(workspace: {
     });
 }
 
+export async function syncWorkspaceMemberToCloud(member: {
+    id?: string;
+    workspaceId: string;
+    userId: string;
+    role: string;
+    status: string;
+}) {
+    if (!isSupabaseReady() || !supabase) return;
+
+    await supabase.from('workspace_members').upsert({
+        workspace_id: member.workspaceId,
+        user_id: member.userId,
+        role: member.role,
+        status: member.status,
+    }, { onConflict: 'workspace_id,user_id' });
+}
+
 // ─── Notifications ───────────────────────────────────────────────
 
 export async function syncNotificationToCloud(notification: {

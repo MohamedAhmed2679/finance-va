@@ -13,7 +13,7 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onAdd
     const [open, setOpen] = useState(false);
 
     return (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>
+        <div className="quick-add-container">
             {/* Expanded Menu Options */}
             <div style={{
                 position: 'absolute', bottom: 70, right: 0,

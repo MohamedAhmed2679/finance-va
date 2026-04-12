@@ -6,7 +6,7 @@ import {
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
     syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
-    syncWorkspaceToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
+    syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail
 } from '../services/supabaseSync';
 
@@ -326,13 +326,42 @@ export const useStore = create<AppState>()(
             }),
             setLocked: (locked) => set({ isLocked: locked }),
             deleteAllData: () => set({ expenses: [], savingsGoals: [] }),
-            completeOnboarding: () => set({ showOnboarding: false }),
+            completeOnboarding: () => {
+                const s = get();
+                if (!s.user) return;
+                s.updateUser({ showOnboarding: false });
+            },
             setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
             addWorkspace: (ws) => {
+                const s = get();
                 const id = generateId();
-                const newWs: Workspace = { ...ws, id, activityLog: [], inviteLink: `https://financeva.app/join/${id.slice(0, 8)}` };
+                const userId = s.user?.dbId || s.user?.id || '';
+                const newWs: Workspace = { 
+                    ...ws, 
+                    id, 
+                    ownerId: userId,
+                    activityLog: [], 
+                    inviteLink: `https://financeva.app/join/${id.slice(0, 8)}`,
+                    members: [{
+                        uid: userId,
+                        name: s.user?.name || 'User',
+                        email: s.user?.email || '',
+                        role: 'owner',
+                        status: 'active',
+                        joinedAt: new Date().toISOString()
+                    }]
+                };
+                
+                // Sync Workspace AND membership
                 syncWorkspaceToCloud(newWs).catch(console.error);
-                set(s => ({ workspaces: [...s.workspaces, newWs] }));
+                syncWorkspaceMemberToCloud({
+                    workspaceId: id,
+                    userId: userId,
+                    role: 'owner',
+                    status: 'active'
+                }).catch(console.error);
+
+                set(state => ({ workspaces: [...state.workspaces, newWs] }));
                 return id;
             },
             updateWorkspace: (id, data) => set(s => {
@@ -448,7 +477,8 @@ export const useStore = create<AppState>()(
 
             addExpense: (exp) => set(s => {
                 const now = new Date().toISOString();
-                const newExp: Expense = { ...exp, id: generateId(), createdAt: now, updatedAt: now, deleted: false };
+                const userId = s.user?.dbId || s.user?.id || '';
+                const newExp: Expense = { ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false };
                 const ws = s.workspaces.find(w => w.id === exp.workspaceId);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'expense_added', workspaceId: ws.id, workspaceName: ws.name, message: `New expense of ${exp.amount} ${exp.currency} added in "${ws.name}" by ${exp.createdByName}.`, actioned: false, createdAt: now } : null;
 
@@ -597,9 +627,10 @@ export const useStore = create<AppState>()(
             }),
             addIncome: (inc) => set(s => {
                 const now = new Date().toISOString();
-                const newInc = { ...inc, id: generateId(), createdAt: now };
+                const userId = s.user?.dbId || s.user?.id || '';
+                const newInc = { ...inc, id: generateId(), createdByUid: userId, createdAt: now };
                 const ws = s.workspaces.find(w => w.id === inc.workspaceId);
-                const log: ActivityEntry | null = ws ? { id: generateId(), uid: inc.createdByUid, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
+                const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
 
                 syncIncomeToCloud(newInc).catch(console.error);
 
@@ -630,12 +661,26 @@ export const useStore = create<AppState>()(
             updateUser: async (updates) => {
                 const { user } = get();
                 if (!user) return;
+                
+                // Merge into local state immediately
                 const newUser = { ...user, ...updates };
-                set({ user: newUser });
-                if (updates.showOnboarding === false) {
-                   set({ showOnboarding: false });
+                const newShowOnboarding = updates.showOnboarding !== undefined ? updates.showOnboarding : get().showOnboarding;
+                set({ user: newUser, showOnboarding: newShowOnboarding });
+
+                // Map camelCase app keys to snake_case DB columns
+                const dbUpdates: Record<string, any> = {};
+                if (updates.name !== undefined) dbUpdates.name = updates.name;
+                if (updates.defaultCurrency !== undefined) dbUpdates.default_currency = updates.defaultCurrency;
+                if (updates.language !== undefined) dbUpdates.language = updates.language;
+                if (updates.theme !== undefined) dbUpdates.theme = updates.theme;
+                if (updates.biometricEnabled !== undefined) dbUpdates.biometric_enabled = updates.biometricEnabled;
+                if (updates.hideAmounts !== undefined) dbUpdates.hide_amounts = updates.hideAmounts;
+                if (updates.showOnboarding !== undefined) dbUpdates.show_onboarding = updates.showOnboarding;
+                if (updates.backupInterval !== undefined) dbUpdates.backup_interval = updates.backupInterval;
+
+                if (Object.keys(dbUpdates).length > 0) {
+                    await updateUserProfile(user.id, dbUpdates);
                 }
-                await updateUserProfile(user.id, updates);
             },
 
             hydrateStore: async () => {
@@ -655,13 +700,13 @@ export const useStore = create<AppState>()(
                             if (orphaned && orphaned.length > 0) {
                                 console.log('[Sync] Found orphaned workspaces for email, checking migration...');
                                 for (const w of orphaned) {
-                                    // Only migrate if it's NOT already correctly owned by this UUID (and it's owned by the email)
-                                    if (w.owner_id === s.user.email || w.ownerId === s.user.email) {
-                                        await syncWorkspaceToCloud({ ...w, ownerId: s.user.id });
+                                    // Only migrate if it's NOT already correctly owned by this internal ID
+                                    if (w.owner_id === s.user.email || w.owner_id === s.user.id) {
+                                        await syncWorkspaceToCloud({ ...w, ownerId: userId });
                                     }
                                 }
-                                // Re-fetch to get the merged list for the UUID
-                                ws = await fetchUserWorkspaces(s.user.id);
+                                // Re-fetch to get the merged list for the right ID
+                                ws = await fetchUserWorkspaces(userId);
                             }
                         } catch (e) {
                             console.error('[Sync] Migration check failed (safe skip):', e);
@@ -710,6 +755,12 @@ export const useStore = create<AppState>()(
                             createdAt: new Date().toISOString()
                         };
                         await syncWorkspaceToCloud(personalWs);
+                        await syncWorkspaceMemberToCloud({
+                            workspaceId: wsId,
+                            userId: userId,
+                            role: 'owner',
+                            status: 'active'
+                        });
                         set({ workspaces: [personalWs], activeWorkspaceId: wsId, showOnboarding: true });
                     }
                     set({ syncStatus: 'synced' });

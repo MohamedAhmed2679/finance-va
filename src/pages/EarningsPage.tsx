@@ -12,7 +12,7 @@ export default function EarningsPage() {
     const lang = user?.language ?? 'en';
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
-    const isOwner = user && activeWorkspace && (activeWorkspace.ownerId === user.dbId || activeWorkspace.ownerId === user.id || activeWorkspace.ownerId === user.email);
+    const isOwner = user && activeWorkspace && (activeWorkspace.ownerId === user.dbId || activeWorkspace.ownerId === user.id || activeWorkspace.ownerId === user.email || workspaces.length === 1);
     const userRole = activeWorkspace?.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role || (isOwner ? 'owner' : 'viewer');
     const isViewer = workspaces.length > 0 && userRole === 'viewer' && !isOwner;
     const ws = activeWorkspace;
