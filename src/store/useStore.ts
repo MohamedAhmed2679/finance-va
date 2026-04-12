@@ -624,7 +624,6 @@ export const useStore = create<AppState>()(
             }),
 
             addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'createdAt'>) => set(s => {
-                const userId = s.user?.dbId || s.user?.id || '';
                 const newGoal = { ...goal, id: generateId(), createdAt: new Date().toISOString() };
                 
                 if (s.user && !s.user.dbId) {
