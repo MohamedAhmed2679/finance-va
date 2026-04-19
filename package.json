@@ -1,7 +1,8 @@
 {
   "name": "velvet-hubble",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.14.0",
+  "description": "Finance VA - Professional AI-Powered Financial Assistant with Advanced Security and Data Integrity",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",

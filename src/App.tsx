@@ -116,7 +116,7 @@ export default function App() {
         console.error('[Auth] OAuth error:', url.searchParams.get('error_description'));
         window.history.replaceState({}, '', url.pathname);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return <AuthPage onAuth={() => setPage('overview')} />;
