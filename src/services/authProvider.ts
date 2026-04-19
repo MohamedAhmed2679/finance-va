@@ -38,9 +38,9 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
             options: {
                 redirectTo: getOAuthRedirectTo(),
                 scopes: provider === 'google'
-                    ? 'openid email profile https://www.googleapis.com/auth/drive.appdata'
+                    ? 'openid email profile'
                     : provider === 'azure'
-                    ? 'openid profile email User.Read Files.ReadWrite.AppFolder'
+                    ? 'openid profile email User.Read'
                     : 'openid name email',
             },
         });

@@ -100,6 +100,24 @@ export default function App() {
     return () => unsubscribe();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    // Handle OAuth callback — Supabase PKCE flow returns with code in URL
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const errorParam = url.searchParams.get('error');
+
+    if (code && !isAuthenticated) {
+        // Supabase's onAuthStateChange fires automatically when the PKCE code is exchanged.
+        // Clean up the URL to remove the code parameter.
+        window.history.replaceState({}, '', url.pathname);
+    }
+
+    if (errorParam) {
+        console.error('[Auth] OAuth error:', url.searchParams.get('error_description'));
+        window.history.replaceState({}, '', url.pathname);
+    }
+  }, []);
+
   if (!isAuthenticated) {
     return <AuthPage onAuth={() => setPage('overview')} />;
   }

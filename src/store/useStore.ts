@@ -4,7 +4,7 @@ import { CATEGORIES, PAYMENT_METHODS } from '../constants';
 import {
     syncExpenseToCloud, deleteExpenseFromCloud, fetchExpensesFromCloud,
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
-    syncBillToCloud, deleteBillFromCloud, fetchIncomesFromCloud as fetchBillsFromCloud,
+    syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile
@@ -181,7 +181,18 @@ export interface AppFilters {
     sortBy: 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
 }
 
-function generateId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
+function generateId(): string {
+    // crypto.randomUUID() produces valid v4 UUIDs matching Supabase UUID columns
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    // Fallback for older environments
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
 
 // Demo data removed to ensure clean start for all users.
 
@@ -325,7 +336,7 @@ export const useStore = create<AppState>()(
                 activeWorkspaceId: ''
             }),
             setLocked: (locked) => set({ isLocked: locked }),
-            deleteAllData: () => set({ expenses: [], savingsGoals: [] }),
+            deleteAllData: () => set({ expenses: [], savingsGoals: [], incomes: [], bills: [], notifications: [] }),
             completeOnboarding: () => {
                 const s = get();
                 if (!s.user) return;
@@ -479,9 +490,8 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const userId = s.user?.dbId || s.user?.id || '';
                 
-                // CRITICAL: Log if we are falling back to Auth ID (which causes 500 errors)
-                if (s.user && !s.user.dbId) {
-                    console.warn('[Store] Warning: Adding expense without dbId. Falling back to Auth ID:', s.user.id);
+                if (import.meta.env.DEV && s.user && !s.user.dbId) {
+                    console.warn('[Store] Adding expense without dbId');
                 }
 
                 const newExp: Expense = { ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false };
@@ -515,8 +525,8 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const userId = s.user?.dbId || s.user?.id || '';
                 
-                if (s.user && !s.user.dbId) {
-                    console.warn('[Store] Warning: Adding bill without dbId. Falling back to Auth ID:', s.user.id);
+                if (import.meta.env.DEV && s.user && !s.user.dbId) {
+                    console.warn('[Store] Adding bill without dbId');
                 }
 
                 const newBill = { ...bill, id: generateId(), createdByUid: userId, createdAt: now };
@@ -581,6 +591,10 @@ export const useStore = create<AppState>()(
                     deleted: false
                 };
 
+                // Sync the auto-created expense and the updated bill to cloud
+                syncExpenseToCloud(newExp).catch(console.error);
+                syncBillToCloud({ ...bill, lastPaidMonth: currentMonth }).catch(console.error);
+
                 return {
                     bills: s.bills.map(b => b.id === id ? { ...b, lastPaidMonth: currentMonth } : b),
                     expenses: [newExp, ...s.expenses]
@@ -626,8 +640,8 @@ export const useStore = create<AppState>()(
             addSavingsGoal: (goal: Omit<SavingsGoal, 'id' | 'createdAt'>) => set(s => {
                 const newGoal = { ...goal, id: generateId(), createdAt: new Date().toISOString() };
                 
-                if (s.user && !s.user.dbId) {
-                    console.warn('[Store] Warning: Adding savings goal without dbId. Falling back to Auth ID:', s.user.id);
+                if (import.meta.env.DEV && s.user && !s.user.dbId) {
+                    console.warn('[Store] Adding savings goal without dbId');
                 }
 
                 syncSavingsGoalToCloud(newGoal).catch(console.error);
@@ -646,8 +660,8 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const userId = s.user?.dbId || s.user?.id || '';
                 
-                if (s.user && !s.user.dbId) {
-                    console.warn('[Store] Warning: Adding income without dbId. Falling back to Auth ID:', s.user.id);
+                if (import.meta.env.DEV && s.user && !s.user.dbId) {
+                    console.warn('[Store] Adding income without dbId');
                 }
 
                 const newInc = { ...inc, id: generateId(), createdByUid: userId, createdAt: now };
@@ -714,7 +728,7 @@ export const useStore = create<AppState>()(
                 // If it's missing (e.g. legacy session), force fetch profile once
                 let userId: string = s.user.dbId || '';
                 if (!userId) {
-                    console.log('[Store] dbId missing in store, attempting fresh profile fetch for Auth ID:', s.user.id);
+                    if (import.meta.env.DEV) console.log('[Store] dbId missing, fetching profile...');
                     const profile = await fetchUserProfile(s.user.id);
                     if (profile) {
                         userId = profile.id;
@@ -734,7 +748,7 @@ export const useStore = create<AppState>()(
                         try {
                             const orphaned = await fetchWorkspacesByEmail(s.user.email);
                             if (orphaned && orphaned.length > 0) {
-                                console.log('[Sync] Found orphaned workspaces for email, checking migration...');
+                                if (import.meta.env.DEV) console.log('[Sync] Found orphaned workspaces, checking migration...');
                                 for (const w of orphaned) {
                                     // Only migrate if it's NOT already correctly owned by this internal ID
                                     if (w.owner_id === s.user.email || w.owner_id === s.user.id) {
@@ -769,7 +783,7 @@ export const useStore = create<AppState>()(
                         });
                     } else {
                         // Create a default workspace for new user using the safe internal ID
-                        console.log('[Sync] Creating default workspace for ID:', userId);
+                        if (import.meta.env.DEV) console.log('[Sync] Creating default workspace');
                         const wsId = generateId();
                         const personalWs: Workspace = {
                             id: wsId,

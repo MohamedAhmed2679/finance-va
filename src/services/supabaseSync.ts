@@ -47,8 +47,9 @@ export async function syncExpenseToCloud(expense: {
         source: expense.source || 'manual',
     });
     
-    // Debug log to confirm which ID is being sent to Supabase
-    console.log(`[Sync] Expense synced for internal user ${expense.createdByUid}`);
+    if (import.meta.env.DEV) {
+        console.log(`[Sync] Expense synced for user ${expense.createdByUid}`);
+    }
 }
 
 export async function deleteExpenseFromCloud(id: string) {
@@ -102,7 +103,7 @@ export async function syncIncomeToCloud(income: {
 
 export async function deleteIncomeFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('incomes').delete().eq('id', id);
+    await supabase.from('incomes').update({ is_deleted: true }).eq('id', id);
 }
 
 // ─── Bills ───────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ export async function syncBillToCloud(bill: {
 
 export async function deleteBillFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('monthly_bills').delete().eq('id', id);
+    await supabase.from('monthly_bills').update({ is_deleted: true }).eq('id', id);
 }
 
 // ─── Savings Goals ───────────────────────────────────────────────
@@ -168,7 +169,7 @@ export async function syncSavingsGoalToCloud(goal: {
 
 export async function deleteSavingsGoalFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('savings_goals').delete().eq('id', id);
+    await supabase.from('savings_goals').update({ is_deleted: true }).eq('id', id);
 }
 
 // ─── Workspaces ──────────────────────────────────────────────────
@@ -197,7 +198,9 @@ export async function syncWorkspaceToCloud(workspace: {
         cycle_start_day: workspace.cycleStartDay || 1,
         is_archived: workspace.isArchived
     });
-    console.log(`[Sync] Workspace ${workspace.name} synced for owner ${workspace.ownerId}`);
+    if (import.meta.env.DEV) {
+        console.log(`[Sync] Workspace ${workspace.name} synced for owner ${workspace.ownerId}`);
+    }
 }
 
 export async function syncWorkspaceMemberToCloud(member: {
@@ -295,21 +298,21 @@ export async function fetchUserProfile(authId: string) {
 
 export async function fetchIncomesFromCloud(workspaceId: string) {
     if (!isSupabaseReady() || !supabase) return null;
-    const { data, error } = await supabase.from('incomes').select('*').eq('workspace_id', workspaceId);
+    const { data, error } = await supabase.from('incomes').select('*').eq('workspace_id', workspaceId).neq('is_deleted', true);
     if (error) return null;
     return data;
 }
 
 export async function fetchBillsFromCloud(workspaceId: string) {
     if (!isSupabaseReady() || !supabase) return null;
-    const { data, error } = await supabase.from('monthly_bills').select('*').eq('workspace_id', workspaceId);
+    const { data, error } = await supabase.from('monthly_bills').select('*').eq('workspace_id', workspaceId).neq('is_deleted', true);
     if (error) return null;
     return data;
 }
 
 export async function fetchSavingsGoalsFromCloud(workspaceId: string) {
     if (!isSupabaseReady() || !supabase) return null;
-    const { data, error } = await supabase.from('savings_goals').select('*').eq('workspace_id', workspaceId);
+    const { data, error } = await supabase.from('savings_goals').select('*').eq('workspace_id', workspaceId).neq('is_deleted', true);
     if (error) return null;
     return data;
 }

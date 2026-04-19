@@ -9,8 +9,7 @@ import CurrencyDisplay from '../components/CurrencyDisplay';
 
 interface OverviewProps { onNavigate: (p: string) => void; onAddExpense: () => void; }
 
-// Gemini API key: user's personal key (Settings) → env var → empty (disabled)
-const ENV_GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+
 
 function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: string, endDate: string, baseCur: string) {
     const periodExp = expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate);
@@ -78,26 +77,34 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     async function generateAdvice() {
         setAiLoading(true);
         try {
-            const apiKeyToUse = user?.geminiKey || ENV_GEMINI_KEY;
-            if (!apiKeyToUse) {
-                setAiText('No Gemini API key configured. Go to Settings → AI Integrations to add your key.');
-                return;
-            }
             const topCats = catData.slice(0, 3).map(c => `${c.name}: ${formatCurrency(c.value, cur)}`).join(', ');
             const prompt = `You are a friendly personal finance advisor. Analyze these monthly expenses: Total this month: ${formatCurrency(monthTotal, cur)}. Top spending categories: ${topCats}. Provide 3 concise, actionable tips to save money and improve financial health. Be encouraging and specific. Max 120 words.`;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKeyToUse}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-            const data = await res.json();
-            
-            if (data.error) {
-                 if (data.error.code === 429) {
-                     setAiText('AI advice is unavailable due to quota exhaustion. Please set your personal Gemini API Key in Settings to continue using AI features.');
-                 } else {
-                     setAiText(`AI Error: ${data.error.message}`);
-                 }
-                 return;
+
+            // Try server-side endpoint first (API key stays on server)
+            const res = await fetch('/api/ai/advice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setAiText(data.text || 'Unable to generate advice at this time.');
+            } else {
+                // Fallback: use user's personal key if server endpoint fails
+                const apiKeyToUse = user?.geminiKey;
+                if (!apiKeyToUse) {
+                    setAiText('AI advice is temporarily unavailable. Add your Gemini API key in Settings → AI Integrations.');
+                    return;
+                }
+                const fallbackRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKeyToUse}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                const data = await fallbackRes.json();
+                if (data.error) {
+                    setAiText(data.error.code === 429 ? 'AI quota exhausted. Please set your personal Gemini API Key in Settings.' : `AI Error: ${data.error.message}`);
+                    return;
+                }
+                setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time.');
             }
-            
-            setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time. Please check your API key in Settings.');
         } catch { setAiText('AI advice is temporarily unavailable. Check your internet connection.'); }
         setAiLoading(false);
     }

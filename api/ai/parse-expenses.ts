@@ -1,17 +1,27 @@
 export const config = {
-    runtime: 'edge', // Using Edge runtime
+    runtime: 'edge',
+};
+
+const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
 };
 
 export default async function handler(req: Request) {
+    if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+    }
     if (req.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405 });
+        return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
     try {
         const { text, baseCurrency, dateContext } = await req.json();
 
         if (!text) {
-            return new Response(JSON.stringify({ error: 'Text is required' }), { status: 400 });
+            return new Response(JSON.stringify({ error: 'Text is required' }), { status: 400, headers: corsHeaders });
         }
 
         const prompt = `
@@ -44,7 +54,7 @@ Text: "${text}"
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-haiku-4-5-20251001',
                 max_tokens: 1024,
                 messages: [{ role: 'user', content: prompt }]
             })
@@ -64,16 +74,13 @@ Text: "${text}"
             const start = content.indexOf('{');
             const end = content.lastIndexOf('}') + 1;
             parsed = JSON.parse(content.slice(start, end));
-        } catch (e) {
-            console.error('Failed to parse AI response:', content);
+        } catch {
             throw new Error('AI returned malformed JSON');
         }
 
-        return new Response(JSON.stringify(parsed), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(parsed), { status: 200, headers: corsHeaders });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return new Response(JSON.stringify({ error: message }), { status: 500, headers: corsHeaders });
     }
 }
