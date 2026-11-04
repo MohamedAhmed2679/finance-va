@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useStore, type WorkspaceRole } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { WORKSPACE_ICONS, WORKSPACE_COLORS } from '../constants';
-import { Plus, Copy, Check, Users, Shield, Crown, Eye, UserPlus, Trash2, Archive, X } from 'lucide-react';
+import { Plus, Check, Users, Shield, Crown, Eye, UserPlus, Trash2, Archive, X } from 'lucide-react';
 
 export default function WorkspacesPage() {
-    const { user, workspaces, activeWorkspaceId, addWorkspace, inviteMember, setActiveWorkspace, deleteWorkspace, updateWorkspace, removeMember, updateMemberRole } = useStore();
+    const { user, workspaces, activeWorkspaceId, addWorkspace, inviteMember, setActiveWorkspace, deleteWorkspace, updateWorkspace, removeMember, updateMemberRole, refreshMembers } = useStore();
+    useEffect(() => { workspaces.forEach(w => { refreshMembers(w.id).catch(() => {}); }); }, [workspaces.length]); // eslint-disable-line react-hooks/exhaustive-deps
     const lang = user?.language ?? 'en';
     const [showCreate, setShowCreate] = useState(false);
     const [showInvite, setShowInvite] = useState<string | null>(null);
@@ -18,13 +20,12 @@ export default function WorkspacesPage() {
     const [inviteName, setInviteName] = useState('');
     const [inviteRole, setInviteRole] = useState<WorkspaceRole>('member');
     const [inviteMethod, setInviteMethod] = useState<'email' | 'phone' | 'id'>('email');
-    const [copied, setCopied] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
     const [inviting, setInviting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
     const isOwner = (ws: typeof workspaces[0]) => user?.dbId && (ws.ownerId === user.dbId || ws.ownerId === user.id || ws.ownerId === user.email);
-    const isOwnerOrAdmin = (ws: typeof workspaces[0]) => isOwner(ws) || ws.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role === 'admin';
+    const isOwnerOrAdmin = (ws: typeof workspaces[0]) => Boolean(user?.isAdmin) || isOwner(ws) || ws.members.find(m => m.uid === user?.dbId || m.uid === user?.id || (m.email === user?.email && m.email))?.role === 'admin';
 
     function handleCreateWorkspace(e: React.FormEvent) {
         e.preventDefault();
@@ -38,21 +39,36 @@ export default function WorkspacesPage() {
         }, 800);
     }
 
-    function handleInvite(e: React.FormEvent) {
+    async function handleInvite(e: React.FormEvent) {
         e.preventDefault();
-        if (!showInvite || !inviteEmail) return;
+        if (!showInvite || !inviteEmail.trim()) return;
         setInviting(true);
-        setTimeout(() => {
-            inviteMember(showInvite, inviteEmail, inviteName || inviteEmail.split('@')[0], inviteRole);
-            setInviteEmail(''); setInviteName(''); setShowInvite(null); setInviting(false);
-            setSuccessMsg(`Invitation sent to ${inviteEmail}!`);
-            setTimeout(() => setSuccessMsg(''), 3000);
-        }, 800);
+        try {
+            const result = await inviteMember(showInvite, inviteEmail.trim(), inviteName, inviteRole);
+            if (result === 'not_found') {
+                toast.error(`No Finance VA account uses ${inviteEmail.trim()}. Ask them to sign up first, then add them.`);
+            } else {
+                toast.success(`${inviteEmail.trim()} was added and notified.`);
+                setInviteEmail(''); setInviteName(''); setShowInvite(null);
+            }
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Couldn't add that person.");
+        } finally {
+            setInviting(false);
+        }
     }
 
-    function copyLink(link: string, id: string) {
-        navigator.clipboard.writeText(link).then(() => { setCopied(id); setTimeout(() => setCopied(null), 2000); });
+    async function changeRole(wsId: string, uid: string, role: WorkspaceRole) {
+        try { await updateMemberRole(wsId, uid, role); toast.success('Role updated'); }
+        catch (err) { toast.error(err instanceof Error ? err.message : "Couldn't change the role."); }
     }
+
+    async function kick(wsId: string, uid: string, name: string) {
+        if (!confirm(`Remove ${name} from this workspace? They lose access to its expenses and chat.`)) return;
+        try { await removeMember(wsId, uid); toast.success(`${name} was removed`); }
+        catch (err) { toast.error(err instanceof Error ? err.message : "Couldn't remove them."); }
+    }
+
 
     const roleIcon = { owner: <Crown size={12} />, admin: <Shield size={12} />, member: <Users size={12} />, viewer: <Eye size={12} /> };
     const roleColor = { owner: 'var(--primary-light)', admin: 'var(--warning)', member: 'var(--accent)', viewer: 'var(--text-muted)' };
@@ -133,30 +149,27 @@ export default function WorkspacesPage() {
                             <button className="modal-close" onClick={() => setShowInvite(null)}>✕</button>
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                            {(['email', 'phone', 'id'] as const).map(m => (
+                            {(['email', 'phone'] as const).map(m => (
                                 <div key={m} className={`category-chip ${inviteMethod === m ? 'selected' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setInviteMethod(m)}>
-                                    {m === 'email' ? '📧' : m === 'phone' ? '📱' : '🆔'} {m.charAt(0).toUpperCase() + m.slice(1)}
+                                    {m === 'email' ? 'Email' : 'Phone'}
                                 </div>
                             ))}
                         </div>
                         <form onSubmit={handleInvite}>
                             <div className="form-group">
-                                <label className="form-label">{inviteMethod === 'email' ? 'Email Address' : inviteMethod === 'phone' ? 'Phone Number' : 'User ID'} *</label>
-                                <input className="form-input" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={inviteMethod === 'email' ? 'colleague@example.com' : inviteMethod === 'phone' ? '+1 555 000 0000' : 'FV-XXXXXX'} required />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Name (optional)</label>
-                                <input className="form-input" value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Their name" />
+                                <label className="form-label">{inviteMethod === 'email' ? 'Their Finance VA email' : 'Their phone number with country code'}</label>
+                                <input className="form-input" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={inviteMethod === 'email' ? 'name@example.com' : '+20 100 123 4567'} type={inviteMethod === 'email' ? 'email' : 'tel'} required />
+                                <div className="text-xs text-muted mt-1">They need a Finance VA account. They'll get a notification and see this workspace and its chat.</div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Role</label>
                                 <select className="form-input form-select" value={inviteRole} onChange={e => setInviteRole(e.target.value as WorkspaceRole)}>
-                                    <option value="admin">Admin – Full access (Edit/View)</option>
-                                    <option value="viewer">Member – View only access</option>
-                                    <option value="owner">Co-Owner – Manage users & data</option>
+                                    <option value="member">Member — can add and edit expenses</option>
+                                    <option value="admin">Admin — can also manage members</option>
+                                    <option value="viewer">Viewer — read only</option>
                                 </select>
                             </div>
-                            <button type="submit" className="btn btn-primary w-full" disabled={inviting}>{inviting ? 'Sending…' : 'Send Invitation'}</button>
+                            <button type="submit" className="btn btn-primary w-full" disabled={inviting}>{inviting ? 'Adding…' : 'Add to workspace'}</button>
                         </form>
                     </div>
                 </div>
@@ -185,7 +198,7 @@ export default function WorkspacesPage() {
                                         </button>
                                     </>
                                 )}
-                                {!ws.isArchived && <button className="btn btn-ghost btn-sm" onClick={() => setShowInvite(ws.id)}><UserPlus size={14} /> Invite</button>}
+                                {!ws.isArchived && isOwnerOrAdmin(ws) && <button className="btn btn-ghost btn-sm" onClick={() => setShowInvite(ws.id)}><UserPlus size={14} /> Add member</button>}
                             </div>
                         </div>
 
@@ -197,34 +210,25 @@ export default function WorkspacesPage() {
                                         <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${ws.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{m.name[0]}</div>
                                         <span style={{ fontWeight: 600 }}>{m.name.split(' ')[0]}</span>
 
-                                        {isOwner(ws) && m.uid !== user?.id && m.role !== 'owner' ? (
-                                            <select className="form-input" style={{ padding: '0px 6px', height: 22, fontSize: 11, background: 'transparent', border: 'none', color: roleColor[m.role], cursor: 'pointer', appearance: 'none' }} value={m.role} onChange={(e) => updateMemberRole(ws.id, m.uid, e.target.value as WorkspaceRole)}>
-                                                <option value="owner">Owner</option>
+                                        {isOwnerOrAdmin(ws) && m.uid !== user?.dbId && m.role !== 'owner' ? (
+                                            <select aria-label={`Role for ${m.name}`} className="form-input" style={{ padding: '0 6px', minHeight: 22, height: 22, fontSize: 12, background: 'transparent', border: 'none', color: roleColor[m.role], cursor: 'pointer', appearance: 'none', width: 'auto' }} value={m.role} onChange={(e) => changeRole(ws.id, m.uid, e.target.value as WorkspaceRole)}>
                                                 <option value="admin">Admin</option>
-                                                <option value="viewer">Member (View Only)</option>
+                                                <option value="member">Member</option>
+                                                <option value="viewer">Viewer</option>
                                             </select>
                                         ) : (
                                             <span style={{ color: roleColor[m.role], display: 'flex', alignItems: 'center', gap: 3 }}>{roleIcon[m.role]} {m.role}</span>
                                         )}
                                         {m.status === 'invited' && <span className="badge badge-warning" style={{ fontSize: 9, padding: '1px 6px' }}>invited</span>}
 
-                                        {isOwner(ws) && m.uid !== user?.id && m.role !== 'owner' && (
-                                            <X size={12} style={{ color: 'var(--danger)', cursor: 'pointer', opacity: 0.6, marginLeft: 4 }} onClick={() => { if (confirm(`Remove ${m.name} from workspace?`)) removeMember(ws.id, m.uid); }} />
+                                        {isOwnerOrAdmin(ws) && m.uid !== user?.dbId && m.role !== 'owner' && (
+                                            <button className="icon-btn" style={{ width: 20, height: 20 }} aria-label={`Remove ${m.name}`} onClick={() => kick(ws.id, m.uid, m.name)}><X size={12} style={{ color: 'var(--danger)' }} /></button>
                                         )}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Invite link */}
-                        {ws.inviteLink && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                                <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ws.inviteLink}</span>
-                                <button className="btn btn-ghost btn-sm btn-icon" onClick={() => copyLink(ws.inviteLink!, ws.id)} title="Copy invite link">
-                                    {copied === ws.id ? <Check size={14} style={{ color: 'var(--accent)' }} /> : <Copy size={14} />}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>

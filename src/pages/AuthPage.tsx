@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange } from '../services/authProvider';
+import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
 import { Guilloche, Seal } from '../components/brand/Brand';
 
 interface AuthPageProps { onAuth: () => void; }
@@ -94,6 +94,9 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
 
+    const [avail, setAvail] = useState<AuthAvailability | null>(null);
+    useEffect(() => { getAuthAvailability().then(setAvail); }, []);
+
     const switchMode = (m: Mode) => { setMode(m); setError(''); setNotice(''); };
 
     // Password-recovery link from email
@@ -133,10 +136,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading(provider); setError('');
         const result = await signInWithOAuth(provider);
         if (!result.success) {
-            const label = provider === 'azure' ? 'Microsoft' : provider[0].toUpperCase() + provider.slice(1);
-            setError(result.error?.includes('not enabled')
-                ? `${label} sign-in isn't switched on for this app yet. Use email or phone for now.`
-                : result.error || `${label} sign-in didn't complete. Try again.`);
+            setError(friendlyAuthError(result.error, 'Sign-in didn\'t complete. Try again.'));
             setLoading(null);
             return;
         }
@@ -151,7 +151,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         const result = await signInWithEmail(email.trim(), password);
         setLoading(null);
         if (!result.success) {
-            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : result.error || 'Sign-in failed.');
+            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Finance VA team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
             return;
         }
         if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
@@ -170,7 +170,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading('email'); setError('');
         const result = await signUpWithEmail(email.trim(), password, name.trim(), e164, country || undefined);
         setLoading(null);
-        if (!result.success) { setError(/registered|exists/i.test(result.error || '') ? 'An account with this email already exists. Sign in instead.' : result.error || 'Couldn\'t create the account.'); return; }
+        if (!result.success) { setError(/registered|exists/i.test(result.error || '') ? 'An account with this email already exists. Sign in instead.' : friendlyAuthError(result.error, 'Couldn\'t create the account.')); return; }
         if (result.needsConfirmation) {
             setMode('signin');
             setNotice(`Account created. Open the link we sent to ${email.trim()} to confirm it, then sign in.`);
@@ -186,7 +186,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading('phone'); setError(''); setNotice('');
         const result = await sendPhoneOtp(e164);
         setLoading(null);
-        if (!result.success) { setError(result.error || 'Couldn\'t send the code. Check the number and try again.'); return; }
+        if (!result.success) { setError(friendlyAuthError(result.error, 'Couldn\'t send the code. Check the number and try again.')); return; }
         setCodeSent(true);
         setResendIn(60);
         setNotice(`We sent a 6-digit code to ${e164}.`);
@@ -199,7 +199,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading('phone'); setError('');
         const result = await verifyPhoneOtp(phone, code);
         setLoading(null);
-        if (!result.success) { setError('That code is wrong or has expired. Request a new one.'); return; }
+        if (!result.success) { setError(friendlyAuthError(result.error, 'That code is wrong or has expired. Request a new one.')); return; }
         if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'phone', phone);
     }
 
@@ -228,23 +228,33 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const titles: Record<Mode, [string, string]> = useMemo(() => ({
         signin: ['Welcome back', 'Sign in to see this month\'s spending.'],
         signup: ['Create your account', 'Free to use. Takes under a minute.'],
-        phone: ['Sign in with your phone', 'We\'ll text you a 6-digit code.'],
+        phone: ['Continue with your phone', 'New here? This creates your account. We\'ll text you a 6-digit code.'],
         forgot: ['Reset your password', 'We\'ll email you a link to set a new one.'],
         recovery: ['Set a new password', 'Choose a password you haven\'t used here before.'],
     }), []);
 
-    const social = (
-        <div className="auth-social">
-            <button type="button" onClick={() => oauth('google')} disabled={busy} aria-label="Continue with Google">
-                {loading === 'google' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <GoogleIcon />} Google
-            </button>
-            <button type="button" onClick={() => oauth('apple')} disabled={busy} aria-label="Continue with Apple">
-                {loading === 'apple' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <AppleIcon />} Apple
-            </button>
-            <button type="button" onClick={() => oauth('azure')} disabled={busy} aria-label="Continue with Microsoft">
-                {loading === 'azure' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <MicrosoftIcon />} Microsoft
-            </button>
-        </div>
+    const providers = ([
+        ['google', 'Google', <GoogleIcon key="g" />],
+        ['apple', 'Apple', <AppleIcon key="a" />],
+        ['azure', 'Microsoft', <MicrosoftIcon key="m" />],
+    ] as const).filter(([k]) => !avail || avail[k]);
+    const spinner = <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} />;
+
+    const social = providers.length === 0 ? null : (
+        <>
+            <div className="auth-social" style={{ gridTemplateColumns: `repeat(${providers.length}, 1fr)` }}>
+                {providers.map(([k, label, icon]) => (
+                    <button key={k} type="button" onClick={() => oauth(k)} disabled={busy} aria-label={`Continue with ${label}`}>
+                        {loading === k ? spinner : icon} {label}
+                    </button>
+                ))}
+            </div>
+            <div className="auth-or">or with email</div>
+        </>
+    );
+
+    const serverDown = avail && !avail.reachable && (
+        <div className="auth-msg error" role="alert">Finance VA can't reach its server right now, so signing in and creating accounts won't work. Please try again shortly.</div>
     );
 
     const submit = (label: string, busyLabel: string) => (
@@ -301,8 +311,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
                             {mode === 'signin' && (
                                 <>
+                                    {serverDown}
                                     {social}
-                                    <div className="auth-or">or with email</div>
                                     <form onSubmit={onSignIn} noValidate={false}>
                                         <div className="form-group">
                                             <label className="form-label" htmlFor="si-email">Email</label>
@@ -310,7 +320,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         </div>
                                         <PasswordField id="si-pw" value={password} onChange={setPassword} autoComplete="current-password" />
                                         <div className="auth-row">
-                                            <button type="button" className="auth-link" onClick={() => switchMode('phone')}><Smartphone size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />Use phone instead</button>
+                                            {(!avail || avail.phone) ? <button type="button" className="auth-link" onClick={() => switchMode('phone')}><Smartphone size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />Use phone instead</button> : <span />}
                                             <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>Forgot password?</button>
                                         </div>
                                         {submit('Sign in', 'Signing in…')}
@@ -320,8 +330,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
                             {mode === 'signup' && (
                                 <>
+                                    {serverDown}
                                     {social}
-                                    <div className="auth-or">or with email</div>
                                     <form onSubmit={onSignUp}>
                                         <div className="form-group">
                                             <label className="form-label" htmlFor="su-name">Full name</label>
@@ -347,6 +357,11 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         <PasswordField id="su-pw" value={password} onChange={setPassword} autoComplete="new-password" meter />
                                         {submit('Create account', 'Creating account…')}
                                     </form>
+                                    {(!avail || avail.phone) && (
+                                        <button type="button" className="btn btn-secondary w-full mt-4" onClick={() => switchMode('phone')}>
+                                            <Smartphone size={16} /> Sign up with a phone number instead
+                                        </button>
+                                    )}
                                 </>
                             )}
 

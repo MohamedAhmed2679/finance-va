@@ -4,7 +4,7 @@ import { ChevronDown, LogOut, Moon, Sun, Plus, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { Seal } from './brand/Brand';
-import { NAV } from './nav';
+import { navFor } from './nav';
 
 interface SidebarProps { active: string; onNavigate: (page: string) => void; }
 
@@ -70,6 +70,7 @@ export function WorkspaceSwitcher({ onNavigate }: { onNavigate: (page: string) =
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const { user, logout, theme, setTheme } = useStore();
     const lang = user?.language ?? 'en';
+    const nav = navFor(user?.isAdmin);
 
     return (
         <aside className="sidebar" aria-label="Main navigation">
@@ -81,9 +82,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             <WorkspaceSwitcher onNavigate={onNavigate} />
 
             <nav className="nav-section">
-                {NAV.map((item, i) => {
+                {nav.map((item, i) => {
                     const isActive = active === item.key;
-                    const gap = i > 0 && NAV[i - 1].group !== item.group;
+                    const gap = i > 0 && nav[i - 1].group !== item.group;
                     return (
                         <button key={item.key} className={`nav-item ${isActive ? 'active' : ''}`}
                             style={gap ? { marginTop: 14 } : undefined}
@@ -91,7 +92,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                             onClick={() => onNavigate(item.key)}>
                             {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
                             <item.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
-                            <span>{t(lang, item.labelKey)}</span>
+                            <span>{item.label && t(lang, item.labelKey) === item.labelKey ? item.label : t(lang, item.labelKey)}</span>
                         </button>
                     );
                 })}

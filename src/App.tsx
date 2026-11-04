@@ -20,6 +20,10 @@ import BillsPage from './pages/BillsPage';
 import EarningsPage from './pages/EarningsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import ChatPage from './pages/ChatPage';
+import MessagesPage from './pages/MessagesPage';
+import AdminPage from './pages/admin/AdminPage';
+import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './components/LiveLayer';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import VoiceExpenseEntry from './components/VoiceExpenseEntry';
@@ -107,12 +111,18 @@ function Shell() {
         workspaces: <WorkspacesPage />,
         activity: <ActivityPage />,
         settings: <SettingsPage />,
+        chat: <ChatPage />,
+        messages: <MessagesPage />,
+        admin: <AdminPage />,
     };
+    useLiveNotifications();
 
     return (
         <div className={`app-shell ${isElectron ? 'electron-mode' : ''}`}>
             <Sidebar active={active} onNavigate={go} />
             <main className="main-content">
+                <ImpersonationBar />
+                <div className="banner-slot"><AnnouncementBanner /></div>
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
                         <Routes location={location}>
@@ -125,12 +135,12 @@ function Shell() {
             </main>
             <TabBar active={active} onNavigate={go} />
 
-            <QuickAddMenu
+            {!['chat', 'messages', 'admin'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setShowVoiceEntry(true)}
                 onScanAdd={() => setShowSMSParser(true)}
                 onAddIncome={() => go('earnings')}
-            />
+            />}
             {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
 
             {showVoiceEntry && (

@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { MoreHorizontal, Moon, Sun, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { NAV, TAB_KEYS } from './nav';
+import { NAV, TAB_KEYS, navFor } from './nav';
 import { WorkspaceSwitcher } from './Sidebar';
 
 interface TabBarProps { active: string; onNavigate: (page: string) => void; }
@@ -14,11 +14,12 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
     const lang = user?.language ?? 'en';
     const [moreOpen, setMoreOpen] = useState(false);
     const tabs = NAV.filter(n => TAB_KEYS.includes(n.key));
-    const extra = NAV.filter(n => !TAB_KEYS.includes(n.key));
+    const extra = navFor(user?.isAdmin).filter(n => !TAB_KEYS.includes(n.key));
+    const label = (n: typeof NAV[number]) => (n.label && t(lang, n.labelKey) === n.labelKey ? n.label : t(lang, n.labelKey));
     const moreActive = !TAB_KEYS.includes(active);
 
     const go = (key: string) => { setMoreOpen(false); onNavigate(key); };
-    const shortLabel = (key: string, label: string) => key === 'bills' ? 'Bills' : label;
+    const shortLabel = (key: string, text: string) => key === 'chat' ? 'Chat' : text;
 
     const renderTab = (item: typeof NAV[number]) => {
         const isActive = active === item.key;
@@ -26,7 +27,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
             <button key={item.key} className={`tab ${isActive ? 'active' : ''}`} onClick={() => go(item.key)} aria-current={isActive ? 'page' : undefined}>
                 {isActive && <motion.span layoutId="tab-dot" className="tab-dot" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
                 <item.icon size={21} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span>{shortLabel(item.key, t(lang, item.labelKey))}</span>
+                <span>{shortLabel(item.key, label(item))}</span>
             </button>
         );
     };
@@ -68,7 +69,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
                                             color: active === item.key ? 'var(--note)' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, textAlign: 'center'
                                         }}>
                                         <item.icon size={22} />
-                                        {t(lang, item.labelKey)}
+                                        {label(item)}
                                     </motion.button>
                                 ))}
                             </div>

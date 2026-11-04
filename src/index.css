@@ -1194,3 +1194,97 @@ textarea.form-input { min-height: 88px; resize: vertical; }
   box-shadow: var(--elev-pop);
 }
 .auth-card .form-group > div[style*="fontWeight: 800"] { font-family: var(--font-display); }
+
+/* ---------- Admin console ---------- */
+.admin-table tbody tr:hover td { background: var(--surface-2); }
+.admin-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  z-index: 1101;
+  width: min(560px, 100vw);
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--elev-pop);
+  padding: 24px 24px calc(32px + var(--safe-bottom));
+}
+.admin-dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 12px; font-size: 14px; margin-bottom: 18px; }
+.admin-dl dt { color: var(--ink-3); }
+.admin-dl dd { font-weight: 500; overflow-wrap: anywhere; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.admin-h3 { font-size: 16px; margin: 22px 0 10px; }
+.admin-log { list-style: none; display: flex; flex-direction: column; }
+.admin-log li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+.admin-log em { color: var(--ink-3); font-style: normal; }
+.admin-log time { color: var(--ink-3); white-space: nowrap; }
+
+/* ---------- Chat bubbles (support thread, workspace chat) ---------- */
+.admin-thread, .chat-scroll { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 320px; padding: 4px 2px; }
+.bubble {
+  max-width: 78%;
+  align-self: flex-start;
+  padding: 9px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble.mine { align-self: flex-end; background: var(--note); color: #fff; border-color: transparent; border-radius: 14px 14px 4px 14px; }
+:root[data-theme="dark"] .bubble.mine { color: #08140F; }
+.bubble time { display: block; font-size: 11px; opacity: 0.7; margin-top: 3px; }
+.bubble .who { display: block; font-size: 12px; font-weight: 700; margin-bottom: 2px; color: var(--note); }
+.bubble.mine .who { display: none; }
+
+.chat-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+.chat-panel { display: flex; flex-direction: column; height: calc(100dvh - 220px); min-height: 420px; padding: 0; overflow: hidden; }
+.chat-panel .chat-scroll { flex: 1; max-height: none; padding: 16px 18px; }
+.chat-compose { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: var(--surface); }
+.chat-compose textarea { flex: 1; resize: none; min-height: 44px; max-height: 140px; }
+.chat-day { align-self: center; font-size: 12px; color: var(--ink-3); padding: 4px 10px; border-radius: 99px; background: var(--surface-2); margin: 6px 0; }
+
+/* ---------- Banners ---------- */
+.app-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  background: var(--sky-soft);
+  font-size: 14px;
+}
+.app-banner[data-level="success"] { background: var(--gain-soft); }
+.app-banner[data-level="warning"] { background: var(--amber-soft); }
+.app-banner strong { display: block; }
+.impersonation-bar {
+  position: sticky;
+  top: 0;
+  z-index: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--brass);
+  color: #1b1405;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .chat-layout { grid-template-columns: minmax(0, 1fr); }
+  .chat-members { display: none; }
+  .chat-layout.show-members .chat-members { display: block; }
+  .chat-panel { height: calc(100dvh - 250px - var(--tabbar-h)); }
+  .admin-dl { grid-template-columns: 110px minmax(0, 1fr); }
+}
+.banner-slot { max-width: 1240px; margin: 0 auto; padding: 24px 40px 0; }
+.banner-slot:empty { display: none; }
+.banner-slot + div .page { padding-top: 12px; }
+@media (min-width: 861px) { .chat-members-toggle { display: none !important; } }
+@media (max-width: 860px) { .banner-slot { padding: 16px 16px 0; } }

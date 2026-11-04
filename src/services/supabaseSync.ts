@@ -403,3 +403,46 @@ export async function deleteWorkspaceFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
     must(await supabase.from('workspaces').delete().eq('id', id));
 }
+
+// ─── Workspace members (server-side RPCs so names/emails are visible to members) ───
+
+export interface MemberRow { user_id: string; name: string; email: string | null; role: string; status: string; joined_at: string }
+
+export async function fetchWorkspaceMemberList(workspaceId: string): Promise<MemberRow[] | null> {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.rpc('get_workspace_members', { p_workspace_id: workspaceId });
+    if (error) return null;
+    return data as MemberRow[];
+}
+
+export async function addWorkspaceMemberRemote(workspaceId: string, identifier: string, role: string): Promise<'added' | 'not_found'> {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { data, error } = await supabase.rpc('add_workspace_member', { p_workspace_id: workspaceId, p_identifier: identifier, p_role: role });
+    if (error) throw new Error(error.message);
+    return data as 'added' | 'not_found';
+}
+
+export async function removeWorkspaceMemberRemote(workspaceId: string, userId: string) {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { error } = await supabase.rpc('remove_workspace_member', { p_workspace_id: workspaceId, p_user_id: userId });
+    if (error) throw new Error(error.message);
+}
+
+export async function setWorkspaceMemberRoleRemote(workspaceId: string, userId: string, role: string) {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { error } = await supabase.rpc('set_workspace_member_role', { p_workspace_id: workspaceId, p_user_id: userId, p_role: role });
+    if (error) throw new Error(error.message);
+}
+
+/** Creates the profile row if the sign-up trigger didn't (returns the profile). */
+export async function ensureProfile() {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.rpc('ensure_profile');
+    if (error) return null;
+    return data as Record<string, any> | null;
+}
+
+export async function markNotificationRead(id: string) {
+    if (!isSupabaseReady() || !supabase) return;
+    must(await supabase.from('notifications').update({ is_actioned: true }).eq('id', id));
+}

@@ -1,7 +1,7 @@
-import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export interface NavEntry { key: string; labelKey: string; icon: LucideIcon; group: 'money' | 'plan' | 'account' }
+export interface NavEntry { key: string; labelKey: string; label?: string; icon: LucideIcon; group: 'money' | 'plan' | 'people' | 'account' | 'admin'; adminOnly?: boolean }
 
 export const NAV: NavEntry[] = [
     { key: 'overview', labelKey: 'overview', icon: LayoutDashboard, group: 'money' },
@@ -11,12 +11,17 @@ export const NAV: NavEntry[] = [
     { key: 'savings', labelKey: 'savings', icon: Target, group: 'plan' },
     { key: 'insights', labelKey: 'insights', icon: PieChart, group: 'plan' },
     { key: 'converter', labelKey: 'converter', icon: ArrowLeftRight, group: 'plan' },
-    { key: 'workspaces', labelKey: 'workspaces', icon: FolderOpen, group: 'account' },
+    { key: 'chat', labelKey: 'chat', label: 'Workspace chat', icon: MessagesSquare, group: 'people' },
+    { key: 'workspaces', labelKey: 'workspaces', icon: FolderOpen, group: 'people' },
     { key: 'activity', labelKey: 'activity', icon: Bell, group: 'account' },
+    { key: 'messages', labelKey: 'messages', label: 'Messages', icon: LifeBuoy, group: 'account' },
     { key: 'settings', labelKey: 'settings', icon: Settings, group: 'account' },
+    { key: 'admin', labelKey: 'admin_console', label: 'Admin console', icon: ShieldCheck, group: 'admin', adminOnly: true },
 ];
+
+export const navFor = (isAdmin?: boolean) => NAV.filter(n => !n.adminOnly || isAdmin);
 
 export const PAGE_KEYS = NAV.map(n => n.key);
 
 /** Tabs shown directly in the mobile bar; the rest live under "More". */
-export const TAB_KEYS = ['overview', 'expenses', 'bills'];
+export const TAB_KEYS = ['overview', 'expenses', 'chat'];

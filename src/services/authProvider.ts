@@ -332,3 +332,48 @@ export function initNativeAuthListener(onSignedIn: () => void): () => void {
     });
     return () => remove?.();
 }
+
+// ─── Which sign-in methods are switched on in Supabase ───────────
+export interface AuthAvailability {
+    reachable: boolean;
+    google: boolean; apple: boolean; azure: boolean;
+    phone: boolean; email: boolean; signupDisabled: boolean;
+}
+
+let availability: Promise<AuthAvailability> | null = null;
+
+/** Reads GoTrue's public /settings so the UI only offers methods that will work. */
+export function getAuthAvailability(): Promise<AuthAvailability> {
+    if (availability) return availability;
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const none: AuthAvailability = { reachable: false, google: false, apple: false, azure: false, phone: false, email: false, signupDisabled: false };
+    if (!url || !key) return Promise.resolve({ ...none, reachable: true, google: true, apple: true, azure: true, phone: true, email: true });
+    availability = fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+        .then((s: any) => ({
+            reachable: true,
+            google: Boolean(s.external?.google),
+            apple: Boolean(s.external?.apple),
+            azure: Boolean(s.external?.azure),
+            phone: Boolean(s.external?.phone),
+            email: s.external?.email !== false,
+            signupDisabled: Boolean(s.disable_signup),
+        }))
+        .catch(() => { availability = null; return none; });
+    return availability;
+}
+
+/** Turns Supabase/network errors into sentences a person can act on. */
+export function friendlyAuthError(message: string | undefined, fallback: string): string {
+    const m = message || '';
+    if (/failed to fetch|networkerror|load failed/i.test(m)) return "Can't reach the Finance VA server. Check your connection and try again.";
+    if (/unsupported phone provider|phone.*(disabled|not enabled)|sms.*provider/i.test(m)) return 'Phone sign-in is not switched on yet. Use email for now.';
+    if (/provider is not enabled|unsupported provider/i.test(m)) return 'That sign-in option is not switched on yet. Use email for now.';
+    if (/signups? not allowed|signup is disabled/i.test(m)) return 'New sign-ups are closed right now.';
+    if (/database error saving new user/i.test(m)) return "Your account couldn't be set up. Please try again in a minute.";
+    if (/rate limit|too many/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
+    if (/invalid.*phone|phone.*invalid/i.test(m)) return 'That phone number is not valid. Include the country code, for example +20 100 123 4567.';
+    if (/token has expired|otp.*(expired|invalid)/i.test(m)) return 'That code is wrong or has expired. Request a new one.';
+    return m || fallback;
+}

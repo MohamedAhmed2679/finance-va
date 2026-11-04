@@ -8,7 +8,8 @@ import {
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
-    fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud
+    fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud,
+    fetchWorkspaceMemberList, addWorkspaceMemberRemote, removeWorkspaceMemberRemote, setWorkspaceMemberRoleRemote, ensureProfile, markNotificationRead
 } from '../services/supabaseSync';
 import { mapExpense, mapIncome, mapBill, mapGoal, mapWorkspace, mapMember, mapNotification } from '../services/mappers';
 import { signOut as supabaseSignOut } from '../services/authProvider';
@@ -31,7 +32,7 @@ function reportSyncError(err: unknown) {
 export type CategoryKey = string;
 export type PaymentMethod = string;
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
-export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added';
+export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added' | 'member_added' | 'admin_notice' | 'admin_message';
 
 export interface CategoryDef {
     key: string;
@@ -49,6 +50,7 @@ export interface PaymentMethodDef {
 export interface User {
     id: string; // Auth ID (Supabase)
     dbId?: string; // Internal User UUID (public.users)
+    isAdmin?: boolean;
     name: string;
     email: string;
     phone?: string;
@@ -254,9 +256,10 @@ interface AppState {
     addWorkspace: (ws: Omit<Workspace, 'id' | 'activityLog' | 'inviteLink'>) => void;
     updateWorkspace: (id: string, data: Partial<Workspace>) => void;
     deleteWorkspace: (id: string) => void;
-    inviteMember: (workspaceId: string, email: string, name: string, role: WorkspaceRole) => void;
-    removeMember: (workspaceId: string, uid: string) => void;
-    updateMemberRole: (workspaceId: string, uid: string, role: WorkspaceRole) => void;
+    inviteMember: (workspaceId: string, identifier: string, name: string, role: WorkspaceRole) => Promise<'added' | 'not_found'>;
+    removeMember: (workspaceId: string, uid: string) => Promise<void>;
+    updateMemberRole: (workspaceId: string, uid: string, role: WorkspaceRole) => Promise<void>;
+    refreshMembers: (workspaceId: string) => Promise<void>;
     acceptInvite: (workspaceId: string, uid: string, notificationId: string) => void;
     declineInvite: (workspaceId: string, uid: string, notificationId: string) => void;
     markNotificationActioned: (id: string) => void;
@@ -450,28 +453,25 @@ export const useStore = create<AppState>()(
                     notifications: newNotif ? [newNotif, ...s.notifications] : s.notifications
                 };
             }),
-            inviteMember: (workspaceId, email, name, role) => {
-                const uid = generateId(); // Simulated UID for the invited user
-                const member: WorkspaceMember = { uid, name, email, role, status: 'invited', joinedAt: new Date().toISOString() };
-                set(s => {
-                    const ws = s.workspaces.find(w => w.id === workspaceId);
-                    const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'invite', workspaceId: ws.id, workspaceName: ws.name, message: `You have been invited to join "${ws.name}" as a ${role}.`, actioned: false, createdAt: new Date().toISOString(), senderName: s.user?.name || 'Someone', targetUid: uid } : null;
-                    return {
-                        workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: [...w.members, member] } : w),
-                        notifications: newNotif ? [newNotif, ...s.notifications] : s.notifications
-                    };
-                });
+            inviteMember: async (workspaceId, identifier, _name, role) => {
+                const result = await addWorkspaceMemberRemote(workspaceId, identifier.trim(), role === 'owner' ? 'admin' : role);
+                if (result === 'added') await get().refreshMembers(workspaceId);
+                return result;
             },
-            removeMember: (workspaceId, uid) => set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.filter(m => m.uid !== uid) } : w) })),
-            updateMemberRole: (workspaceId, uid, role) => set(s => {
-                const ws = s.workspaces.find(w => w.id === workspaceId);
-                const member = ws?.members.find(m => m.uid === uid);
-                const newNotif: AppNotification | null = ws && member ? { id: generateId(), type: 'role_change', workspaceId: ws.id, workspaceName: ws.name, message: `${member.name}'s role was changed to ${role} in "${ws.name}".`, actioned: false, createdAt: new Date().toISOString() } : null;
-                return {
-                    workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.map(m => m.uid === uid ? { ...m, role } : m) } : w),
-                    notifications: newNotif ? [newNotif, ...s.notifications] : s.notifications
-                };
-            }),
+            removeMember: async (workspaceId, uid) => {
+                await removeWorkspaceMemberRemote(workspaceId, uid);
+                set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.filter(m => m.uid !== uid) } : w) }));
+            },
+            updateMemberRole: async (workspaceId, uid, role) => {
+                await setWorkspaceMemberRoleRemote(workspaceId, uid, role);
+                set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.map(m => m.uid === uid ? { ...m, role } : m) } : w) }));
+            },
+            refreshMembers: async (workspaceId) => {
+                const rows = await fetchWorkspaceMemberList(workspaceId);
+                if (!rows) return;
+                const members: WorkspaceMember[] = rows.map(r => ({ uid: r.user_id, name: r.name || 'Member', email: r.email || '', role: r.role as WorkspaceRole, status: r.status === 'active' ? 'active' : 'invited', joinedAt: r.joined_at }));
+                set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members, type: members.length > 1 ? 'shared' : w.type } : w) }));
+            },
             acceptInvite: (workspaceId, uid, notificationId) => set(s => ({
                 workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.map(m => m.uid === uid ? { ...m, status: 'active' } : m) } : w),
                 notifications: s.notifications.map(n => n.id === notificationId ? { ...n, actioned: true } : n)
@@ -480,7 +480,10 @@ export const useStore = create<AppState>()(
                 workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.filter(m => m.uid !== uid) } : w),
                 notifications: s.notifications.map(n => n.id === notificationId ? { ...n, actioned: true } : n)
             })),
-            markNotificationActioned: (id) => set(s => ({ notifications: s.notifications.map(n => n.id === id ? { ...n, actioned: true } : n) })),
+            markNotificationActioned: (id) => {
+                markNotificationRead(id).catch(() => {});
+                set(s => ({ notifications: s.notifications.map(n => n.id === id ? { ...n, actioned: true } : n) }));
+            },
             addNotification: (n) => set(s => ({ notifications: [{ ...n, id: generateId(), actioned: false, createdAt: new Date().toISOString() }, ...s.notifications] })),
             
             requestJoin: (workspaceId) => set(s => {
@@ -770,20 +773,26 @@ export const useStore = create<AppState>()(
                 if (!s.user) return;
                 set({ syncStatus: 'syncing' });
 
-                // CRITICAL: Ensure we have the dbId before fetching data
-                // If it's missing (e.g. legacy session), force fetch profile once
+                // Always refresh the profile: it carries the internal id and the admin flag.
                 let userId: string = s.user.dbId || '';
-                if (!userId) {
-                    if (import.meta.env.DEV) console.log('[Store] dbId missing, fetching profile...');
-                    const profile = await fetchUserProfile(s.user.id);
+                if (isSupabaseReady()) {
+                    const profile = (await fetchUserProfile(s.user.id)) || (await ensureProfile());
                     if (profile) {
                         userId = profile.id;
-                        set(state => ({ user: state.user ? { ...state.user, dbId: profile.id } : null }));
-                    } else {
-                        // Fallback but log it - this is usually where 500 errors start
-                        userId = s.user.id;
+                        set(state => ({ user: state.user ? {
+                            ...state.user,
+                            dbId: profile.id,
+                            isAdmin: Boolean(profile.is_admin),
+                            name: profile.name || state.user.name,
+                            phone: profile.phone || state.user.phone,
+                        } : null }));
+                    } else if (!userId) {
+                        set({ syncStatus: 'error' });
+                        toast.error("Couldn't load your profile. Check your connection and reload.", { id: 'profile-error' });
+                        return;
                     }
                 }
+                if (!userId) userId = s.user.id;
 
                 try {
                     let ws = await fetchAccessibleWorkspaces(userId);
@@ -817,6 +826,7 @@ export const useStore = create<AppState>()(
                         const current = get().activeWorkspaceId;
                         const activeId = workspaces.some(w => w.id === current) ? current : workspaces[0].id;
                         set({ workspaces, activeWorkspaceId: activeId, showOnboarding: false });
+                        workspaces.forEach(w => { get().refreshMembers(w.id).catch(() => {}); });
 
                         const [notifs] = await Promise.all([
                             fetchNotifications(userId),
