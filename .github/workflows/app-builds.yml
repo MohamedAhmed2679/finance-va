@@ -27,9 +27,12 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21', cache: gradle }
-      - uses: android-actions/setup-android@v3
-      - name: Android SDK 36
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - name: Android SDK 36 (runner's preinstalled SDK)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-36" "build-tools;36.0.0" > /dev/null
       - run: npm ci
       - run: npx vite build
       - run: npx cap sync android
