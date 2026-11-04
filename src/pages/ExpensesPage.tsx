@@ -1,5 +1,23 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useStore } from '../store/useStore';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useStore, type Expense } from '../store/useStore';
+
+function localDay(iso: string) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function groupByDay(list: Expense[]): [string, Expense[]][] {
+    const map = new Map<string, Expense[]>();
+    list.forEach(e => { const k = localDay(e.purchaseAt); map.set(k, [...(map.get(k) || []), e]); });
+    return [...map.entries()];
+}
+function dayLabel(day: string) {
+    const today = localDay(new Date().toISOString());
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    if (day === today) return 'Today';
+    if (day === localDay(y.toISOString())) return 'Yesterday';
+    return new Date(day + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: day.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric' });
+}
 import { t } from '../i18n/translations';
 import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
 import { Search, Filter, X, Trash2, Plus, Edit2, Target } from 'lucide-react';
@@ -97,7 +115,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                 {/* Filters panel */}
                 {showFilters && (
                     <div className="animate-fadeIn" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                        <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                             <div>
                                 <div className="form-label">Category</div>
                                 <div className="category-chips">
@@ -142,70 +160,44 @@ export default function ExpensesPage({ }: ExpensesProps) {
                         {!isViewer && <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add Expense</button>}
                     </div>
                 ) : (
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>{t(lang, 'merchant')}</th>
-                                <th>{t(lang, 'category')}</th>
-                                <th>Payment</th>
-                                <th>{t(lang, 'date')}</th>
-                                <th>{t(lang, 'user')}</th>
-                                <th style={{ textAlign: 'right' }}>{t(lang, 'amount')}</th>
-                                {!isViewer && <th style={{ width: 80, textAlign: 'center' }}>Actions</th>}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(e => {
-                                const catInfo = getCategoryInfo(e.category);
-                                const pmInfo = getPaymentMethodInfo(e.paymentMethod);
-                                return (
-                                    <tr key={e.id} className="animate-fadeIn">
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${catInfo.color} 20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{catInfo.emoji}</div>
-                                                <div>
-                                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{e.merchant}</div>
-                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{e.description}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span className={`badge badge - ${e.category} `}>{catInfo.label}</span></td>
-                                        <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{pmInfo.emoji} {pmInfo.label}{e.last4 ? ` ••${e.last4} ` : ''}</td>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{new Date(e.purchaseAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,var(--primary),#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>{e.createdByName[0]}</div>
-                                                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{e.createdByName.split(' ')[0]}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 15, color: e.amount > 100 ? 'var(--danger)' : e.amount > 50 ? 'var(--warning)' : 'var(--text-primary)' }}><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></td>
-                                        {!isViewer && (
-                                            <td style={{ width: 80, textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                                                    <button
-                                                        className="btn btn-ghost btn-icon btn-sm"
-                                                        title="Edit"
-                                                        onClick={() => { setEditId(e.id); setShowAdd(true); }}
-                                                        style={{ color: 'var(--primary-light)' }}
-                                                    >
-                                                        <Edit2 size={15} />
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-ghost btn-icon btn-sm"
-                                                        title="Delete"
-                                                        onClick={() => setDeleteConfirmId(e.id)}
-                                                        style={{ color: 'var(--danger)' }}
-                                                    >
-                                                        <Trash2 size={15} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    <div style={{ padding: '6px 20px 10px' }}>
+                        {groupByDay(filtered).map(([day, items]) => (
+                            <section key={day} aria-label={dayLabel(day)}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '16px 4px 6px', borderBottom: '1px solid var(--line)' }}>
+                                    <h3 style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-body)', letterSpacing: 0 }}>{dayLabel(day)}</h3>
+                                    <span className="tnum" style={{ fontSize: 13, color: 'var(--ink-3)' }}>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
+                                </div>
+                                <div className="ledger">
+                                    <AnimatePresence initial={false}>
+                                        {items.map(e => {
+                                            const catInfo = getCategoryInfo(e.category);
+                                            const pmInfo = getPaymentMethodInfo(e.paymentMethod);
+                                            return (
+                                                <motion.div key={e.id} layout className="ledger-row expense-row"
+                                                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
+                                                    style={{ gridTemplateColumns: isViewer ? '40px minmax(0,1fr) auto' : '40px minmax(0,1fr) auto auto' }}>
+                                                    <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div className="ledger-title">{e.merchant || catInfo.label}</div>
+                                                        <div className="ledger-sub">
+                                                            {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></div>
+                                                    {!isViewer && (
+                                                        <div className="row-actions" style={{ display: 'flex', gap: 2 }}>
+                                                            <button className="icon-btn" aria-label={`Edit ${e.merchant}`} onClick={() => { setEditId(e.id); setShowAdd(true); }}><Edit2 size={15} /></button>
+                                                            <button className="icon-btn" aria-label={`Delete ${e.merchant}`} style={{ color: 'var(--cinnabar)' }} onClick={() => setDeleteConfirmId(e.id)}><Trash2 size={15} /></button>
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+                            </section>
+                        ))}
+                    </div>
                 )}
             </div>
 

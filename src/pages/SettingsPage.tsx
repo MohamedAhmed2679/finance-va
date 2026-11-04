@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
+import { hashPin } from '../utils/pin';
+import toast from 'react-hot-toast';
 import { t } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
 import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2 } from 'lucide-react';
@@ -9,6 +11,7 @@ export default function SettingsPage() {
     const { user, workspaces, activeWorkspaceId, updateWorkspace, updateUser, setTheme, theme, language, setLanguage, currency, setCurrency, logout, deleteAllData, expenses, categories, paymentMethods, addCategory, deleteCategory, addPaymentMethod, deletePaymentMethod } = useStore();
     const lang = user?.language ?? 'en';
 
+    const [pinDraft, setPinDraft] = useState('');
     const [langDraft, setLangDraft] = useState(language);
     const [curDraft, setCurDraft] = useState(currency);
     const [copied, setCopied] = useState(false);
@@ -112,7 +115,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 24, alignItems: 'start' }}>
+            <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 24, alignItems: 'start' }}>
                 {/* Sidebar menu */}
                 <div className="card" style={{ padding: 8 }}>
                     {menuSections.map(s => (
@@ -283,15 +286,23 @@ export default function SettingsPage() {
                                     
                                     <div className="form-group">
                                         <label className="form-label">App PIN (4 digits)</label>
-                                        <input 
-                                            type="password" 
-                                            maxLength={4}
-                                            className="form-input" 
-                                            placeholder="Enter 4-digit PIN"
-                                            value={user?.pin || ''} 
-                                            onChange={e => updateUser({ pin: e.target.value.replace(/[^0-9]/g, '').slice(0,4) })} 
-                                        />
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Required for auto-lock and biometric fallback.</div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <input
+                                                type="password"
+                                                inputMode="numeric"
+                                                autoComplete="new-password"
+                                                maxLength={4}
+                                                className="form-input"
+                                                placeholder={user?.pin ? 'PIN is set — enter a new one to change it' : 'Enter 4-digit PIN'}
+                                                value={pinDraft}
+                                                onChange={e => setPinDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                                            />
+                                            <button type="button" className="btn btn-secondary" disabled={pinDraft.length !== 4}
+                                                onClick={async () => { updateUser({ pin: await hashPin(pinDraft, user?.id || 'fv') }); setPinDraft(''); toast.success('PIN saved'); }}>
+                                                Save PIN
+                                            </button>
+                                        </div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Needed for auto-lock. Stored as a one-way hash on this device.</div>
                                     </div>
 
                                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -309,7 +320,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div style={{ marginTop: 20, padding: '16px', background: 'var(--danger-soft)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.2)' }}>
+                            <div style={{ marginTop: 20, padding: '16px', background: 'var(--danger-soft)', borderRadius: 12, border: '1px solid var(--cinnabar-soft)' }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--danger)', marginBottom: 4 }}>{t(lang, 'danger_zone')}</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>{t(lang, 'irreversible')}</div>
                                 <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>{t(lang, 'delete_all_data')}</button>
@@ -369,7 +380,7 @@ export default function SettingsPage() {
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{t(lang, 'referral_id')}</div>
                             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Share your unique code to invite friends to Finance VA</div>
-                            <div style={{ textAlign: 'center', padding: '32px 24px', background: 'linear-gradient(135deg,rgba(124,58,237,0.12),rgba(6,214,160,0.06))', borderRadius: 16, border: '1px solid rgba(124,58,237,0.2)', marginBottom: 24 }}>
+                            <div style={{ textAlign: 'center', padding: '32px 24px', background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--line)', marginBottom: 24 }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Your Referral Code</div>
                                 <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 4, color: 'var(--primary-light)', marginBottom: 16 }}>{user?.referralCode}</div>
                                 <button className="btn btn-primary" onClick={handleCopyReferral}>
@@ -471,31 +482,24 @@ export default function SettingsPage() {
 
                     {activeSection === 'desktop' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Finance VA for Desktop</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Download the native desktop application for a faster, distraction-free experience.</div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div style={{ background: 'var(--bg-input)', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid var(--border)' }}>
-                                    <div style={{ width: 48, height: 48, background: '#0078D4', borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                                        <span style={{ color: '#white', fontWeight: 900, fontSize: 24 }}>W</span>
+                            <div className="card-title" style={{ marginBottom: 4 }}>Finance VA on your devices</div>
+                            <div style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 20 }}>Test builds of the apps. They open this same account, so everything stays in sync.</div>
+                            <div className="card-grid card-grid-2">
+                                {[
+                                    { name: 'Android', file: 'FinanceVA-android.apk', note: 'Android 7 or later. Allow installs from your browser when asked.' },
+                                    { name: 'iPhone', file: 'FinanceVA-ios-unsigned.ipa', note: 'Install with Sideloadly or AltStore using your Apple ID.' },
+                                    { name: 'macOS', file: 'FinanceVA-mac.dmg', note: 'Right-click the app and choose Open the first time.' },
+                                    { name: 'Windows', file: 'FinanceVA-windows-setup.exe', note: 'Windows 10 or later. Choose More info → Run anyway if prompted.' },
+                                ].map(p => (
+                                    <div key={p.name} style={{ background: 'var(--surface-2)', borderRadius: 14, padding: 18, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                                        <div style={{ fontSize: 13, color: 'var(--ink-3)', flex: 1 }}>{p.note}</div>
+                                        <a className="btn btn-secondary btn-sm" style={{ marginTop: 8, textDecoration: 'none' }}
+                                            href={`https://github.com/MohamedAhmed2679/finance-va/releases/download/test-build/${p.file}`}>
+                                            <Download size={15} /> Download for {p.name}
+                                        </a>
                                     </div>
-                                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Windows</div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Requires Windows 10 or later</div>
-                                    <span className="btn btn-primary w-full" style={{ display: 'flex', justifyContent: 'center', opacity: 0.6, cursor: 'not-allowed' }}>
-                                        ⏳ Coming Soon
-                                    </span>
-                                </div>
-
-                                <div style={{ background: 'var(--bg-input)', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid var(--border)' }}>
-                                    <div style={{ width: 48, height: 48, background: '#000000', borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                                        <svg width="24" height="24" viewBox="0 0 17 20" fill="white"><path d="M14.7 13.7c-.1.3-1 3.5-3.3 6.3H11.3c-1.2 1.5-2.5 1.7-3.6 1.7s-2.1-.5-3.2-.5c-1.3 0-2.3.5-3.3.5-1 0-2.1-.2-3.1-1.3C-1.8 17.5-.5 11.5 1.5 8.7c1-1.4 2.3-2.3 3.8-2.3 1.2 0 2.2.8 3.3.8 1.1 0 2.5-1.1 4-1.1 1.6 0 2.9.8 3.7 2C13.2 9.7 14.8 11.3 14.7 13.7z M11.8 4.2c.6-.7 1-1.8.9-2.8-1 .1-2.1.6-2.8 1.3-.6.6-1 1.7-.8 2.7C10.2 5.5 11.1 4.9 11.8 4.2z"></path></svg>
-                                    </div>
-                                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>macOS</div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Requires macOS 11 or later</div>
-                                    <span className="btn btn-primary w-full" style={{ display: 'flex', justifyContent: 'center', opacity: 0.6, cursor: 'not-allowed' }}>
-                                        ⏳ Coming Soon
-                                    </span>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     )}

@@ -6,9 +6,27 @@ import {
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
     syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
     syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
-    syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchUserWorkspaces, fetchNotifications,
-    updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile
+    syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
+    updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
+    fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud
 } from '../services/supabaseSync';
+import { mapExpense, mapIncome, mapBill, mapGoal, mapWorkspace, mapMember, mapNotification } from '../services/mappers';
+import { signOut as supabaseSignOut } from '../services/authProvider';
+import toast from 'react-hot-toast';
+import { isSupabaseReady } from '../lib/supabase';
+
+let lastSyncToast = 0;
+/** Marks the store as out of sync and tells the user once per burst of failures. */
+function reportSyncError(err: unknown) {
+    console.error('[Sync]', err);
+    useStore.setState({ syncStatus: navigator.onLine === false ? 'offline' : 'error' });
+    if (Date.now() - lastSyncToast > 8000) {
+        lastSyncToast = Date.now();
+        toast.error(navigator.onLine === false
+            ? "You're offline. Changes are saved on this device and need to be re-entered online."
+            : "Couldn't save to the cloud. Your change is kept on this device.", { id: 'sync-error' });
+    }
+}
 
 export type CategoryKey = string;
 export type PaymentMethod = string;
@@ -232,6 +250,7 @@ interface AppState {
     updateUser: (data: Partial<User>) => void;
     completeOnboarding: () => void;
     setActiveWorkspace: (id: string) => void;
+    loadWorkspaceData: (wsId: string) => Promise<void>;
     addWorkspace: (ws: Omit<Workspace, 'id' | 'activityLog' | 'inviteLink'>) => void;
     updateWorkspace: (id: string, data: Partial<Workspace>) => void;
     deleteWorkspace: (id: string) => void;
@@ -300,7 +319,7 @@ export const useStore = create<AppState>()(
             filters: defaultFilters,
             savingsGoals: [],
             incomes: [],
-            theme: 'dark',
+            theme: 'light',
             language: 'en',
             currency: 'USD',
             syncStatus: 'synced',
@@ -324,7 +343,9 @@ export const useStore = create<AppState>()(
                 });
                 get().hydrateStore();
             },
-            logout: () => set({ 
+            logout: () => {
+                supabaseSignOut().catch(() => {});
+                set({ 
                 isAuthenticated: false, 
                 user: null, 
                 workspaces: [], 
@@ -334,7 +355,8 @@ export const useStore = create<AppState>()(
                 savingsGoals: [], 
                 notifications: [],
                 activeWorkspaceId: ''
-            }),
+            });
+            },
             setLocked: (locked) => set({ isLocked: locked }),
             deleteAllData: () => set({ expenses: [], savingsGoals: [], incomes: [], bills: [], notifications: [] }),
             completeOnboarding: () => {
@@ -342,7 +364,33 @@ export const useStore = create<AppState>()(
                 if (!s.user) return;
                 s.updateUser({ showOnboarding: false });
             },
-            setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
+            setActiveWorkspace: (id) => {
+                set({ activeWorkspaceId: id });
+                get().loadWorkspaceData(id).catch(reportSyncError);
+            },
+            loadWorkspaceData: async (wsId) => {
+                if (!wsId || !isSupabaseReady()) return;
+                set({ syncStatus: 'syncing' });
+                const [expenses, incomes, bills, goals] = await Promise.all([
+                    fetchExpensesFromCloud(wsId), fetchIncomesFromCloud(wsId), fetchBillsFromCloud(wsId), fetchSavingsGoalsFromCloud(wsId),
+                ]);
+                if (expenses === null && incomes === null && bills === null && goals === null) {
+                    set({ syncStatus: 'error' });
+                    return;
+                }
+                // The cloud is the source of truth for this workspace; other workspaces' rows are untouched.
+                set(s => {
+                    const merge = <T extends { workspaceId: string }>(local: T[], cloud: T[] | null) =>
+                        cloud === null ? local : [...cloud, ...local.filter(l => l.workspaceId !== wsId)];
+                    return {
+                        expenses: merge(s.expenses, expenses ? expenses.map(mapExpense) : null),
+                        incomes: merge(s.incomes, incomes ? incomes.map(mapIncome) : null),
+                        bills: merge(s.bills, bills ? bills.map(mapBill) : null),
+                        savingsGoals: merge(s.savingsGoals, goals ? goals.map(mapGoal) : null),
+                        syncStatus: 'synced',
+                    };
+                });
+            },
             addWorkspace: (ws) => {
                 const s = get();
                 const id = generateId();
@@ -363,14 +411,10 @@ export const useStore = create<AppState>()(
                     }]
                 };
                 
-                // Sync Workspace AND membership
-                syncWorkspaceToCloud(newWs).catch(console.error);
-                syncWorkspaceMemberToCloud({
-                    workspaceId: id,
-                    userId: userId,
-                    role: 'owner',
-                    status: 'active'
-                }).catch(console.error);
+                // The membership row references the workspace, so it must be written after it.
+                syncWorkspaceToCloud(newWs)
+                    .then(() => syncWorkspaceMemberToCloud({ workspaceId: id, userId, role: 'owner', status: 'active' }))
+                    .catch(reportSyncError);
 
                 set(state => ({ workspaces: [...state.workspaces, newWs] }));
                 return id;
@@ -384,7 +428,7 @@ export const useStore = create<AppState>()(
                 const newWorkspaces = s.workspaces.map(w => {
                     if (w.id === id) {
                         const merged = { ...w, ...data };
-                        syncWorkspaceToCloud(merged).catch(console.error);
+                        syncWorkspaceToCloud(merged).catch(reportSyncError);
                         return merged;
                     }
                     return w;
@@ -398,7 +442,8 @@ export const useStore = create<AppState>()(
                 const ws = s.workspaces.find(w => w.id === id);
                 const newWorkspaces = s.workspaces.filter(w => w.id !== id);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'workspace_deleted', workspaceId: id, workspaceName: ws.name, message: `Workspace "${ws.name}" was deleted.`, actioned: false, createdAt: new Date().toISOString() } : null;
-                // Deletions cascade in cloud via RLS and direct constraints.
+                // Expenses, bills, goals and memberships cascade from the workspace row.
+                deleteWorkspaceFromCloud(id).catch(reportSyncError);
                 return {
                     workspaces: newWorkspaces,
                     activeWorkspaceId: s.activeWorkspaceId === id ? (newWorkspaces[0]?.id || '') : s.activeWorkspaceId,
@@ -498,7 +543,7 @@ export const useStore = create<AppState>()(
                 const ws = s.workspaces.find(w => w.id === exp.workspaceId);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'expense_added', workspaceId: ws.id, workspaceName: ws.name, message: `New expense of ${exp.amount} ${exp.currency} added in "${ws.name}" by ${exp.createdByName}.`, actioned: false, createdAt: now } : null;
 
-                syncExpenseToCloud(newExp).catch(console.error);
+                syncExpenseToCloud(newExp).catch(reportSyncError);
 
                 return {
                     expenses: [newExp, ...s.expenses],
@@ -509,12 +554,12 @@ export const useStore = create<AppState>()(
                 const exp = s.expenses.find(e => e.id === id);
                 if (exp) {
                     const merged = { ...exp, ...data, updatedAt: new Date().toISOString() };
-                    syncExpenseToCloud(merged).catch(console.error);
+                    syncExpenseToCloud(merged).catch(reportSyncError);
                 }
                 return { expenses: s.expenses.map(e => e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e) };
             }),
             deleteExpense: (id) => set(s => {
-                deleteExpenseFromCloud(id).catch(console.error);
+                deleteExpenseFromCloud(id).catch(reportSyncError);
                 return { expenses: s.expenses.map(e => e.id === id ? { ...e, deleted: true } : e) };
             }),
             setFilters: (f) => set(s => ({ filters: { ...s.filters, ...f } })),
@@ -533,8 +578,8 @@ export const useStore = create<AppState>()(
                 const ws = s.workspaces.find(w => w.id === bill.workspaceId);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: bill.createdByUid, userName: s.user?.name || 'User', action: 'added bill', entityType: 'bill', entityId: newBill.id, timestamp: now } : null;
 
-                syncBillToCloud(newBill).catch(console.error);
-                if (log) logActivityToCloud({ workspaceId: ws!.id, userId: log.uid, userName: log.userName, action: log.action, entityType: 'bill', entityId: newBill.id }).catch(console.error);
+                syncBillToCloud(newBill).catch(reportSyncError);
+                if (log) logActivityToCloud({ workspaceId: ws!.id, userId: log.uid, userName: log.userName, action: log.action, entityType: 'bill', entityId: newBill.id }).catch(reportSyncError);
 
                 return {
                     bills: [newBill, ...s.bills],
@@ -547,6 +592,7 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const log: ActivityEntry = { id: generateId(), uid: s.user?.id || 'sys', userName: s.user?.name || 'User', action: `updated bill '${data.name || bill.name}'`, entityType: 'bill', entityId: id, timestamp: now };
 
+                syncBillToCloud({ ...bill, ...data }).catch(reportSyncError);
                 return {
                     bills: s.bills.map(b => b.id === id ? { ...b, ...data } : b),
                     workspaces: s.workspaces.map(w => w.id === bill.workspaceId ? { ...w, activityLog: [log, ...w.activityLog] } : w)
@@ -558,7 +604,7 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const log: ActivityEntry = { id: generateId(), uid: s.user?.id || 'sys', userName: s.user?.name || 'User', action: `deleted bill '${bill.name}'`, entityType: 'bill', entityId: id, timestamp: now };
 
-                deleteBillFromCloud(id).catch(console.error);
+                deleteBillFromCloud(id).catch(reportSyncError);
 
                 return {
                     bills: s.bills.filter(b => b.id !== id),
@@ -592,8 +638,8 @@ export const useStore = create<AppState>()(
                 };
 
                 // Sync the auto-created expense and the updated bill to cloud
-                syncExpenseToCloud(newExp).catch(console.error);
-                syncBillToCloud({ ...bill, lastPaidMonth: currentMonth }).catch(console.error);
+                syncExpenseToCloud(newExp).catch(reportSyncError);
+                syncBillToCloud({ ...bill, lastPaidMonth: currentMonth }).catch(reportSyncError);
 
                 return {
                     bills: s.bills.map(b => b.id === id ? { ...b, lastPaidMonth: currentMonth } : b),
@@ -644,16 +690,16 @@ export const useStore = create<AppState>()(
                     console.warn('[Store] Adding savings goal without dbId');
                 }
 
-                syncSavingsGoalToCloud(newGoal).catch(console.error);
+                syncSavingsGoalToCloud(newGoal).catch(reportSyncError);
                 return { savingsGoals: [...s.savingsGoals, newGoal] };
             }),
             addFundsToGoal: (id: string, amount: number) => set(s => {
                 const goal = s.savingsGoals.find(g => g.id === id);
-                if (goal) syncSavingsGoalToCloud({ ...goal, savedAmount: Math.min(goal.savedAmount + amount, goal.targetAmount) }).catch(console.error);
+                if (goal) syncSavingsGoalToCloud({ ...goal, savedAmount: Math.min(goal.savedAmount + amount, goal.targetAmount) }).catch(reportSyncError);
                 return { savingsGoals: s.savingsGoals.map(g => g.id === id ? { ...g, savedAmount: Math.min(g.savedAmount + amount, g.targetAmount) } : g) };
             }),
             deleteSavingsGoal: (id) => set(s => {
-                deleteSavingsGoalFromCloud(id).catch(console.error);
+                deleteSavingsGoalFromCloud(id).catch(reportSyncError);
                 return { savingsGoals: s.savingsGoals.filter(g => g.id !== id) };
             }),
             addIncome: (inc) => set(s => {
@@ -668,7 +714,7 @@ export const useStore = create<AppState>()(
                 const ws = s.workspaces.find(w => w.id === inc.workspaceId);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
 
-                syncIncomeToCloud(newInc).catch(console.error);
+                syncIncomeToCloud(newInc).catch(reportSyncError);
 
                 return {
                     incomes: [newInc, ...s.incomes],
@@ -677,11 +723,11 @@ export const useStore = create<AppState>()(
             }),
             updateIncome: (id, data) => set(s => {
                 const inc = s.incomes.find(i => i.id === id);
-                if (inc) syncIncomeToCloud({ ...inc, ...data }).catch(console.error);
+                if (inc) syncIncomeToCloud({ ...inc, ...data }).catch(reportSyncError);
                 return { incomes: s.incomes.map(i => i.id === id ? { ...i, ...data } : i) };
             }),
             deleteIncome: (id) => set(s => {
-                deleteIncomeFromCloud(id).catch(console.error);
+                deleteIncomeFromCloud(id).catch(reportSyncError);
                 return { incomes: s.incomes.filter(i => i.id !== id) };
             }),
             setTheme: (t) => { set({ theme: t }); document.documentElement.setAttribute('data-theme', t); },
@@ -740,7 +786,7 @@ export const useStore = create<AppState>()(
                 }
 
                 try {
-                    let ws = await fetchUserWorkspaces(userId);
+                    let ws = await fetchAccessibleWorkspaces(userId);
                     
                     // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,
                     // even if the UUID account already exists.
@@ -752,11 +798,11 @@ export const useStore = create<AppState>()(
                                 for (const w of orphaned) {
                                     // Only migrate if it's NOT already correctly owned by this internal ID
                                     if (w.owner_id === s.user.email || w.owner_id === s.user.id) {
-                                        await syncWorkspaceToCloud({ ...w, ownerId: userId });
+                                        await syncWorkspaceToCloud({ ...mapWorkspace(w), ownerId: userId });
                                     }
                                 }
                                 // Re-fetch to get the merged list for the right ID
-                                ws = await fetchUserWorkspaces(userId);
+                                ws = await fetchAccessibleWorkspaces(userId);
                             }
                         } catch (e) {
                             console.error('[Sync] Migration check failed (safe skip):', e);
@@ -764,23 +810,23 @@ export const useStore = create<AppState>()(
                     }
 
                     if (ws && ws.length > 0) {
-                        set({ workspaces: ws, activeWorkspaceId: ws[0].id, showOnboarding: false });
-                        // Fetch all data for the active workspace
-                        const [expenses, incomes, bills, goals, notifs] = await Promise.all([
-                            fetchExpensesFromCloud(ws[0].id),
-                            fetchIncomesFromCloud(ws[0].id),
-                            fetchBillsFromCloud(ws[0].id),
-                            fetchSavingsGoalsFromCloud(ws[0].id),
-                            fetchNotifications(userId)
+                        const self = { dbId: userId, name: s.user.name, email: s.user.email };
+                        const memberRows = await fetchWorkspaceMembers(ws.map(w => w.id));
+                        const workspaces = ws.map(w => mapWorkspace(w, memberRows.filter(m => m.workspace_id === w.id).map(m => mapMember(m, self))));
+                        // Keep the workspace the user was last on, if it still exists
+                        const current = get().activeWorkspaceId;
+                        const activeId = workspaces.some(w => w.id === current) ? current : workspaces[0].id;
+                        set({ workspaces, activeWorkspaceId: activeId, showOnboarding: false });
+
+                        const [notifs] = await Promise.all([
+                            fetchNotifications(userId),
+                            get().loadWorkspaceData(activeId),
                         ]);
-                        set({ 
-                            expenses: expenses || [], 
-                            incomes: incomes || [], 
-                            bills: bills || [], 
-                            savingsGoals: goals || [],
-                            notifications: notifs || [],
-                            syncStatus: 'synced'
-                        });
+                        if (notifs) set({ notifications: notifs.map(mapNotification) });
+                    } else if (ws === null && isSupabaseReady()) {
+                        // Network/DB failure: keep the cached data instead of creating a duplicate workspace
+                        set({ syncStatus: navigator.onLine === false ? 'offline' : 'error' });
+                        return;
                     } else {
                         // Create a default workspace for new user using the safe internal ID
                         if (import.meta.env.DEV) console.log('[Sync] Creating default workspace');
@@ -792,7 +838,7 @@ export const useStore = create<AppState>()(
                             ownerId: userId,
                             currency: s.user.defaultCurrency || 'USD',
                             icon: '👤',
-                            color: '#7c3aed',
+                            color: '#1E5B47',
                             members: [{
                                 uid: userId,
                                 name: s.user.name,
@@ -813,13 +859,26 @@ export const useStore = create<AppState>()(
                         });
                         set({ workspaces: [personalWs], activeWorkspaceId: wsId, showOnboarding: true });
                     }
-                    set({ syncStatus: 'synced' });
+                    if (get().syncStatus === 'syncing') set({ syncStatus: 'synced' });
                 } catch (e) {
                     console.error('Hydration failed', e);
                     set({ syncStatus: 'error' });
                 }
             }
         }),
-        { name: 'financeva-store', partialize: (s) => ({ user: s.user, workspaces: s.workspaces, notifications: s.notifications, bills: s.bills, expenses: s.expenses, savingsGoals: s.savingsGoals, incomes: s.incomes, theme: s.theme, language: s.language, currency: s.currency, activeWorkspaceId: s.activeWorkspaceId, isAuthenticated: s.isAuthenticated, showOnboarding: s.showOnboarding, categories: s.categories, paymentMethods: s.paymentMethods }) }
+        {
+            name: 'financeva-store',
+            version: 2,
+            // v2: refresh built-in category colours to the new palette, keep user-made categories
+            migrate: (persisted: any) => {
+                if (persisted?.categories) {
+                    persisted.categories = persisted.categories.map((c: CategoryDef) => {
+                        const def = CATEGORIES.find(d => d.key === c.key);
+                        return def ? { ...c, color: def.color } : c;
+                    });
+                }
+                return persisted;
+            },
+            partialize: (s) => ({ user: s.user, workspaces: s.workspaces, notifications: s.notifications, bills: s.bills, expenses: s.expenses, savingsGoals: s.savingsGoals, incomes: s.incomes, theme: s.theme, language: s.language, currency: s.currency, activeWorkspaceId: s.activeWorkspaceId, isAuthenticated: s.isAuthenticated, showOnboarding: s.showOnboarding, categories: s.categories, paymentMethods: s.paymentMethods }) }
     )
 );

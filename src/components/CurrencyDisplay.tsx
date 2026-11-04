@@ -17,24 +17,15 @@ export default function CurrencyDisplay({ amount, currency, hideAmounts = false 
     if (hideAmounts) return <span>••••</span>;
 
     // Convert amount from the recorded currency to the user's selected global currency preference
-    const primaryAmount = convertAmountSync(amount, baseCurrency, userCurrency) ?? amount;
+    const converted = convertAmountSync(amount, baseCurrency, userCurrency);
     
     // Convert to USD specifically for the sub-text (unless USD is the native)
     const usdAmount = convertAmountSync(amount, baseCurrency, 'USD') ?? amount;
     
-    const primaryText = formatCurrency(primaryAmount, userCurrency, false);
+    // Without exchange rates, show the amount in its own currency rather than mislabel it
+    const primaryText = converted === null ? formatCurrency(amount, baseCurrency, false) : formatCurrency(converted, userCurrency, false);
     const usdText = formatCurrency(usdAmount, 'USD', false);
 
-    if (userCurrency === 'USD') {
-        return <span>{primaryText}</span>;
-    }
-
-    return (
-        <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: '6px', rowGap: '2px' }}>
-            <span>{primaryText}</span>
-            <span style={{ fontSize: '0.65em', color: 'var(--text-muted)', fontWeight: 'normal', opacity: 0.8, whiteSpace: 'nowrap' }}>
-                (~{usdText})
-            </span>
-        </span>
-    );
+    // The USD equivalent stays available on hover/long-press without crowding every row.
+    return <span title={userCurrency === 'USD' ? undefined : `≈ ${usdText}`}>{primaryText}</span>;
 }

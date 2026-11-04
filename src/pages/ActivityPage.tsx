@@ -86,7 +86,7 @@ export default function ActivityPage() {
         switch (type) {
             case 'expense_deleted': return 'var(--danger)';
             case 'expense_edited': return 'var(--warning)';
-            case 'income': return '#22c55e';
+            case 'income': return 'var(--gain)';
             case 'invite':
             case 'join_request': return 'var(--primary-light)';
             default: return 'var(--text-muted)';

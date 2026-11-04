@@ -1,0 +1,124 @@
+name: App builds (Android, iOS, macOS, Windows)
+
+# Builds installable test apps on every push to main and publishes them to the
+# "test-build" pre-release:  https://github.com/MohamedAhmed2679/finance-va/releases/tag/test-build
+# The apps load https://finance-va.vercel.app, so they always match the live web app.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'supabase/**']
+  workflow_dispatch:
+
+concurrency:
+  group: app-builds-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: gradle }
+      - uses: android-actions/setup-android@v3
+      - name: Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - run: npm ci
+      - run: npx vite build
+      - run: npx cap sync android
+      - name: Build debug APK (installable, debug-signed)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../FinanceVA-android.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: FinanceVA-android.apk, retention-days: 30 }
+
+  ios:
+    name: iOS IPA (unsigned)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx vite build
+      - run: npx cap sync ios
+      - name: Build unsigned app for devices
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -40
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry FinanceVA-ios-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: FinanceVA-ios-unsigned.ipa, retention-days: 30 }
+
+  macos:
+    name: macOS DMG
+    runs-on: macos-15
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ELECTRON: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx vite build
+      - run: npx electron-builder --mac --publish never
+      - run: cp release/*.dmg FinanceVA-mac.dmg
+      - uses: actions/upload-artifact@v4
+        with: { name: macos, path: FinanceVA-mac.dmg, retention-days: 30 }
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    env:
+      ELECTRON: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx vite build
+      - run: npx electron-builder --win --publish never
+      - shell: bash
+        run: cp release/*.exe FinanceVA-windows-setup.exe
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: FinanceVA-windows-setup.exe, retention-days: 30 }
+
+  release:
+    name: Publish test-build release
+    needs: [android, ios, macos, windows]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - name: Replace the test-build pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -la out
+          gh release delete test-build --yes --cleanup-tag || true
+          gh release create test-build out/* --prerelease --target "${{ github.sha }}" \
+            --title "Test build — ${GITHUB_SHA::7}" \
+            --notes "Installable test apps for commit ${GITHUB_SHA::7}. They load https://finance-va.vercel.app.
+
+          - **Android**: FinanceVA-android.apk — open on the phone and allow installs from your browser.
+          - **iPhone**: FinanceVA-ios-unsigned.ipa — install with Sideloadly (Windows/Mac) or AltStore using your Apple ID; free Apple IDs need a re-install every 7 days.
+          - **macOS**: FinanceVA-mac.dmg — unsigned; right-click the app → Open the first time.
+          - **Windows**: FinanceVA-windows-setup.exe — unsigned; More info → Run anyway."

@@ -12,7 +12,7 @@ export default function WorkspacesPage() {
     const [wsName, setWsName] = useState('');
     const [wsType, setWsType] = useState<'personal' | 'shared'>('shared');
     const [wsIcon, setWsIcon] = useState('🏢');
-    const [wsColor, setWsColor] = useState('#7c3aed');
+    const [wsColor, setWsColor] = useState('var(--note)');
     const [wsCurrency, setWsCurrency] = useState(user?.defaultCurrency ?? 'USD');
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteName, setInviteName] = useState('');

@@ -1,4 +1,4 @@
-package com.dailyspend.app;
+package com.financeva.app;
 
 import com.getcapacitor.BridgeActivity;
 

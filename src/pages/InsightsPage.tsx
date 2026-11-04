@@ -40,7 +40,7 @@ export default function InsightsPage() {
     const avg = wsExp.length ? total / wsExp.length : 0;
     const maxExpense = wsExp.reduce((m, e) => e.amount > m.amount ? e : m, wsExp[0]);
 
-    const COLORS = ['#7c3aed', '#06d6a0', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444', '#14b8a6', '#84cc16'];
+    const COLORS = ['var(--note)', '#06d6a0', 'var(--amber)', '#3b82f6', '#ec4899', 'var(--cinnabar)', '#14b8a6', '#84cc16'];
 
     return (
         <div className="page">
@@ -75,7 +75,7 @@ export default function InsightsPage() {
                             <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={50} />
                             <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} formatter={(v: any) => formatCurrency(v, cur)} />
                             <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
-                                {monthlyData.map((_, i) => <Cell key={i} fill={i === monthlyData.length - 1 ? '#7c3aed' : `rgba(124,58,237,${0.4 + i * 0.1})`} />)}
+                                {monthlyData.map((_, i) => <Cell key={i} fill={i === monthlyData.length - 1 ? 'var(--note)' : `color-mix(in srgb, var(--note) ${Math.round((0.4 + i * 0.1) * 100)}%, transparent)`} />)}
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>

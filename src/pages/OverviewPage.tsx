@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Guilloche, Seal, useCountUp } from '../components/brand/Brand';
 import { useStore, type Expense } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Sparkles, RefreshCw, CalendarSync } from 'lucide-react';
+import { TrendingUp, TrendingDown, Sparkles, RefreshCw, CalendarClock, Plus } from 'lucide-react';
 import { convertAmountSync, preloadRates } from '../services/exchangeRates';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 
@@ -32,7 +34,7 @@ function getCategoryData(expenses: Expense[], workspaceId: string, startDate: st
 }
 
 export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps) {
-    const { user, expenses, bills, activeWorkspaceId, workspaces, currency, markBillPaid } = useStore();
+    const { user, expenses, bills, activeWorkspaceId, workspaces, currency, markBillPaid, syncStatus } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
     const isOwner = user && ws && (ws.ownerId === user.dbId || ws.ownerId === user.id || ws.ownerId === user.email);
@@ -46,7 +48,8 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     useEffect(() => { preloadRates(); }, []);
 
     const todayDate = new Date();
-    const today = todayDate.toISOString().slice(0, 10);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const today = `${todayDate.getFullYear()}-${pad(todayDate.getMonth() + 1)}-${pad(todayDate.getDate())}`; // local day, not UTC
     const { start: cycleStart, end: cycleEnd } = getActiveCycleDates(todayDate, cycleStartDay);
 
     // Calculate last month's cycle
@@ -81,7 +84,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
             const prompt = `You are a friendly personal finance advisor. Analyze these monthly expenses: Total this month: ${formatCurrency(monthTotal, cur)}. Top spending categories: ${topCats}. Provide 3 concise, actionable tips to save money and improve financial health. Be encouraging and specific. Max 120 words.`;
 
             // Try server-side endpoint first (API key stays on server)
-            const res = await fetch('/api/ai/advice', {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE ?? ''}/api/ai/advice`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt }),
@@ -105,130 +108,84 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 }
                 setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time.');
             }
-        } catch { setAiText('AI advice is temporarily unavailable. Check your internet connection.'); }
-        setAiLoading(false);
+        } catch { setAiText('AI advice is unavailable right now. Check your connection and try again.'); }
+        finally { setAiLoading(false); }
     }
+
+    // Note figures are shown in the viewer's display currency
+    const toDisplay = (v: number) => convertAmountSync(v, cur, currency) ?? v;
+    const budget = user?.monthlyBudget ?? 0;
+    const spentShown = useCountUp(toDisplay(monthTotal));
+    const budgetPct = budget > 0 ? Math.min(100, (toDisplay(monthTotal) / budget) * 100) : 0;
+    const fmtDay = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' });
+    const hour = todayDate.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const firstName = (user?.name || '').split(' ')[0];
+    const loading = syncStatus === 'syncing' && wsExp.length === 0;
 
     return (
         <div className="page">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">{t(lang, 'overview')}</h1>
-                    <p className="page-subtitle" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                        {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
+                    <h1 className="page-title">{greeting}{firstName ? `, ${firstName}` : ''}</h1>
+                    <p className="page-subtitle">{todayDate.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · {ws?.name ?? 'Personal'}</p>
                 </div>
-                {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}>+ {t(lang, 'add_expense')}</button>}
+                {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}><Plus size={17} /> {t(lang, 'add_expense')}</button>}
             </div>
 
-            {/* Stat cards */}
-            <div className="card-grid card-grid-4 mb-6">
-                <div className="card stat-card animate-fadeIn">
-                    <div className="stat-label">{t(lang, 'today_spend')}</div>
-                    <div className="stat-value animate-countUp"><CurrencyDisplay amount={todayTotal} currency={cur} hideAmounts={hideAmounts} /></div>
-                    <TrendingDown size={20} className="stat-icon" />
+            {/* The Note — signature hero */}
+            <motion.section className="note mb-6" aria-label="Spending this cycle"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
+                <Guilloche width={1000} height={300} ribbonY={0.84} />
+                <div className="note-top">
+                    <span className="note-label">Spent this cycle</span>
+                    <span className="note-serial">{fmtDay(cycleStart)} – {fmtDay(cycleEnd)}</span>
                 </div>
-                <div className="card stat-card animate-fadeIn" style={{ animationDelay: '60ms' }}>
-                    <div className="stat-label">{t(lang, 'this_month')}</div>
-                    <div className="stat-value animate-countUp"><CurrencyDisplay amount={monthTotal} currency={cur} hideAmounts={hideAmounts} /></div>
-                    <div className={`stat-change ${monthChange <= 0 ? 'stat-positive' : 'stat-negative'}`}>
-                        {monthChange <= 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-                        {Math.abs(monthChange).toFixed(1)}% vs last month
+                <div className="note-amount">
+                    {hideAmounts ? '••••' : loading ? <span className="skeleton" style={{ display: 'inline-block', width: 220, height: 52, opacity: 0.25 }} /> : formatCurrency(spentShown, currency)}
+                </div>
+                <dl className="note-meta">
+                    <div><dt>Today</dt><dd>{hideAmounts ? '••••' : formatCurrency(toDisplay(todayTotal), currency)}</dd></div>
+                    <div>
+                        <dt>Vs last cycle</dt>
+                        <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {lastMonthTotal ? <>{monthChange <= 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}{Math.abs(monthChange).toFixed(0)}% {monthChange <= 0 ? 'less' : 'more'}</> : 'No data yet'}
+                        </dd>
                     </div>
-                </div>
+                    {budget > 0 && <div><dt>Left in budget</dt><dd>{hideAmounts ? '••••' : formatCurrency(Math.max(0, budget - toDisplay(monthTotal)), currency)}</dd></div>}
+                </dl>
+                {budget > 0 && (
+                    <div className="note-budget" data-over={toDisplay(monthTotal) > budget} role="progressbar" aria-valuenow={Math.round(budgetPct)} aria-valuemin={0} aria-valuemax={100} aria-label="Budget used">
+                        <motion.span initial={{ width: 0 }} animate={{ width: `${budgetPct}%` }} transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
+                    </div>
+                )}
+                <div className="note-seal"><Seal size={46} /></div>
+            </motion.section>
 
-                {/* AI Summary card */}
-                <div className="card animate-fadeIn" style={{ animationDelay: '120ms', gridColumn: 'span 2', background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(168,85,247,0.05))', borderColor: 'rgba(124,58,237,0.3)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <Sparkles size={16} style={{ color: 'var(--primary-light)' }} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-light)' }}>{t(lang, 'ai_analysis')}</span>
-                        <button onClick={generateAdvice} disabled={aiLoading} className="btn btn-ghost btn-sm btn-icon" style={{ marginLeft: 'auto', padding: 4 }}>
-                            <RefreshCw size={14} className={aiLoading ? 'animate-spin' : ''} />
-                        </button>
-                    </div>
-                    {aiLoading ? (
-                        <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
-                            <div className="skeleton" style={{ height: 14, width: '90%' }} />
-                            <div className="skeleton" style={{ height: 14, width: '70%' }} />
-                            <div className="skeleton" style={{ height: 14, width: '80%' }} />
-                        </div>
-                    ) : aiText ? (
-                        <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>{aiText}</p>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>Ready for some personalized financial tips?</p>
-                            <button className="btn btn-primary btn-sm" onClick={generateAdvice}>{t(lang, 'generate_advice')}</button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Charts */}
-            <div className="card-grid card-grid-2 mb-6">
-                <div className="card animate-fadeIn" style={{ animationDelay: '180ms' }}>
-                    <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>{t(lang, 'spend_over_time')}</div>
-                    <div className="chart-container" style={{ height: 160 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={spendData}>
-                                <defs><linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#7c3aed" stopOpacity={0.25} /><stop offset="95%" stopColor="#7c3aed" stopOpacity={0} /></linearGradient></defs>
-                                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={40} />
-                                <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-                                <Area type="monotone" dataKey="amount" stroke="#7c3aed" strokeWidth={2} fill="url(#grad1)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-                <div className="card animate-fadeIn" style={{ animationDelay: '240ms' }}>
-                    <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>{t(lang, 'category_breakdown')}</div>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                        <div style={{ width: 140, height: 140 }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={catData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} dataKey="value" strokeWidth={0}>
-                                        {catData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} formatter={(v: number | string | undefined) => formatCurrency(Number(v) || 0, cur)} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {catData.slice(0, 5).map(c => (
-                                <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                                    <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{c.emoji} {c.name}</span>
-                                    <span style={{ fontWeight: 700, fontSize: 11 }}><CurrencyDisplay amount={c.value} currency={cur} hideAmounts={hideAmounts} /></span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Upcoming Bills */}
+            {/* Upcoming bills */}
             {upcomingBills.length > 0 && (
-                <div className="card mb-6 animate-fadeIn" style={{ animationDelay: '280ms', borderLeft: '4px solid #f59e0b' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CalendarSync size={18} style={{ color: '#f59e0b' }} />
-                            Upcoming & Overdue Bills
+                <div className="card mb-6 animate-fadeIn">
+                    <div className="card-head">
+                        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <CalendarClock size={18} style={{ color: 'var(--amber)' }} /> Bills due soon
                         </div>
-                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('bills')}>Manage →</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('bills')}>Manage bills</button>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div className="ledger">
                         {upcomingBills.map(b => {
                             const days = b.dueDate - currentDay;
-                            const statusColor = days < 0 ? 'var(--danger)' : days === 0 ? '#f59e0b' : 'var(--text-muted)';
-                            const statusText = days < 0 ? 'Overdue' : days === 0 ? 'Due Today' : `Due in ${days}d`;
+                            const status = days < 0 ? `Overdue by ${-days} day${days === -1 ? '' : 's'}` : days === 0 ? 'Due today' : `Due in ${days} day${days === 1 ? '' : 's'}`;
+                            const cat = getCategoryInfo(b.category);
                             return (
-                                <div key={b.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-body)', borderRadius: 8 }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 13 }}>{b.name}</div>
-                                        <div style={{ fontSize: 11, color: statusColor, fontWeight: days <= 0 ? 600 : 400 }}>{statusText}</div>
+                                <div key={b.id} className="ledger-row">
+                                    <div className="ledger-icon" style={{ background: `${cat.color}1f` }}>{cat.emoji}</div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div className="ledger-title">{b.name}</div>
+                                        <div className="ledger-sub" style={{ color: days < 0 ? 'var(--cinnabar)' : days === 0 ? 'var(--amber)' : undefined, fontWeight: days <= 0 ? 600 : 400 }}>{status}</div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                        <span style={{ fontWeight: 700, fontSize: 14 }}><CurrencyDisplay amount={b.amount} currency={b.currency} hideAmounts={hideAmounts} /></span>
-                                        {!isViewer && <button className="btn btn-primary btn-sm" onClick={() => markBillPaid(b.id, monthStr)} style={{ padding: '4px 12px', minHeight: 'unset', fontSize: 12 }}>Pay</button>}
+                                    <div className="ledger-side">
+                                        <span className="ledger-amount"><CurrencyDisplay amount={b.amount} currency={b.currency} hideAmounts={hideAmounts} /></span>
+                                        {!isViewer && <button className="btn btn-secondary btn-sm" onClick={() => markBillPaid(b.id, monthStr)}>Mark paid</button>}
                                     </div>
                                 </div>
                             );
@@ -237,40 +194,113 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 </div>
             )}
 
-            {/* Recent expenses */}
-            <div className="card animate-fadeIn" style={{ animationDelay: '300ms' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{t(lang, 'recent_expenses')}</div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('expenses')}>View all →</button>
+            {/* Charts */}
+            <div className="card-grid card-grid-2 mb-6">
+                <div className="card animate-fadeIn" style={{ animationDelay: '80ms' }}>
+                    <div className="card-head"><div className="card-title">{t(lang, 'spend_over_time')}</div></div>
+                    <div className="chart-container" style={{ height: 180 }}>
+                        {spendData.length === 0 ? (
+                            <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">Your daily spending will chart here once you add expenses this cycle.</div></div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={spendData} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
+                                    <defs><linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--note)" stopOpacity={0.22} /><stop offset="100%" stopColor="var(--note)" stopOpacity={0} /></linearGradient></defs>
+                                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--ink-3)' }} axisLine={false} tickLine={false} minTickGap={16} />
+                                    <YAxis tick={{ fontSize: 11, fill: 'var(--ink-3)' }} axisLine={false} tickLine={false} width={44} />
+                                    <Tooltip cursor={{ stroke: 'var(--line-strong)' }} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13, color: 'var(--ink)' }} formatter={(v: number | string | undefined) => [formatCurrency(Number(v) || 0, cur), 'Spent']} />
+                                    <Area type="monotone" dataKey="amount" stroke="var(--note)" strokeWidth={2} fill="url(#spendFill)" animationDuration={900} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
                 </div>
-                {recentExp.length === 0 ? (
-                    <div className="empty-state"><div className="empty-icon">💸</div><div className="empty-title">No expenses yet</div><div className="empty-desc">Add your first expense to get started</div></div>
-                ) : (
-                    <table className="data-table">
-                        <thead><tr><th>{t(lang, 'merchant')}</th><th>{t(lang, 'category')}</th><th>{t(lang, 'date')}</th><th style={{ textAlign: 'right' }}>{t(lang, 'amount')}</th></tr></thead>
-                        <tbody>
-                            {recentExp.map(e => {
+                <div className="card animate-fadeIn" style={{ animationDelay: '140ms' }}>
+                    <div className="card-head"><div className="card-title">{t(lang, 'category_breakdown')}</div></div>
+                    {catData.length === 0 ? (
+                        <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">Categories appear here after your first expense.</div></div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+                            <div style={{ width: 150, height: 150, flexShrink: 0 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={catData} cx="50%" cy="50%" innerRadius={46} outerRadius={70} paddingAngle={2} dataKey="value" strokeWidth={0} animationDuration={900}>
+                                            {catData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13 }} formatter={(v: number | string | undefined) => formatCurrency(Number(v) || 0, cur)} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                {catData.slice(0, 5).map(c => (
+                                    <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}>
+                                        <span style={{ width: 9, height: 9, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                                        <span className="truncate" style={{ flex: 1, color: 'var(--ink-2)' }}>{c.name}</span>
+                                        <span className="tnum" style={{ fontWeight: 600 }}><CurrencyDisplay amount={c.value} currency={cur} hideAmounts={hideAmounts} /></span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="card-grid card-grid-2 stack-mobile" style={{ gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)' }}>
+                {/* Recent expenses */}
+                <div className="card animate-fadeIn" style={{ animationDelay: '200ms' }}>
+                    <div className="card-head">
+                        <div className="card-title">{t(lang, 'recent_expenses')}</div>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('expenses')}>See all</button>
+                    </div>
+                    {loading ? (
+                        <div className="ledger">{[0, 1, 2].map(i => <div key={i} className="ledger-row"><div className="skeleton" style={{ width: 40, height: 40, borderRadius: 12 }} /><div><div className="skeleton" style={{ height: 13, width: '60%', marginBottom: 6 }} /><div className="skeleton" style={{ height: 11, width: '40%' }} /></div><div className="skeleton" style={{ height: 14, width: 64 }} /></div>)}</div>
+                    ) : recentExp.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-title">Nothing spent yet</div>
+                            <div className="empty-desc">Add an expense by typing it, saying it out loud, or pasting a bank SMS.</div>
+                            {!isViewer && <button className="btn btn-primary btn-sm mt-2" onClick={onAddExpense}><Plus size={15} /> Add expense</button>}
+                        </div>
+                    ) : (
+                        <div className="ledger">
+                            {recentExp.map((e, i) => {
                                 const catInfo = getCategoryInfo(e.category);
                                 return (
-                                    <tr key={e.id}>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${catInfo.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{catInfo.emoji}</div>
-                                                <div>
-                                                    <div style={{ fontWeight: 600, fontSize: 13 }}>{e.merchant}</div>
-                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{e.description}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span className={`badge badge-${e.category}`}>{catInfo.label}</span></td>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{new Date(e.purchaseAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 14 }}><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></td>
-                                    </tr>
+                                    <motion.div key={e.id} className="ledger-row" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.05 }}>
+                                        <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div className="ledger-title">{e.merchant || catInfo.label}</div>
+                                            <div className="ledger-sub">{catInfo.label} · {new Date(e.purchaseAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' })}</div>
+                                        </div>
+                                        <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></div>
+                                    </motion.div>
                                 );
                             })}
-                        </tbody>
-                    </table>
-                )}
+                        </div>
+                    )}
+                </div>
+
+                {/* AI advice */}
+                <div className="card animate-fadeIn" style={{ animationDelay: '260ms', background: 'var(--surface-2)' }}>
+                    <div className="card-head">
+                        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={17} style={{ color: 'var(--brass)' }} /> {t(lang, 'ai_analysis')}</div>
+                        {aiText && <button onClick={generateAdvice} disabled={aiLoading} className="btn btn-ghost btn-sm btn-icon" aria-label="Refresh advice"><RefreshCw size={15} className={aiLoading ? 'animate-spin' : ''} /></button>}
+                    </div>
+                    {aiLoading ? (
+                        <div style={{ display: 'flex', gap: 9, flexDirection: 'column' }}>
+                            <div className="skeleton" style={{ height: 13, width: '92%' }} />
+                            <div className="skeleton" style={{ height: 13, width: '78%' }} />
+                            <div className="skeleton" style={{ height: 13, width: '85%' }} />
+                            <div className="skeleton" style={{ height: 13, width: '60%' }} />
+                        </div>
+                    ) : aiText ? (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--ink-2)', whiteSpace: 'pre-line' }}>{aiText.replace(/\*\*/g, '')}</motion.p>
+                    ) : (
+                        <div>
+                            <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 14 }}>Get three specific ways to spend less, based on this cycle's categories.</p>
+                            <button className="btn btn-secondary btn-sm" onClick={generateAdvice} disabled={monthTotal === 0}>{t(lang, 'generate_advice')}</button>
+                            {monthTotal === 0 && <p className="text-xs text-muted mt-2">Add a few expenses first.</p>}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

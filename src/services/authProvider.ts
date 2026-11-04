@@ -10,6 +10,11 @@
 
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { Provider } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+
+/** Deep link the native apps register (Android intent-filter / iOS URL type). */
+export const NATIVE_AUTH_REDIRECT = 'com.financeva.app://auth-callback';
+const isNative = () => Capacitor.isNativePlatform();
 
 // ─── Types ───────────────────────────────────────────────────────
 export interface AuthResult {
@@ -23,6 +28,7 @@ export interface AuthResult {
         avatarUrl?: string;
     };
     error?: string;
+    needsConfirmation?: boolean;
 }
 
 // ─── OAuth Sign-In (Google / Apple / Microsoft) ──────────────────
@@ -33,10 +39,13 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
     }
 
     try {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const native = isNative();
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider: provider as Provider,
             options: {
-                redirectTo: getOAuthRedirectTo(),
+                redirectTo: native ? NATIVE_AUTH_REDIRECT : getOAuthRedirectTo(),
+                // Native apps open the provider in the system browser (Google blocks embedded web views)
+                skipBrowserRedirect: native,
                 scopes: provider === 'google'
                     ? 'openid email profile'
                     : provider === 'azure'
@@ -47,7 +56,11 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
 
         if (error) throw error;
 
-        // OAuth redirects the browser — this line only runs if using popup mode
+        if (native && data?.url) {
+            const { Browser } = await import('@capacitor/browser');
+            await Browser.open({ url: data.url, presentationStyle: 'popover' });
+        }
+        // On the web the page redirects to the provider; the session is picked up on return.
         return { success: true };
     } catch (err: any) {
         return { success: false, error: err.message || 'OAuth sign-in failed' };
@@ -108,6 +121,7 @@ export async function signUpWithEmail(
             email,
             password,
             options: {
+                emailRedirectTo: isNative() ? NATIVE_AUTH_REDIRECT : getOAuthRedirectTo(),
                 data: {
                     full_name: name,
                     phone,
@@ -118,8 +132,10 @@ export async function signUpWithEmail(
 
         if (error) throw error;
 
+        // When email confirmation is on, Supabase returns a user but no session yet.
         return {
             success: true,
+            needsConfirmation: !data.session,
             user: {
                 id: data.user?.id || '',
                 name,
@@ -284,4 +300,35 @@ function simulateEmailAuth(email: string, name?: string): Promise<AuthResult> {
             });
         }, 800);
     });
+}
+
+// ─── Native deep-link OAuth return (Android / iOS) ───────────────
+/**
+ * Listens for com.financeva.app://auth-callback?code=… and exchanges the PKCE code
+ * for a session inside the app's web view. Returns an unsubscribe function.
+ */
+export function initNativeAuthListener(onSignedIn: () => void): () => void {
+    if (!isNative() || !supabase) return () => {};
+    let remove: (() => void) | undefined;
+    import('@capacitor/app').then(({ App }) => {
+        App.addListener('appUrlOpen', async ({ url }) => {
+            if (!url.startsWith(NATIVE_AUTH_REDIRECT) || !supabase) return;
+            const params = new URL(url.replace('#', '?')).searchParams;
+            const code = params.get('code');
+            try {
+                if (code) {
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (error) throw error;
+                } else if (params.get('access_token') && params.get('refresh_token')) {
+                    await supabase.auth.setSession({ access_token: params.get('access_token')!, refresh_token: params.get('refresh_token')! });
+                }
+                onSignedIn();
+            } catch (err) {
+                console.error('[Auth] Native OAuth exchange failed', err);
+            } finally {
+                import('@capacitor/browser').then(({ Browser }) => Browser.close().catch(() => {}));
+            }
+        }).then(handle => { remove = () => handle.remove(); });
+    });
+    return () => remove?.();
 }

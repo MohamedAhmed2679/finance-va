@@ -97,17 +97,17 @@ export default function EarningsPage() {
                 </header>
 
                 <div className="card-grid card-grid-3 mb-6">
-                    <div className="card stat-card animate-fadeIn" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1), transparent)' }}>
+                    <div className="card stat-card animate-fadeIn" style={{ background: 'var(--surface)' }}>
                         <div className="stat-label">Total Income (This Cycle)</div>
                         <div className="stat-value"><CurrencyDisplay amount={totalIncome} currency={cur} hideAmounts={hideAmounts} /></div>
-                        <TrendingUp size={20} className="stat-icon" style={{ color: '#22c55e' }} />
+                        <TrendingUp size={20} className="stat-icon" style={{ color: 'var(--gain)' }} />
                     </div>
                     <div className="card stat-card animate-fadeIn" style={{ animationDelay: '60ms' }}>
                         <div className="stat-label">Total Spent</div>
                         <div className="stat-value"><CurrencyDisplay amount={totalSpent} currency={cur} hideAmounts={hideAmounts} /></div>
                         <TrendingDown size={20} className="stat-icon" style={{ color: 'var(--danger)' }} />
                     </div>
-                    <div className="card stat-card animate-fadeIn" style={{ animationDelay: '120ms', borderColor: leftover >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)' }}>
+                    <div className="card stat-card animate-fadeIn" style={{ animationDelay: '120ms', borderColor: leftover >= 0 ? 'var(--gain-soft)' : 'var(--cinnabar-soft)' }}>
                         <div className="stat-label">Leftover (Expected Savings)</div>
                         <div className="stat-value" style={{ color: leftover >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                             <CurrencyDisplay amount={leftover} currency={cur} hideAmounts={hideAmounts} />
@@ -164,7 +164,7 @@ export default function EarningsPage() {
                             {activeIncomes.map(inc => (
                                 <div key={inc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--bg-body)', borderRadius: 12 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                        <div style={{ width: 44, height: 44, borderRadius: 12, background: inc.type === 'fixed' ? 'rgba(34,197,94,0.1)' : 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: inc.type === 'fixed' ? '#22c55e' : '#7c3aed' }}>
+                                        <div style={{ width: 44, height: 44, borderRadius: 12, background: inc.type === 'fixed' ? 'var(--gain-soft)' : 'var(--note-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: inc.type === 'fixed' ? 'var(--gain)' : 'var(--note)' }}>
                                             <Briefcase size={20} />
                                         </div>
                                         <div>

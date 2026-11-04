@@ -1,74 +1,86 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange } from '../services/authProvider';
-import { Eye, EyeOff } from 'lucide-react';
+import { Guilloche, Seal } from '../components/brand/Brand';
 
 interface AuthPageProps { onAuth: () => void; }
-
-function FloatingInput({ label, type = 'text', value, onChange, required, disabled, maxLength, autoFocus }: {
-    label: string; type?: string; value: string; onChange: (v: string) => void;
-    required?: boolean; disabled?: boolean; maxLength?: number; autoFocus?: boolean;
-}) {
-    return (
-        <div className={`floating-input-group ${value ? 'has-value' : ''}`}>
-            <input type={type} className="floating-input" value={value}
-                onChange={e => onChange(e.target.value)} required={required} title={label}
-                disabled={disabled} maxLength={maxLength} autoFocus={autoFocus} placeholder=" " />
-            <label className="floating-label">{label}</label>
-            <div className="floating-bar" />
-        </div>
-    );
-}
-
-function PasswordInput({ label, value, onChange, required }: {
-    label: string; value: string; onChange: (v: string) => void; required?: boolean;
-}) {
-    const [show, setShow] = useState(false);
-    return (
-        <div className={`floating-input-group ${value ? 'has-value' : ''}`}>
-            <input type={show ? 'text' : 'password'} className="floating-input" value={value}
-                onChange={e => onChange(e.target.value)} required={required} title={label} placeholder=" " />
-            <label className="floating-label">{label}</label>
-            <div className="floating-bar" />
-            <button type="button" className="password-toggle-btn" onClick={() => setShow(!show)}
-                title={show ? 'Hide password' : 'Show password'} tabIndex={-1}>
-                {show ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-        </div>
-    );
-}
+type Mode = 'signin' | 'signup' | 'phone' | 'forgot' | 'recovery';
 
 const COUNTRIES = [
-    'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'India',
-    'Saudi Arabia', 'UAE', 'Egypt', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Lebanon',
-    'Japan', 'South Korea', 'Brazil', 'Mexico', 'Italy', 'Spain', 'Netherlands', 'Sweden',
-    'Norway', 'Denmark', 'Finland', 'Switzerland', 'Turkey', 'South Africa', 'Nigeria',
-    'Singapore', 'Malaysia', 'Indonesia', 'Philippines', 'Thailand', 'Vietnam', 'Pakistan',
-    'Bangladesh', 'New Zealand', 'Ireland', 'Portugal', 'Poland', 'Czech Republic', 'Romania',
-    'Greece', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Other',
+    'Egypt', 'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Lebanon', 'Morocco',
+    'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Ireland',
+    'India', 'Pakistan', 'Bangladesh', 'Turkey', 'Nigeria', 'South Africa', 'Kenya', 'Japan', 'South Korea', 'Singapore',
+    'Malaysia', 'Indonesia', 'Philippines', 'Brazil', 'Mexico', 'Argentina', 'Other',
 ];
 
-// Security Validation
-function validatePassword(password: string): string | null {
-    if (password.length < 8) return 'Password must be at least 8 characters long.';
-    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
-    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
-    if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(password)) return 'Password must contain at least one special character.';
-    return null; // Valid
+const PW_RULES: [RegExp, string][] = [
+    [/.{8,}/, 'at least 8 characters'],
+    [/[A-Z]/, 'an uppercase letter'],
+    [/[a-z]/, 'a lowercase letter'],
+    [/[0-9]/, 'a number'],
+    [/[^A-Za-z0-9]/, 'a symbol'],
+];
+
+function passwordProblem(pw: string): string | null {
+    const missing = PW_RULES.filter(([re]) => !re.test(pw)).map(([, label]) => label);
+    return missing.length ? `Password needs ${missing.join(', ')}.` : null;
 }
+
+/** Normalises to E.164 (+countrycode…). Returns null when it can't be a real number. */
+function toE164(raw: string): string | null {
+    let s = raw.replace(/[^\d+]/g, '');
+    if (s.startsWith('00')) s = '+' + s.slice(2);
+    if (!s.startsWith('+')) return null;
+    const digits = s.slice(1);
+    return /^\d{8,15}$/.test(digits) ? '+' + digits : null;
+}
+
+function PasswordField({ id, value, onChange, autoComplete, meter }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; meter?: boolean }) {
+    const [show, setShow] = useState(false);
+    const score = PW_RULES.filter(([re]) => re.test(value)).length;
+    return (
+        <div className="form-group">
+            <label className="form-label" htmlFor={id}>Password</label>
+            <div className="pw-field">
+                <input id={id} className="form-input" type={show ? 'text' : 'password'} value={value} required
+                    autoComplete={autoComplete} onChange={e => onChange(e.target.value)} />
+                <button type="button" className="pw-toggle" onClick={() => setShow(s => !s)} aria-label={show ? 'Hide password' : 'Show password'}>
+                    {show ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+            </div>
+            {meter && (
+                <>
+                    <div className="pw-meter" aria-hidden="true">{PW_RULES.map((_, i) => <span key={i} className={i < score ? 'on' : ''} />)}</div>
+                    <div className="pw-hint">{value ? (passwordProblem(value) ?? 'Strong password.') : 'Use 8+ characters with upper and lower case, a number and a symbol.'}</div>
+                </>
+            )}
+        </div>
+    );
+}
+
+const GoogleIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>
+);
+const AppleIcon = () => (
+    <svg width="16" height="18" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-116.1-55.8-168-110.8S78 802.2 69 742.4c-9.7-64.7-5.5-182.7 66.9-298.1 38.6-60.8 99.2-120.2 167.3-120.2 82.1 0 136.9 43 197.7 43 59.5 0 102.2-43 197.7-43 51 0 99.9 30.6 133.4 53.7zM554.1 159.4c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" /></svg>
+);
+const MicrosoftIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 23 23" aria-hidden="true"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>
+);
+
+const swap = {
+    initial: { opacity: 0, x: 14 },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const } },
+    exit: { opacity: 0, x: -10, transition: { duration: 0.12 } },
+};
 
 export default function AuthPage({ onAuth }: AuthPageProps) {
     const { login } = useStore();
-    const [isSignUp, setIsSignUp] = useState(false);
-    
-    // View States
-    const [showPhone, setShowPhone] = useState(false);
-    const [showForgot, setShowForgot] = useState(false);
-    const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+    const [mode, setMode] = useState<Mode>(() =>
+        window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery') ? 'recovery' : 'signin');
 
-    // Form Fields
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -76,352 +88,317 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [country, setCountry] = useState('');
     const [code, setCode] = useState('');
     const [codeSent, setCodeSent] = useState(false);
-    
-    // Status
-    const [loading, setLoading] = useState(false);
+    const [resendIn, setResendIn] = useState(0);
+
+    const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState('');
-    const [successMsg, setSuccessMsg] = useState('');
-    const lang = 'en';
+    const [notice, setNotice] = useState('');
 
-    // Intercept Password Recovery Link
+    const switchMode = (m: Mode) => { setMode(m); setError(''); setNotice(''); };
+
+    // Password-recovery link from email
     useEffect(() => {
-        const hash = window.location.hash;
-        const search = window.location.search;
-        if (hash.includes('type=recovery') || search.includes('type=recovery')) {
-            setTimeout(() => setIsRecoveryMode(true), 0);
-        }
-
-        // Also listen to Supabase events just in case
-        const { unsubscribe } = onAuthStateChange((event) => {
-            if (event === 'PASSWORD_RECOVERY') {
-                setIsRecoveryMode(true);
-            }
-        });
-
+        const { unsubscribe } = onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') setMode('recovery'); });
         return () => unsubscribe();
     }, []);
 
-    // ─── OAuth Handlers ─────────────
-    async function handleGoogleLogin() {
-        setLoading(true); setError('');
-        const result = await signInWithOAuth('google');
-        if (!result.success) { setError(result.error || 'Google sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'google');
-        setLoading(false);
-    }
-    async function handleAppleLogin() {
-        setLoading(true); setError('');
-        const result = await signInWithOAuth('apple');
-        if (!result.success) { setError(result.error || 'Apple sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'apple');
-        setLoading(false);
-    }
-    async function handleMicrosoftLogin() {
-        setLoading(true); setError('');
-        const result = await signInWithOAuth('azure');
-        if (!result.success) { setError(result.error || 'Microsoft sign-in failed'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'microsoft');
-        setLoading(false);
-    }
+    useEffect(() => {
+        if (resendIn <= 0) return;
+        const t = setTimeout(() => setResendIn(r => r - 1), 1000);
+        return () => clearTimeout(t);
+    }, [resendIn]);
 
-    // ─── Email/Password Handlers ──────────────────────────────────
-    async function handleSignInSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true); setError('');
-        const result = await signInWithEmail(email, password);
-        if (!result.success) { setError(result.error || 'Invalid login credentials'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
-        setLoading(false);
-    }
+    const busy = loading !== null;
 
-    async function handleSignUpSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        
-        if (!country) {
-            setError('Please select your country.');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-
-        // Security checks
-        const passError = validatePassword(password);
-        if (passError) {
-            setError(passError);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-
-        setLoading(true); setError('');
-        const result = await signUpWithEmail(email, password, name, phone, country);
-        if (!result.success) {
-            setError(result.error || 'Sign-up failed. Please check your details.');
-            setLoading(false);
-            return;
-        }
-        if (result.user) {
-            setSuccessMsg('Account created successfully! Signing you in...');
-            doLogin(result.user.id, result.user.name, result.user.email);
-        }
-        setLoading(false);
-    }
-
-    // ─── Phone OTP ───────────────────────────────────────────────
-    async function handlePhoneSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(''); setSuccessMsg('');
-        if (!codeSent) {
-            setLoading(true);
-            const result = await sendPhoneOtp(phone);
-            if (!result.success) { setError(result.error || 'Failed to send code. Please ensure the number is correct.'); setLoading(false); return; }
-            setCodeSent(true);
-            setSuccessMsg(`Code sent to ${phone}`);
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        const result = await verifyPhoneOtp(phone, code);
-        if (!result.success) { setError(result.error || 'Invalid code'); setLoading(false); return; }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'phone');
-        setLoading(false);
-    }
-
-    // ─── Password Reset Flow ─────────────────────────────────────
-    async function handleForgotSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true); setError(''); setSuccessMsg('');
-        const result = await resetPassword(email);
-        if (!result.success) {
-            setError(result.error || 'Failed to send reset email.');
-            setLoading(false);
-            return;
-        }
-        setSuccessMsg('If an account exists, a password reset link has been sent to your email.');
-        setLoading(false);
-    }
-
-    async function handleUpdatePasswordSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        const passError = validatePassword(password);
-        if (passError) {
-            setError(passError);
-            return;
-        }
-
-        setLoading(true); setError(''); setSuccessMsg('');
-        const result = await updatePassword(password);
-        if (!result.success) {
-            setError(result.error || 'Failed to update password.');
-            setLoading(false);
-            return;
-        }
-        setSuccessMsg('Password updated successfully. Signing you in...');
-        setTimeout(() => {
-            // After updating, we can proceed or mark recovery mode as done
-            setIsRecoveryMode(false);
-            onAuth(); // If they updated their password, Supabase created a session
-        }, 1500);
-        setLoading(false);
-    }
-
-    // ─── Final Login → Zustand Store ─────────────────────────────
-    function doLogin(userId: string, userName: string, userEmail: string, provider?: string) {
-        // We set the basic user info, then the store's 'login' 
-        // will trigger 'hydrateStore' to pull real data from Supabase.
+    function doLogin(userId: string, userName: string, userEmail: string, provider?: string, userPhone?: string) {
         login({
             id: userId,
             name: userName,
             email: userEmail,
-            phone: phone || undefined,
+            phone: userPhone || phone || undefined,
             referralCode: `FV-${userId.slice(0, 6).toUpperCase()}`,
             defaultCurrency: 'USD',
             language: 'en',
-            theme: 'dark',
+            theme: useStore.getState().theme || 'light',
             biometricEnabled: false,
             hideAmounts: false,
             connectedClouds: provider ? [provider] : [],
             backupInterval: 'weekly',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
         });
         onAuth();
     }
 
-    // Social icons row
-    const socialIcons = (
-        <div className="auth-social-grid">
-            <button className="social-login-btn google" onClick={handleGoogleLogin} disabled={loading} title="Continue with Google">
-                <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>
-                <span>Google</span>
+    async function oauth(provider: 'google' | 'apple' | 'azure') {
+        setLoading(provider); setError('');
+        const result = await signInWithOAuth(provider);
+        if (!result.success) {
+            const label = provider === 'azure' ? 'Microsoft' : provider[0].toUpperCase() + provider.slice(1);
+            setError(result.error?.includes('not enabled')
+                ? `${label} sign-in isn't switched on for this app yet. Use email or phone for now.`
+                : result.error || `${label} sign-in didn't complete. Try again.`);
+            setLoading(null);
+            return;
+        }
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, provider);
+        // On the web the page now redirects to the provider; keep the spinner until it does.
+        setTimeout(() => setLoading(null), 8000);
+    }
+
+    async function onSignIn(e: React.FormEvent) {
+        e.preventDefault();
+        setLoading('email'); setError('');
+        const result = await signInWithEmail(email.trim(), password);
+        setLoading(null);
+        if (!result.success) {
+            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : result.error || 'Sign-in failed.');
+            return;
+        }
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
+    }
+
+    async function onSignUp(e: React.FormEvent) {
+        e.preventDefault();
+        const problem = passwordProblem(password);
+        if (problem) { setError(problem); return; }
+        let e164: string | undefined;
+        if (phone.trim()) {
+            const p = toE164(phone);
+            if (!p) { setError('Enter the phone number with its country code, for example +20 100 123 4567.'); return; }
+            e164 = p;
+        }
+        setLoading('email'); setError('');
+        const result = await signUpWithEmail(email.trim(), password, name.trim(), e164, country || undefined);
+        setLoading(null);
+        if (!result.success) { setError(/registered|exists/i.test(result.error || '') ? 'An account with this email already exists. Sign in instead.' : result.error || 'Couldn\'t create the account.'); return; }
+        if (result.needsConfirmation) {
+            setMode('signin');
+            setNotice(`Account created. Open the link we sent to ${email.trim()} to confirm it, then sign in.`);
+            return;
+        }
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, undefined, e164);
+    }
+
+    async function sendCode() {
+        const e164 = toE164(phone);
+        if (!e164) { setError('Enter the phone number with its country code, for example +20 100 123 4567.'); return; }
+        setPhone(e164);
+        setLoading('phone'); setError(''); setNotice('');
+        const result = await sendPhoneOtp(e164);
+        setLoading(null);
+        if (!result.success) { setError(result.error || 'Couldn\'t send the code. Check the number and try again.'); return; }
+        setCodeSent(true);
+        setResendIn(60);
+        setNotice(`We sent a 6-digit code to ${e164}.`);
+    }
+
+    async function onPhone(e: React.FormEvent) {
+        e.preventDefault();
+        if (!codeSent) return sendCode();
+        if (!/^\d{6}$/.test(code)) { setError('Enter the 6-digit code from the text message.'); return; }
+        setLoading('phone'); setError('');
+        const result = await verifyPhoneOtp(phone, code);
+        setLoading(null);
+        if (!result.success) { setError('That code is wrong or has expired. Request a new one.'); return; }
+        if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'phone', phone);
+    }
+
+    async function onForgot(e: React.FormEvent) {
+        e.preventDefault();
+        setLoading('email'); setError('');
+        const result = await resetPassword(email.trim());
+        setLoading(null);
+        if (!result.success) { setError(result.error || 'Couldn\'t send the reset email.'); return; }
+        setNotice('If that email has an account, a reset link is on its way.');
+    }
+
+    async function onRecovery(e: React.FormEvent) {
+        e.preventDefault();
+        const problem = passwordProblem(password);
+        if (problem) { setError(problem); return; }
+        setLoading('email'); setError('');
+        const result = await updatePassword(password);
+        setLoading(null);
+        if (!result.success) { setError(result.error || 'Couldn\'t update the password.'); return; }
+        setNotice('Password updated. Signing you in…');
+        window.history.replaceState({}, '', '/');
+        setTimeout(() => { setMode('signin'); onAuth(); }, 1200);
+    }
+
+    const titles: Record<Mode, [string, string]> = useMemo(() => ({
+        signin: ['Welcome back', 'Sign in to see this month\'s spending.'],
+        signup: ['Create your account', 'Free to use. Takes under a minute.'],
+        phone: ['Sign in with your phone', 'We\'ll text you a 6-digit code.'],
+        forgot: ['Reset your password', 'We\'ll email you a link to set a new one.'],
+        recovery: ['Set a new password', 'Choose a password you haven\'t used here before.'],
+    }), []);
+
+    const social = (
+        <div className="auth-social">
+            <button type="button" onClick={() => oauth('google')} disabled={busy} aria-label="Continue with Google">
+                {loading === 'google' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <GoogleIcon />} Google
             </button>
-            <button className="social-login-btn apple" onClick={handleAppleLogin} disabled={loading} title="Continue with Apple">
-                <svg width="20" height="20" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-116.1-55.8-168-110.8S78 802.2 69 742.4c-9.7-64.7-5.5-182.7 66.9-298.1 38.6-60.8 99.2-120.2 167.3-120.2 82.1 0 136.9 43 197.7 43 59.5 0 102.2-43 197.7-43 51 0 99.9 30.6 133.4 53.7z" /></svg>
-                <span>Apple</span>
+            <button type="button" onClick={() => oauth('apple')} disabled={busy} aria-label="Continue with Apple">
+                {loading === 'apple' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <AppleIcon />} Apple
             </button>
-            <button className="social-login-btn microsoft" onClick={handleMicrosoftLogin} disabled={loading} title="Continue with Microsoft">
-                <svg width="20" height="20" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>
-                <span>Microsoft</span>
+            <button type="button" onClick={() => oauth('azure')} disabled={busy} aria-label="Continue with Microsoft">
+                {loading === 'azure' ? <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} /> : <MicrosoftIcon />} Microsoft
             </button>
         </div>
     );
 
-    // Render Password Recovery Mode (from email link)
-    if (isRecoveryMode) {
-        return (
-            <div className="auth-screen">
-                <div className="auth-glow" />
-                <div className="auth-card animate-slideUp">
-                    <div className="auth-logo-icon">FV</div>
-                    <div className="auth-logo-title">Set New Password</div>
-                    {error && <div className="auth-error-msg">{error}</div>}
-                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
-                    <form onSubmit={handleUpdatePasswordSubmit}>
-                        <PasswordInput label="New Password" value={password} onChange={setPassword} required />
-                        <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-                            {loading ? 'Updating...' : 'Update Password'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
-
-    // Render Forgot Password Screen
-    if (showForgot) {
-        return (
-            <div className="auth-screen">
-                <div className="auth-glow" />
-                <div className="auth-card animate-slideUp">
-                    <div className="auth-logo-icon">FV</div>
-                    <div className="auth-logo-title">Reset Password</div>
-                    <p className="auth-form-description">
-                        Enter your email address and we'll send you a link to reset your password.
-                    </p>
-                    {error && <div className="auth-error-msg">{error}</div>}
-                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
-                    <form onSubmit={handleForgotSubmit}>
-                        <FloatingInput label="Email Address" type="email" value={email} onChange={setEmail} required />
-                        <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-                            {loading ? 'Sending...' : 'Send Reset Link'}
-                        </button>
-                        <button type="button" className="btn btn-ghost w-full auth-back-btn"
-                            onClick={() => { setShowForgot(false); setError(''); setSuccessMsg(''); }}>← Back to Sign In</button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
-
-    // Render Phone sign-in overlay
-    if (showPhone) {
-        return (
-            <div className="auth-screen">
-                <div className="auth-glow" />
-                <div className="auth-card animate-slideUp">
-                    <div className="auth-logo-icon">FV</div>
-                    <div className="auth-logo-title">Phone Sign In</div>
-                    {error && <div className="auth-error-msg">{error}</div>}
-                    {successMsg && <div className="auth-success-msg">{successMsg}</div>}
-                    <form onSubmit={handlePhoneSubmit}>
-                        <FloatingInput label={t(lang, 'phone') || 'Phone Number (e.g. +1234567)'} type="tel" value={phone} onChange={setPhone} required disabled={codeSent} />
-                        {codeSent && (
-                            <div className="animate-fadeIn">
-                                <FloatingInput label={t(lang, 'verify_code') || 'Verification Code'} value={code} onChange={setCode} required maxLength={6} autoFocus />
-                            </div>
-                        )}
-                        <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-                            {loading ? '...' : codeSent ? 'Verify Code' : 'Send SMS Code'}
-                        </button>
-                        <button type="button" className="btn btn-ghost w-full auth-back-btn"
-                            onClick={() => { setShowPhone(false); setCodeSent(false); setError(''); setSuccessMsg(''); }}>← Back</button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
+    const submit = (label: string, busyLabel: string) => (
+        <button type="submit" className="btn btn-primary btn-lg w-full" disabled={busy}>
+            {busy && loading !== 'google' && loading !== 'apple' && loading !== 'azure' ? busyLabel : label}
+        </button>
+    );
 
     return (
-        <div className="auth-screen">
-            <div className="auth-glow" />
+        <div className="auth">
+            <section className="auth-hero">
+                <Guilloche width={760} height={900} rosetteX={0.74} ribbonY={0.62} />
+                <div className="auth-brand"><Seal size={40} tone="paper" /> Finance VA</div>
+                <div>
+                    <motion.h1 className="auth-headline" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+                        Every pound, dollar and riyal, accounted for.
+                    </motion.h1>
+                    <motion.p className="auth-lede" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}>
+                        Track spending, bills and savings in any currency. Share a workspace with family and see exactly where the month went.
+                    </motion.p>
+                </div>
+                <div className="auth-points">
+                    <span>50+ currencies</span><span>Shared family workspaces</span><span>Add by voice or bank SMS</span><span>Arabic and English</span>
+                </div>
+            </section>
 
-            <div className="auth-container">
-                {/* Left side: form area (only one form at a time) */}
-                <div className="auth-form-panel auth-sign-in" key={isSignUp ? 'signup' : 'signin'}>
-                    <div className="auth-form-inner animate-fadeIn">
-                        {!isSignUp ? (
-                            <>
-                                <h2 className="auth-form-title">Sign in</h2>
-                                {error && <div className="auth-error-msg">{error}</div>}
-                                {successMsg && <div className="auth-success-msg">{successMsg}</div>}
-                                {socialIcons}
-                                <div className="auth-divider"><span>or continue with email</span></div>
-                                <form onSubmit={handleSignInSubmit}>
-                                    <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
-                                    <PasswordInput label="Password" value={password} onChange={setPassword} required />
-                                    <button type="button" className="auth-forgot-link" 
-                                        onClick={() => { setShowForgot(true); setError(''); setSuccessMsg(''); }}>
-                                        Forgot Your Password?
-                                    </button>
-                                    <button type="submit" className="btn auth-btn-submit" disabled={loading}>
-                                        {loading ? 'Signing in...' : 'SIGN IN'}
-                                    </button>
-                                </form>
-                                <button className="btn btn-ghost auth-phone-btn" onClick={() => { setShowPhone(true); setError(''); setSuccessMsg(''); }}>📱 Sign in with Phone</button>
-                            </>
-                        ) : (
-                            <>
-                                <h2 className="auth-form-title">Create Account</h2>
-                                {error && <div className="auth-error-msg">{error}</div>}
-                                {successMsg && <div className="auth-success-msg">{successMsg}</div>}
-                                {socialIcons}
-                                <div className="auth-divider"><span>or continue with email</span></div>
-                                <form onSubmit={handleSignUpSubmit}>
-                                    <FloatingInput label="Full Name" value={name} onChange={setName} required />
-                                    <FloatingInput label="Email" type="email" value={email} onChange={setEmail} required />
-                                    <FloatingInput label="Phone Number (Include Country Code)" type="tel" value={phone} onChange={setPhone} required />
-                                    <div className={`floating-input-group ${country ? 'has-value' : ''}`}>
-                                        <select className="floating-input floating-select" title="Country" value={country}
-                                            onChange={e => setCountry(e.target.value)}>
-                                            <option value="" disabled hidden> </option>
-                                            {COUNTRIES.map(c => (<option key={c} value={c}>{c}</option>))}
-                                        </select>
-                                        <label className="floating-label">Country</label>
-                                        <div className="floating-bar" />
+            <section className="auth-panel">
+                <div className="auth-form-wrap">
+                    {(mode === 'signin' || mode === 'signup') && (
+                        <div className="segmented" role="tablist" style={{ marginBottom: 26 }}>
+                            {(['signin', 'signup'] as const).map(m => (
+                                <button key={m} type="button" role="tab" aria-pressed={mode === m} aria-selected={mode === m} onClick={() => switchMode(m)}>
+                                    {mode === m && <motion.span layoutId="auth-seg" className="seg-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+                                    <span>{m === 'signin' ? 'Sign in' : 'Create account'}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {(mode === 'phone' || mode === 'forgot') && (
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 18, marginLeft: -10 }} onClick={() => { switchMode('signin'); setCodeSent(false); setCode(''); }}>
+                            <ArrowLeft size={16} /> Back to sign in
+                        </button>
+                    )}
+
+                    <AnimatePresence mode="wait" initial={false}>
+                        <motion.div key={mode} {...swap}>
+                            <h2 className="auth-title">{titles[mode][0]}</h2>
+                            <p className="auth-sub">{titles[mode][1]}</p>
+
+                            <AnimatePresence>
+                                {error && <motion.div className="auth-msg error" role="alert" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>{error}</motion.div>}
+                                {notice && <motion.div className="auth-msg ok" role="status" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>{notice}</motion.div>}
+                            </AnimatePresence>
+
+                            {mode === 'signin' && (
+                                <>
+                                    {social}
+                                    <div className="auth-or">or with email</div>
+                                    <form onSubmit={onSignIn} noValidate={false}>
+                                        <div className="form-group">
+                                            <label className="form-label" htmlFor="si-email">Email</label>
+                                            <input id="si-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                                        </div>
+                                        <PasswordField id="si-pw" value={password} onChange={setPassword} autoComplete="current-password" />
+                                        <div className="auth-row">
+                                            <button type="button" className="auth-link" onClick={() => switchMode('phone')}><Smartphone size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />Use phone instead</button>
+                                            <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>Forgot password?</button>
+                                        </div>
+                                        {submit('Sign in', 'Signing in…')}
+                                    </form>
+                                </>
+                            )}
+
+                            {mode === 'signup' && (
+                                <>
+                                    {social}
+                                    <div className="auth-or">or with email</div>
+                                    <form onSubmit={onSignUp}>
+                                        <div className="form-group">
+                                            <label className="form-label" htmlFor="su-name">Full name</label>
+                                            <input id="su-name" className="form-input" autoComplete="name" required value={name} onChange={e => setName(e.target.value)} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label" htmlFor="su-email">Email</label>
+                                            <input id="su-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="form-group flex-1">
+                                                <label className="form-label" htmlFor="su-phone">Phone (optional)</label>
+                                                <input id="su-phone" className="form-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="+20…" value={phone} onChange={e => setPhone(e.target.value)} />
+                                            </div>
+                                            <div className="form-group flex-1">
+                                                <label className="form-label" htmlFor="su-country">Country</label>
+                                                <select id="su-country" className="form-select" value={country} onChange={e => setCountry(e.target.value)}>
+                                                    <option value="">Choose…</option>
+                                                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <PasswordField id="su-pw" value={password} onChange={setPassword} autoComplete="new-password" meter />
+                                        {submit('Create account', 'Creating account…')}
+                                    </form>
+                                </>
+                            )}
+
+                            {mode === 'phone' && (
+                                <form onSubmit={onPhone}>
+                                    <div className="form-group">
+                                        <label className="form-label" htmlFor="ph">Phone number with country code</label>
+                                        <input id="ph" className="form-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="+20 100 123 4567" required
+                                            disabled={codeSent} value={phone} onChange={e => setPhone(e.target.value)} />
                                     </div>
-                                    <PasswordInput label="Password" value={password} onChange={setPassword} required />
-                                    <p className="auth-password-hint">
-                                        Must be 8+ chars and contain upper, lower, number, and special character.
-                                    </p>
-                                    <button type="submit" className="btn auth-btn-submit" disabled={loading}>
-                                        {loading ? 'Creating...' : 'SIGN UP'}
-                                    </button>
+                                    <AnimatePresence>
+                                        {codeSent && (
+                                            <motion.div className="form-group" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                                                <label className="form-label" htmlFor="otp">6-digit code</label>
+                                                <input id="otp" className="form-input form-input-lg" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6}
+                                                    style={{ letterSpacing: '0.4em', textAlign: 'center' }}
+                                                    value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                                                <div className="auth-row" style={{ margin: '8px 0 0' }}>
+                                                    <button type="button" className="auth-link" onClick={() => { setCodeSent(false); setCode(''); setNotice(''); }}>Change number</button>
+                                                    <button type="button" className="auth-link" disabled={resendIn > 0 || busy} style={{ opacity: resendIn > 0 ? 0.5 : 1 }} onClick={sendCode}>
+                                                        {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div style={{ marginTop: 8 }}>{submit(codeSent ? 'Verify and sign in' : 'Text me a code', codeSent ? 'Verifying…' : 'Sending…')}</div>
                                 </form>
-                            </>
-                        )}
-                    </div>
-                </div>
+                            )}
 
-                {/* Right side: overlay with toggle */}
-                <div className="auth-overlay-container-static">
-                    <div className="auth-overlay-static">
-                        {!isSignUp ? (
-                            <div className="auth-overlay-content animate-fadeIn">
-                                <h2 className="auth-overlay-title">Hello, Friend!</h2>
-                                <p className="auth-overlay-desc">Enter Your Personal Details and start your journey with us</p>
-                                <button className="btn auth-overlay-btn" onClick={() => { setIsSignUp(true); setError(''); setSuccessMsg(''); }}>SIGN UP</button>
-                            </div>
-                        ) : (
-                            <div className="auth-overlay-content animate-fadeIn">
-                                <h2 className="auth-overlay-title">Welcome Back</h2>
-                                <p className="auth-overlay-desc">To keep connected with us please login with your personal info</p>
-                                <button className="btn auth-overlay-btn" onClick={() => { setIsSignUp(false); setError(''); setSuccessMsg(''); }}>SIGN IN</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+                            {mode === 'forgot' && (
+                                <form onSubmit={onForgot}>
+                                    <div className="form-group">
+                                        <label className="form-label" htmlFor="fp-email">Email</label>
+                                        <input id="fp-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                                    </div>
+                                    {submit('Send reset link', 'Sending…')}
+                                </form>
+                            )}
 
-            <p className="auth-terms">
-                By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
-            </p>
+                            {mode === 'recovery' && (
+                                <form onSubmit={onRecovery}>
+                                    <PasswordField id="rc-pw" value={password} onChange={setPassword} autoComplete="new-password" meter />
+                                    {submit('Save new password', 'Saving…')}
+                                </form>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+
+                    <p className="auth-foot">By continuing you agree to the Terms and Privacy Policy.</p>
+                </div>
+            </section>
         </div>
     );
 }

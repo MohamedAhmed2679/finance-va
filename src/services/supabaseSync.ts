@@ -12,6 +12,12 @@
 
 import { supabase, isSupabaseReady } from '../lib/supabase';
 
+/** Supabase returns errors instead of throwing; surface them so callers can report sync failures. */
+function must<T extends { error: { message: string } | null }>(res: T): T {
+    if (res.error) throw new Error(res.error.message);
+    return res;
+}
+
 // ─── Expenses ────────────────────────────────────────────────────
 
 export async function syncExpenseToCloud(expense: {
@@ -31,7 +37,7 @@ export async function syncExpenseToCloud(expense: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('expenses').upsert({
+    must(await supabase.from('expenses').upsert({
         id: expense.id,
         workspace_id: expense.workspaceId,
         created_by: expense.createdByUid, // MUST BE dbId from profile
@@ -45,7 +51,7 @@ export async function syncExpenseToCloud(expense: {
         notes: expense.notes,
         purchased_at: expense.purchaseAt,
         source: expense.source || 'manual',
-    });
+    }));
     
     if (import.meta.env.DEV) {
         console.log(`[Sync] Expense synced for user ${expense.createdByUid}`);
@@ -54,7 +60,7 @@ export async function syncExpenseToCloud(expense: {
 
 export async function deleteExpenseFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('expenses').update({ is_deleted: true }).eq('id', id);
+    must(await supabase.from('expenses').update({ is_deleted: true }).eq('id', id));
 }
 
 export async function fetchExpensesFromCloud(workspaceId: string) {
@@ -89,7 +95,7 @@ export async function syncIncomeToCloud(income: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('incomes').upsert({
+    must(await supabase.from('incomes').upsert({
         id: income.id,
         workspace_id: income.workspaceId,
         created_by: income.createdByUid,
@@ -98,12 +104,12 @@ export async function syncIncomeToCloud(income: {
         currency: income.currency,
         type: income.type,
         income_date: income.date,
-    });
+    }));
 }
 
 export async function deleteIncomeFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('incomes').update({ is_deleted: true }).eq('id', id);
+    must(await supabase.from('incomes').update({ is_deleted: true }).eq('id', id));
 }
 
 // ─── Bills ───────────────────────────────────────────────────────
@@ -121,7 +127,7 @@ export async function syncBillToCloud(bill: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('monthly_bills').upsert({
+    must(await supabase.from('monthly_bills').upsert({
         id: bill.id,
         workspace_id: bill.workspaceId,
         created_by: bill.createdByUid,
@@ -131,12 +137,12 @@ export async function syncBillToCloud(bill: {
         category: bill.category,
         due_day: bill.dueDate,
         last_paid_month: bill.lastPaidMonth,
-    });
+    }));
 }
 
 export async function deleteBillFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('monthly_bills').update({ is_deleted: true }).eq('id', id);
+    must(await supabase.from('monthly_bills').update({ is_deleted: true }).eq('id', id));
 }
 
 // ─── Savings Goals ───────────────────────────────────────────────
@@ -154,7 +160,7 @@ export async function syncSavingsGoalToCloud(goal: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('savings_goals').upsert({
+    must(await supabase.from('savings_goals').upsert({
         id: goal.id,
         workspace_id: goal.workspaceId,
         name: goal.name,
@@ -164,12 +170,12 @@ export async function syncSavingsGoalToCloud(goal: {
         currency: goal.currency,
         color: goal.color,
         icon: goal.icon,
-    });
+    }));
 }
 
 export async function deleteSavingsGoalFromCloud(id: string) {
     if (!isSupabaseReady() || !supabase) return;
-    await supabase.from('savings_goals').update({ is_deleted: true }).eq('id', id);
+    must(await supabase.from('savings_goals').update({ is_deleted: true }).eq('id', id));
 }
 
 // ─── Workspaces ──────────────────────────────────────────────────
@@ -187,7 +193,7 @@ export async function syncWorkspaceToCloud(workspace: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('workspaces').upsert({
+    must(await supabase.from('workspaces').upsert({
         id: workspace.id,
         name: workspace.name,
         type: workspace.type,
@@ -197,7 +203,7 @@ export async function syncWorkspaceToCloud(workspace: {
         color: workspace.color,
         cycle_start_day: workspace.cycleStartDay || 1,
         is_archived: workspace.isArchived
-    });
+    }));
     if (import.meta.env.DEV) {
         console.log(`[Sync] Workspace ${workspace.name} synced for owner ${workspace.ownerId}`);
     }
@@ -212,12 +218,12 @@ export async function syncWorkspaceMemberToCloud(member: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('workspace_members').upsert({
+    must(await supabase.from('workspace_members').upsert({
         workspace_id: member.workspaceId,
         user_id: member.userId,
         role: member.role,
         status: member.status,
-    }, { onConflict: 'workspace_id,user_id' });
+    }, { onConflict: 'workspace_id,user_id' }));
 }
 
 // ─── Notifications ───────────────────────────────────────────────
@@ -234,7 +240,7 @@ export async function syncNotificationToCloud(notification: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('notifications').upsert({
+    must(await supabase.from('notifications').upsert({
         id: notification.id,
         user_id: notification.userId,
         type: notification.type,
@@ -243,7 +249,7 @@ export async function syncNotificationToCloud(notification: {
         workspace_name: notification.workspaceName,
         target_uid: notification.targetUid,
         is_actioned: notification.actioned,
-    });
+    }));
 }
 
 // ─── Activity Log ────────────────────────────────────────────────
@@ -258,14 +264,14 @@ export async function logActivityToCloud(activity: {
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase.from('activity_log').insert({
+    must(await supabase.from('activity_log').insert({
         workspace_id: activity.workspaceId,
         user_id: activity.userId,
         user_name: activity.userName,
         action: activity.action,
         entity_type: activity.entityType,
         entity_id: activity.entityId,
-    });
+    }));
 }
 
 // ─── User Profile ────────────────────────────────────────────────
@@ -273,10 +279,10 @@ export async function logActivityToCloud(activity: {
 export async function updateUserProfile(authId: string, updates: Record<string, any>) {
     if (!isSupabaseReady() || !supabase) return;
 
-    await supabase
+    must(await supabase
         .from('users')
         .update(updates)
-        .eq('auth_id', authId);
+        .eq('auth_id', authId));
 }
 
 export async function fetchUserProfile(authId: string) {
@@ -360,4 +366,40 @@ export async function fetchNotifications(userId: string) {
     const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error) return null;
     return data;
+}
+
+// ─── Membership-aware workspace loading ──────────────────────────
+
+/** Workspaces the user owns OR is an active member of (shared workspaces). */
+export async function fetchAccessibleWorkspaces(userId: string) {
+    if (!isSupabaseReady() || !supabase) return null;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isUuid) return [];
+
+    const [owned, memberships] = await Promise.all([
+        supabase.from('workspaces').select('*').eq('owner_id', userId),
+        supabase.from('workspace_members').select('workspace_id').eq('user_id', userId).eq('status', 'active'),
+    ]);
+    if (owned.error && memberships.error) return null;
+
+    const rows: Record<string, any>[] = [...(owned.data || [])];
+    const known = new Set(rows.map(r => r.id));
+    const extraIds = (memberships.data || []).map(m => m.workspace_id).filter(id => !known.has(id));
+    if (extraIds.length) {
+        const { data } = await supabase.from('workspaces').select('*').in('id', extraIds);
+        rows.push(...(data || []));
+    }
+    return rows.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+}
+
+export async function fetchWorkspaceMembers(workspaceIds: string[]) {
+    if (!isSupabaseReady() || !supabase || workspaceIds.length === 0) return [];
+    const { data, error } = await supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds);
+    if (error) return [];
+    return data || [];
+}
+
+export async function deleteWorkspaceFromCloud(id: string) {
+    if (!isSupabaseReady() || !supabase) return;
+    must(await supabase.from('workspaces').delete().eq('id', id));
 }

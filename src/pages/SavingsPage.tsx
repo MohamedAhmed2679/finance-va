@@ -26,7 +26,7 @@ export default function SavingsPage() {
     function handleAdd(e: React.FormEvent) {
         e.preventDefault();
         if (!name || !target) return;
-        const colors = ['#7c3aed', '#06d6a0', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444'];
+        const colors = ['var(--note)', '#06d6a0', 'var(--amber)', '#3b82f6', '#ec4899', 'var(--cinnabar)'];
         const icons = ['🎯', '💰', '🏠', '✈️', '💻', '🎓', '🏖️', '🚗'];
         addSavingsGoal({ workspaceId: activeWorkspaceId, name, reason, targetAmount: parseFloat(target), savedAmount: 0, currency: cur, color: colors[Math.floor(Math.random() * colors.length)], icon: icons[Math.floor(Math.random() * icons.length)] });
         setName(''); setReason(''); setTarget('');
@@ -92,7 +92,7 @@ export default function SavingsPage() {
 
             {/* Summary bar */}
             {(wsGoals.length > 0 || rolloverSavings > 0) && (
-                <div className="card mb-6 animate-fadeIn" style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,214,160,0.05))', borderColor: 'rgba(124,58,237,0.3)' }}>
+                <div className="card mb-6 animate-fadeIn" style={{ background: 'var(--surface-2)', borderColor: 'var(--line)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>Total Progress</div>
@@ -117,7 +117,7 @@ export default function SavingsPage() {
                 </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: isViewer ? '1fr' : '1fr 2fr', gap: 24, alignItems: 'start' }}>
+            <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: isViewer ? '1fr' : '1fr 2fr', gap: 24, alignItems: 'start' }}>
                 {/* Add new goal */}
                 {!isViewer && (
                     <div className="card animate-fadeIn" style={{ animationDelay: '60ms' }}>

@@ -1,7 +1,7 @@
 {
-  "name": "velvet-hubble",
+  "name": "finance-va",
   "private": true,
-  "version": "0.14.0",
+  "version": "1.5.0",
   "description": "Finance VA - Professional AI-Powered Financial Assistant with Advanced Security and Data Integrity",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -9,12 +9,19 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "electron:dev": "vite",
-    "electron:build": "tsc -b && vite build && electron-builder"
+    "electron:dev": "ELECTRON=true vite",
+    "electron:build": "ELECTRON=true vite build && electron-builder",
+    "cap:sync": "npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@react-oauth/google": "^0.13.4",
     "@supabase/supabase-js": "^2.101.1",
     "@tanstack/react-query": "^5.90.21",
@@ -67,11 +74,32 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "artifactName": "FinanceVA-${os}-${arch}.${ext}",
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.finance",
+      "identity": null
     }
   }
 }

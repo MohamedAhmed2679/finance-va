@@ -1,0 +1,194 @@
+/* ============================================= */
+/* ACTIVITY TIMELINE                             */
+/* ============================================= */
+.activity-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-invite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.activity-invite-card {
+  border-left: 4px solid var(--accent);
+}
+
+.activity-invite-msg {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.activity-invite-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.activity-invite-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.activity-timeline-card {
+  padding: 0;
+}
+
+.activity-timeline-item {
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: background 0.2s;
+}
+
+.activity-timeline-item.unread {
+  background: var(--bg-input);
+}
+
+.activity-timeline-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.activity-timeline-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-shell, var(--bg-input));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-timeline-msg {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.activity-timeline-msg.unread {
+  font-weight: 600;
+}
+
+.activity-timeline-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ============================================= */
+/* SOCIAL SHARE MAGIC MENU                       */
+/* ============================================= */
+.social-share-menu {
+  position: fixed;
+  bottom: 28px;
+  right: 96px;
+  z-index: 1000;
+  width: 56px;
+  height: 56px;
+}
+
+.social-share-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  z-index: 10;
+  position: relative;
+}
+
+.social-share-menu.active .social-share-toggle {
+  transform: rotate(360deg);
+  box-shadow: 0 6px 30px rgba(124, 58, 237, 0.5), 0 0 0 8px rgba(124, 58, 237, 0.08);
+}
+
+.social-share-item {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--clr, var(--text-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  bottom: 6px;
+  right: 6px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.35s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  text-decoration: none;
+}
+
+.social-share-item:hover {
+  transform: scale(1.15) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Fan-out positions for 6 items: orbiting around the toggle */
+.social-share-menu.active .social-share-item {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.social-share-menu.active .social-share-item:nth-child(1) {
+  bottom: 72px;
+  right: 6px;
+}
+
+.social-share-menu.active .social-share-item:nth-child(2) {
+  bottom: 62px;
+  right: 56px;
+}
+
+.social-share-menu.active .social-share-item:nth-child(3) {
+  bottom: 30px;
+  right: 72px;
+}
+
+.social-share-menu.active .social-share-item:nth-child(4) {
+  bottom: -14px;
+  right: 72px;
+}
+
+.social-share-menu.active .social-share-item:nth-child(5) {
+  bottom: -30px;
+  right: 36px;
+}
+
+.social-share-menu.active .social-share-item:nth-child(6) {
+  bottom: -14px;
+  right: -10px;
+}
+
+.quick-add-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+}
+
