@@ -1,3 +1,4 @@
+import PushSettings from '../components/PushSettings';
 import ZayloIdCard from '../components/ZayloIdCard';
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
@@ -398,7 +399,9 @@ export default function SettingsPage() {
 
                     {activeSection === 'notifications' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>Notifications</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Notifications</div>
+                            <PushSettings />
+                            <div style={{ fontWeight: 600, fontSize: 14, margin: '20px 0 10px' }}>Also remind me about</div>
                             {[{ label: 'Daily Reminder', desc: 'Get reminded to log your expenses each day', key: 'notifyDaily' }, { label: 'Monthly Summary', desc: 'Receive a monthly spending report', key: 'notifyMonthly' }, { label: 'Budget Alerts', desc: 'Get notified when you approach budget limits', key: 'notifyBudget' }].map(n => (
                                 <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 10, marginBottom: 8, border: '1px solid var(--border)' }}>
                                     <Bell size={18} style={{ color: 'var(--primary-light)' }} />

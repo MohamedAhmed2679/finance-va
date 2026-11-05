@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Send, Users, UserPlus, X, Trash2, Images } from 'lucide-react';
 import { checkFiles, uploadChatFiles, type Attachment } from '../services/chatFiles';
+import { pushChatMessage } from '../services/push';
 import { ChatGallery, FilePicker, Lightbox, MessageAttachments, PendingFiles, useAttachmentUrls, type GalleryItem } from '../components/chat/Attachments';
 import { useStore, type WorkspaceRole } from '../store/useStore';
 import { supabase, isSupabaseReady } from '../lib/supabase';
@@ -114,6 +115,7 @@ export default function ChatPage() {
             if (sending.length) setFiles(sending);
             toast.error(/row-level security/i.test(error.message) ? "You're not a member of this workspace's chat." : /attachments|check constraint/i.test(error.message) ? 'Attachments need the latest database update.' : "Message didn't send. Try again.");
         } else {
+            pushChatMessage(id);
             // Keep the local previews until the realtime copy replaces them
             setMessages(prev => prev.map(m => m.id === id ? { ...m, pending: false, attachments: attachments.map((a, i) => ({ ...a, localUrl: local[i]?.localUrl })) } : m));
         }

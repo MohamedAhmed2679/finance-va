@@ -23,13 +23,14 @@ import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
-import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './components/LiveLayer';
+import { AnnouncementBanner, ImpersonationBar, useLiveNotifications, useLiveChatAlerts } from './components/LiveLayer';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
 import HistoryPage from './pages/HistoryPage';
 import MobileTopBar from './components/MobileTopBar';
+import { initPush, scheduleReminders } from './services/push';
 import JoinInvite, { captureJoinLink } from './components/JoinInvite';
 
 // zaylo.cc/join/<token>: remember the invite before routing or sign-in take over the URL
@@ -124,6 +125,24 @@ function Shell() {
         messages: <MessagesPage />,
     };
     useLiveNotifications();
+    useLiveChatAlerts(active);
+
+    // Device notifications: tapping one opens the right page
+    useEffect(() => { initPush(path => navigate(path)); }, [navigate]);
+
+    // Phone app: keep payment and payday reminders scheduled on the device
+    const { bills, workspaces, incomes } = useStore();
+    useEffect(() => {
+        const wsName = (id: string) => workspaces.find(w => w.id === id)?.name || '';
+        const t = setTimeout(() => scheduleReminders(
+            bills.map(b => ({ id: b.id, name: b.name, amount: b.amount, currency: b.currency, dueDate: b.dueDate, lastPaidMonth: b.lastPaidMonth, workspaceName: wsName(b.workspaceId) })),
+            workspaces.filter(w => !w.isArchived).map(w => {
+                const fixed = incomes.filter(i => i.workspaceId === w.id && i.type === 'fixed').reduce((s, i) => s + (i.baseCurrency === w.currency && i.baseAmount != null ? i.baseAmount : i.amount), 0);
+                return { workspaceId: w.id, workspaceName: w.name, day: w.cycleStartDay || 1, expected: fixed ? `${w.currency} ${fixed.toLocaleString()}` : undefined };
+            }),
+        ).catch(() => {}), 1500);
+        return () => clearTimeout(t);
+    }, [bills, workspaces, incomes]);
 
     return (
         <div className={`app-shell ${isElectron ? 'electron-mode' : ''}`}>

@@ -1646,3 +1646,17 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
   .role-opt span { display: none; }
   .zid-value { font-size: 22px; }
 }
+
+/* ── Push notifications ─────────────────────────────── */
+.push-panel { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--surface); }
+.push-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.push-head h3 { font-size: 15px; font-weight: 700; }
+.push-head p { font-size: 13px; color: var(--ink-3); margin-top: 2px; line-height: 1.45; }
+.push-ico { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); color: var(--ink-3); }
+.push-ico.on { background: color-mix(in srgb, var(--primary) 12%, var(--surface)); color: var(--primary); }
+.push-what { margin: 12px 0 4px; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+[dir="rtl"] .push-what { padding-left: 0; padding-right: 18px; }
+.push-prompt { display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 16px; margin-bottom: 18px; border-color: color-mix(in srgb, var(--primary) 35%, var(--line)); }
+.push-prompt strong { font-size: 14.5px; }
+.push-prompt p { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+@media (max-width: 520px) { .push-prompt { flex-wrap: wrap; } .push-prompt > .btn { order: 3; flex: 1; } .push-prompt > .icon-btn { position: absolute; top: 8px; right: 8px; } .push-prompt { position: relative; padding-right: 40px; } }

@@ -47,6 +47,13 @@ function summariseAuth(a: Row | undefined) {
     };
 }
 
+/** Ask /api/push to send notifications that were just created (uses the admin's own session). */
+async function pushNow(req: Request) {
+    try {
+        await fetch(new URL('/api/push', req.url), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' }, body: JSON.stringify({ action: 'dispatch' }) });
+    } catch { /* push is best-effort */ }
+}
+
 export default async function handler(req: Request) {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -284,6 +291,7 @@ export default async function handler(req: Request) {
                 const rows = ids.map(id => ({ user_id: id, type: 'admin_notice', message, sender_name: 'Zaylo team', link: body.link || null }));
                 for (let i = 0; i < rows.length; i += 500) {
                     const { error } = await db.from('notifications').insert(rows.slice(i, i + 500));
+                    if (!error) await pushNow(req);
                     if (error) throw error;
                 }
                 await audit(db, admin, 'notification.send', ids.length === 1 ? ids[0] : null, { recipients: ids.length, message: message.slice(0, 120) });
@@ -316,6 +324,7 @@ export default async function handler(req: Request) {
                 const { data, error } = await db.from('support_messages').insert({ user_id: body.userId, from_admin: true, sender_name: 'Zaylo team', body: text }).select().single();
                 if (error) throw error;
                 await db.from('notifications').insert({ user_id: body.userId, type: 'admin_message', message: `New message from the Zaylo team: ${text.slice(0, 120)}`, sender_name: 'Zaylo team', link: '/messages' });
+                await pushNow(req);
                 await audit(db, admin, 'message.send', body.userId, { preview: text.slice(0, 120) });
                 return json({ message: data });
             }
@@ -343,6 +352,7 @@ export default async function handler(req: Request) {
                 const { data: ws } = await db.from('workspaces').select('name, type').eq('id', body.workspaceId).single();
                 if (ws?.type === 'personal') await db.from('workspaces').update({ type: 'shared' }).eq('id', body.workspaceId);
                 await db.from('notifications').insert({ user_id: target.id, type: 'member_added', workspace_id: body.workspaceId, workspace_name: ws?.name, message: `You were added to "${ws?.name}" by the Zaylo team.`, sender_name: 'Zaylo team' });
+                await pushNow(req);
                 await audit(db, admin, 'workspace.member_add', target.id, { workspaceId: body.workspaceId, role });
                 return json({ ok: true });
             }

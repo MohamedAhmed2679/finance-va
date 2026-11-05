@@ -1,3 +1,4 @@
+import { PushPrompt } from '../components/PushSettings';
 import { toBase } from '../utils/money';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -97,6 +98,8 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 </div>
                 {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}><Plus size={17} /> {t(lang, 'add_expense')}</button>}
             </div>
+
+            <PushPrompt />
 
             {/* The Zaylo card — signature hero */}
             <motion.section className="note mb-6" aria-label="Spending this cycle"

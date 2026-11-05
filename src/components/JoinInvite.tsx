@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Users, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { acceptInvite, previewInvite, type InvitePreview } from '../services/supabaseSync';
+import { dispatchPush } from '../services/push';
 
 const KEY = 'zaylo_join_token';
 
@@ -45,6 +46,7 @@ export default function JoinInvite() {
         setBusy(true);
         try {
             const r = await acceptInvite(token);
+            dispatchPush();
             await hydrateStore();
             setActiveWorkspace(r.workspace_id);
             toast.success(r.status === 'already_member' ? `You're already in ${r.workspace}. Switched to it.` : `You joined ${r.workspace}.`);

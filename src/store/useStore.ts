@@ -1,5 +1,6 @@
 import { withBase } from '../utils/money';
 import { enqueue, flushOutbox, pendingChanges, setOutboxOwner } from '../services/outbox';
+import { dispatchPush } from '../services/push';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CATEGORIES, PAYMENT_METHODS, WORKSPACE_COLORS } from '../constants';
@@ -478,15 +479,17 @@ export const useStore = create<AppState>()(
             }),
             inviteMember: async (workspaceId, identifier, _name, role) => {
                 const result = await addWorkspaceMemberRemote(workspaceId, identifier.trim(), role === 'owner' ? 'admin' : role);
-                if (result === 'added') await get().refreshMembers(workspaceId);
+                if (result === 'added') { dispatchPush(); await get().refreshMembers(workspaceId); }
                 return result;
             },
             removeMember: async (workspaceId, uid) => {
                 await removeWorkspaceMemberRemote(workspaceId, uid);
+                dispatchPush();
                 set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.filter(m => m.uid !== uid) } : w) }));
             },
             updateMemberRole: async (workspaceId, uid, role) => {
                 await setWorkspaceMemberRoleRemote(workspaceId, uid, role);
+                dispatchPush();
                 set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.map(m => m.uid === uid ? { ...m, role } : m) } : w) }));
             },
             refreshMembers: async (workspaceId) => {
@@ -831,6 +834,7 @@ export const useStore = create<AppState>()(
                     // Join any workspaces this email was invited to before the account existed.
                     if (isSupabaseReady()) {
                         const joined = await claimPendingInvites();
+                        if (joined > 0) dispatchPush();
                         if (joined > 0) toast.success(joined === 1 ? 'You were added to a shared workspace.' : `You were added to ${joined} shared workspaces.`);
                     }
                     let ws = await fetchAccessibleWorkspaces(userId);

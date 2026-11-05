@@ -3,48 +3,118 @@
   "rewrites": [
     {
       "source": "/((?!api/|assets/|.*\\.[a-zA-Z0-9]+$).*)",
-      "has": [{ "type": "host", "value": "admin.zaylo.cc" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.zaylo.cc"
+        }
+      ],
       "destination": "/admin.html"
     },
-    { "source": "/console(/.*)?", "destination": "/admin.html" },
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/((?!api/|assets/|console|privacy|terms|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+    {
+      "source": "/console(/.*)?",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/((?!api/|assets/|console|privacy|terms|.*\\.[a-zA-Z0-9]+$).*)",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
     {
       "source": "/:path((?!api/).*)",
-      "has": [{ "type": "host", "value": "finance-va.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "finance-va.vercel.app"
+        }
+      ],
       "destination": "https://zaylo.cc/:path",
       "permanent": false
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "admin.zaylo.cc" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.zaylo.cc"
+        }
+      ],
       "destination": "/console",
       "permanent": false
     },
-    { "source": "/admin", "destination": "/console", "permanent": false }
+    {
+      "source": "/admin",
+      "destination": "/console",
+      "permanent": false
+    }
   ],
   "headers": [
     {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/console(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "X-Frame-Options", "value": "DENY" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=()"
+        }
       ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/push?cron=reminders",
+      "schedule": "0 6 * * *"
     }
   ]
 }
