@@ -41,9 +41,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk ../FinanceVA-android.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../Zaylo-android.apk
       - uses: actions/upload-artifact@v4
-        with: { name: android, path: FinanceVA-android.apk, retention-days: 30 }
+        with: { name: android, path: Zaylo-android.apk, retention-days: 30 }
 
   ios:
     name: iOS IPA (unsigned)
@@ -64,9 +64,9 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/App.app Payload/
-          zip -qry FinanceVA-ios-unsigned.ipa Payload
+          zip -qry Zaylo-ios-unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
-        with: { name: ios, path: FinanceVA-ios-unsigned.ipa, retention-days: 30 }
+        with: { name: ios, path: Zaylo-ios-unsigned.ipa, retention-days: 30 }
 
   macos:
     name: macOS DMG
@@ -81,9 +81,9 @@ jobs:
       - run: npm ci
       - run: npx vite build
       - run: npx electron-builder --mac --publish never
-      - run: cp release/*.dmg FinanceVA-mac.dmg
+      - run: cp release/*.dmg Zaylo-mac.dmg
       - uses: actions/upload-artifact@v4
-        with: { name: macos, path: FinanceVA-mac.dmg, retention-days: 30 }
+        with: { name: macos, path: Zaylo-mac.dmg, retention-days: 30 }
 
   windows:
     name: Windows installer
@@ -98,9 +98,9 @@ jobs:
       - run: npx vite build
       - run: npx electron-builder --win --publish never
       - shell: bash
-        run: cp release/*.exe FinanceVA-windows-setup.exe
+        run: cp release/*.exe Zaylo-windows-setup.exe
       - uses: actions/upload-artifact@v4
-        with: { name: windows, path: FinanceVA-windows-setup.exe, retention-days: 30 }
+        with: { name: windows, path: Zaylo-windows-setup.exe, retention-days: 30 }
 
   release:
     name: Publish test-build release
@@ -121,7 +121,7 @@ jobs:
             --title "Test build — ${GITHUB_SHA::7}" \
             --notes "Installable test apps for commit ${GITHUB_SHA::7}. They load https://finance-va.vercel.app.
 
-          - **Android**: FinanceVA-android.apk — open on the phone and allow installs from your browser.
-          - **iPhone**: FinanceVA-ios-unsigned.ipa — install with Sideloadly (Windows/Mac) or AltStore using your Apple ID; free Apple IDs need a re-install every 7 days.
-          - **macOS**: FinanceVA-mac.dmg — unsigned; right-click the app → Open the first time.
-          - **Windows**: FinanceVA-windows-setup.exe — unsigned; More info → Run anyway."
+          - **Android**: Zaylo-android.apk — open on the phone and allow installs from your browser.
+          - **iPhone**: Zaylo-ios-unsigned.ipa — install with Sideloadly (Windows/Mac) or AltStore using your Apple ID; free Apple IDs need a re-install every 7 days.
+          - **macOS**: Zaylo-mac.dmg — unsigned; right-click the app → Open the first time.
+          - **Windows**: Zaylo-windows-setup.exe — unsigned; More info → Run anyway."

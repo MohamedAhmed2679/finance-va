@@ -24,6 +24,7 @@ import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
 import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './components/LiveLayer';
+import { ZayloLogo } from './components/brand/Brand';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import VoiceExpenseEntry from './components/VoiceExpenseEntry';
@@ -122,6 +123,7 @@ function Shell() {
             <Sidebar active={active} onNavigate={go} />
             <main className="main-content">
                 <ImpersonationBar />
+                <div className="mobile-brand"><ZayloLogo size={24} /></div>
                 <div className="banner-slot"><AnnouncementBanner /></div>
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
@@ -196,7 +198,7 @@ export default function App() {
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
         const meta = document.querySelector('meta[name="theme-color"]');
-        meta?.setAttribute('content', theme === 'dark' ? '#0C1311' : '#EEF1EC');
+        meta?.setAttribute('content', theme === 'dark' ? '#0B0F1A' : '#F4F6FA');
         document.documentElement.style.setProperty('--titlebar-height', navigator.userAgent.includes('Electron') ? '38px' : '0px');
     }, [theme]);
 

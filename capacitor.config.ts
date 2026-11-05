@@ -10,7 +10,7 @@ const bundled = process.env.CAP_BUNDLED === 'true';
 
 const config: CapacitorConfig = {
     appId: 'com.financeva.app',
-    appName: 'Finance VA',
+    appName: 'Zaylo',
     webDir: 'dist',
     backgroundColor: '#EEF1EC',
     server: bundled ? undefined : { url: serverUrl, cleartext: false },

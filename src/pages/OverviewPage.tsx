@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Guilloche, Seal, useCountUp } from '../components/brand/Brand';
+import { ZayloWave, ZPattern, ZayloMark, useCountUp } from '../components/brand/Brand';
 import { useStore, type Expense } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constants';
@@ -133,10 +133,11 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}><Plus size={17} /> {t(lang, 'add_expense')}</button>}
             </div>
 
-            {/* The Note — signature hero */}
+            {/* The Zaylo card — signature hero */}
             <motion.section className="note mb-6" aria-label="Spending this cycle"
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-                <Guilloche width={1000} height={300} ribbonY={0.84} />
+                <ZPattern opacity={0.08} />
+                <ZayloWave intensity={0.85} />
                 <div className="note-top">
                     <span className="note-label">Spent this cycle</span>
                     <span className="note-serial">{fmtDay(cycleStart)} – {fmtDay(cycleEnd)}</span>
@@ -159,7 +160,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                         <motion.span initial={{ width: 0 }} animate={{ width: `${budgetPct}%` }} transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
                     </div>
                 )}
-                <div className="note-seal"><Seal size={46} /></div>
+                <div className="note-seal"><ZayloMark size={34} /></div>
             </motion.section>
 
             {/* Upcoming bills */}

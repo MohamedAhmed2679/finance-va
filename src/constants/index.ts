@@ -79,18 +79,18 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 export const CATEGORIES = [
-    { key: 'groceries', label: 'Groceries', emoji: '🛒', color: '#3E8E5E' },
-    { key: 'dining', label: 'Dining', emoji: '🍽️', color: '#C4622D' },
-    { key: 'transport', label: 'Transport', emoji: '🚌', color: '#2C6A8F' },
-    { key: 'shopping', label: 'Shopping', emoji: '🛍️', color: '#A03A68' },
-    { key: 'entertainment', label: 'Entertainment', emoji: '🎬', color: '#6A52B0' },
-    { key: 'utilities', label: 'Utilities', emoji: '⚡', color: '#C08A1E' },
-    { key: 'healthcare', label: 'Healthcare', emoji: '🏥', color: '#1E8A80' },
-    { key: 'travel', label: 'Travel', emoji: '✈️', color: '#2B86A8' },
-    { key: 'education', label: 'Education', emoji: '📚', color: '#6E8E2A' },
-    { key: 'savings', label: 'Savings', emoji: '💰', color: '#A87A22' },
-    { key: 'income', label: 'Income', emoji: '💵', color: '#2D7A4F' },
-    { key: 'other', label: 'Other', emoji: '📦', color: '#7D8A84' },
+    { key: 'groceries', label: 'Groceries', emoji: '🛒', color: '#0EA5B7' },
+    { key: 'dining', label: 'Dining', emoji: '🍽️', color: '#F2994A' },
+    { key: 'transport', label: 'Transport', emoji: '🚌', color: '#2563FF' },
+    { key: 'shopping', label: 'Shopping', emoji: '🛍️', color: '#7C3AED' },
+    { key: 'entertainment', label: 'Entertainment', emoji: '🎬', color: '#DB2777' },
+    { key: 'utilities', label: 'Utilities', emoji: '⚡', color: '#E0A31A' },
+    { key: 'healthcare', label: 'Healthcare', emoji: '🏥', color: '#10B981' },
+    { key: 'travel', label: 'Travel', emoji: '✈️', color: '#22D3EE' },
+    { key: 'education', label: 'Education', emoji: '📚', color: '#6366F1' },
+    { key: 'savings', label: 'Savings', emoji: '💰', color: '#9F67FF' },
+    { key: 'income', label: 'Income', emoji: '💵', color: '#0E7490' },
+    { key: 'other', label: 'Other', emoji: '📦', color: '#8891A8' },
 ] as const;
 
 export type CategoryKey = typeof CATEGORIES[number]['key'];
@@ -106,7 +106,7 @@ export const PAYMENT_METHODS = [
 export type PaymentMethod = typeof PAYMENT_METHODS[number]['key'];
 
 export const WORKSPACE_ICONS = ['👤', '👨‍👩‍👧', '💼', '🏢', '🌍', '🏋️', '🎨', '🎵', '🏠', '✈️', '🌴', '💡', '🔬', '🎯', '🚀'];
-export const WORKSPACE_COLORS = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E8A80', '#C4622D', '#13201C'];
+export const WORKSPACE_COLORS = ['#2563FF', '#7C3AED', '#0E7490', '#0B0F1A', '#D92D4A', '#B45309', '#15803D', '#DB2777'];
 
 export function formatCurrency(amount: number, currency = 'USD', hideAmounts = false): string {
     if (hideAmounts) return '••••';

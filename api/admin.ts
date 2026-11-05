@@ -1,5 +1,5 @@
 /**
- * Finance VA admin API (Vercel edge function).
+ * Zaylo admin API (Vercel edge function).
  * Every request must carry the caller's Supabase access token; the caller must be
  * an app admin (public.users.is_admin). Uses the service-role key, which never
  * leaves the server. Every write is recorded in public.audit_log.
@@ -281,7 +281,7 @@ export default async function handler(req: Request) {
                     ids = (data || []).map(r => r.id);
                 }
                 if (!ids.length) return json({ error: 'Choose who receives it' }, 400);
-                const rows = ids.map(id => ({ user_id: id, type: 'admin_notice', message, sender_name: 'Finance VA team', link: body.link || null }));
+                const rows = ids.map(id => ({ user_id: id, type: 'admin_notice', message, sender_name: 'Zaylo team', link: body.link || null }));
                 for (let i = 0; i < rows.length; i += 500) {
                     const { error } = await db.from('notifications').insert(rows.slice(i, i + 500));
                     if (error) throw error;
@@ -313,9 +313,9 @@ export default async function handler(req: Request) {
             case 'sendMessage': {
                 const text = String(body.body || '').trim();
                 if (!text || !body.userId) return json({ error: 'Write a message' }, 400);
-                const { data, error } = await db.from('support_messages').insert({ user_id: body.userId, from_admin: true, sender_name: 'Finance VA team', body: text }).select().single();
+                const { data, error } = await db.from('support_messages').insert({ user_id: body.userId, from_admin: true, sender_name: 'Zaylo team', body: text }).select().single();
                 if (error) throw error;
-                await db.from('notifications').insert({ user_id: body.userId, type: 'admin_message', message: `New message from the Finance VA team: ${text.slice(0, 120)}`, sender_name: 'Finance VA team', link: '/messages' });
+                await db.from('notifications').insert({ user_id: body.userId, type: 'admin_message', message: `New message from the Zaylo team: ${text.slice(0, 120)}`, sender_name: 'Zaylo team', link: '/messages' });
                 await audit(db, admin, 'message.send', body.userId, { preview: text.slice(0, 120) });
                 return json({ message: data });
             }
@@ -336,13 +336,13 @@ export default async function handler(req: Request) {
             case 'addWorkspaceMember': {
                 const ident = String(body.identifier || '').trim().toLowerCase();
                 const { data: target } = await db.from('users').select('id, name').or(`email.ilike.${ident},phone.eq.${ident.replace(/[^\d+]/g, '') || 'x'}`).limit(1).maybeSingle();
-                if (!target) return json({ error: 'No Finance VA account uses that email or phone' }, 404);
+                if (!target) return json({ error: 'No Zaylo account uses that email or phone' }, 404);
                 const role = ['admin', 'member', 'viewer'].includes(body.role) ? body.role : 'member';
                 const { error } = await db.from('workspace_members').upsert({ workspace_id: body.workspaceId, user_id: target.id, role, status: 'active' }, { onConflict: 'workspace_id,user_id' });
                 if (error) throw error;
                 const { data: ws } = await db.from('workspaces').select('name, type').eq('id', body.workspaceId).single();
                 if (ws?.type === 'personal') await db.from('workspaces').update({ type: 'shared' }).eq('id', body.workspaceId);
-                await db.from('notifications').insert({ user_id: target.id, type: 'member_added', workspace_id: body.workspaceId, workspace_name: ws?.name, message: `You were added to "${ws?.name}" by the Finance VA team.`, sender_name: 'Finance VA team' });
+                await db.from('notifications').insert({ user_id: target.id, type: 'member_added', workspace_id: body.workspaceId, workspace_name: ws?.name, message: `You were added to "${ws?.name}" by the Zaylo team.`, sender_name: 'Zaylo team' });
                 await audit(db, admin, 'workspace.member_add', target.id, { workspaceId: body.workspaceId, role });
                 return json({ ok: true });
             }

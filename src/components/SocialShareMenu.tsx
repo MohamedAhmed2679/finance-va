@@ -38,7 +38,7 @@ export default function SocialShareMenu() {
     const [open, setOpen] = useState(false);
 
     const shareUrl = encodeURIComponent(window.location.href);
-    const shareText = encodeURIComponent('Check out Finance VA – the smartest way to track your finances!');
+    const shareText = encodeURIComponent('Check out Zaylo – the smartest way to track your finances!');
 
     function getShareLink(name: string) {
         switch (name) {

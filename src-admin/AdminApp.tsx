@@ -3,7 +3,7 @@ import { MotionConfig, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { LogOut, ExternalLink, Menu, X } from 'lucide-react';
 import { sb, MAIN_APP_URL, CONSOLE_BASE, type Me } from './client';
-import { Seal } from '../src/components/brand/Brand';
+import { ZayloAppIcon, ZayloLogo } from '../src/components/brand/Brand';
 import Console, { TAB_LIST, type Tab } from './Console';
 
 type Gate =
@@ -41,7 +41,7 @@ export default function AdminApp() {
     }, []);
 
     let content;
-    if (gate.state === 'loading') content = <div className="adm-loading"><Seal size={44} /></div>;
+    if (gate.state === 'loading') content = <div className="adm-loading"><ZayloAppIcon size={56} /></div>;
     else if (gate.state === 'signed-out') content = <SignIn message={gate.message} onDone={() => resolveAdmin().then(setGate)} />;
     else if (gate.state === 'recovery') content = <NewPassword onDone={() => resolveAdmin().then(setGate)} />;
     else content = <Shell me={gate.me} />;
@@ -89,9 +89,9 @@ function SignIn({ message, onDone }: { message?: string; onDone: () => void }) {
     return (
         <main className="adm-auth">
             <motion.form className="adm-auth-card" onSubmit={submit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="adm-auth-brand"><Seal size={40} /><div><strong>Finance VA</strong><span>Administration</span></div></div>
+                <div className="adm-auth-brand"><ZayloLogo size={32} suffix="Admin" /></div>
                 <h1 className="auth-title">Sign in to the console</h1>
-                <p className="auth-sub">For Finance VA administrators only. Every action is logged.</p>
+                <p className="auth-sub">For Zaylo administrators only. Every action is logged.</p>
                 {error && <div className="auth-msg error" role="alert">{error}</div>}
                 {info && <div className="auth-msg" style={{ background: 'var(--note-soft)', color: 'var(--note)' }} role="status">{info}</div>}
                 <div className="form-group"><label className="form-label" htmlFor="a-email">Email</label>
@@ -126,7 +126,7 @@ function NewPassword({ onDone }: { onDone: () => void }) {
     return (
         <main className="adm-auth">
             <form className="adm-auth-card" onSubmit={submit}>
-                <div className="adm-auth-brand"><Seal size={40} /><div><strong>Finance VA</strong><span>Administration</span></div></div>
+                <div className="adm-auth-brand"><ZayloLogo size={32} suffix="Admin" /></div>
                 <h1 className="auth-title">Choose a new password</h1>
                 <p className="auth-sub">At least 8 characters. You'll use it with your email to sign in here and in the app.</p>
                 {error && <div className="auth-msg error" role="alert">{error}</div>}
@@ -152,7 +152,7 @@ function Shell({ me }: { me: Me }) {
     return (
         <div className="adm-shell">
             <aside className={`adm-rail ${navOpen ? 'open' : ''}`} aria-label="Console sections">
-                <div className="adm-rail-brand"><Seal size={34} tone="paper" /><div><strong>Finance VA</strong><span>Admin console</span></div>
+                <div className="adm-rail-brand"><ZayloLogo size={26} onDark suffix="Admin" />
                     <button className="adm-rail-close" onClick={() => setNavOpen(false)} aria-label="Close menu"><X size={18} /></button></div>
                 <nav>
                     {TAB_LIST.map(t => (
@@ -164,7 +164,7 @@ function Shell({ me }: { me: Me }) {
                     ))}
                 </nav>
                 <div className="adm-rail-foot">
-                    <a className="adm-rail-item" href={MAIN_APP_URL} target="_blank" rel="noreferrer"><ExternalLink size={17} /><span>Open Finance VA</span></a>
+                    <a className="adm-rail-item" href={MAIN_APP_URL} target="_blank" rel="noreferrer"><ExternalLink size={17} /><span>Open Zaylo</span></a>
                     <div className="adm-me">
                         <span className="user-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>{me.name[0]?.toUpperCase()}</span>
                         <span className="adm-me-text"><strong>{me.name}</strong><span>{me.email}</span></span>

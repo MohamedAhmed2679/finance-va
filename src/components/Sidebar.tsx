@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, LogOut, Moon, Sun, Plus, Check, ShieldCheck } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
-import { Seal } from './brand/Brand';
+import { ZayloLogo } from './brand/Brand';
 import { navFor, ADMIN_CONSOLE_URL } from './nav';
 
 interface SidebarProps { active: string; onNavigate: (page: string) => void; }
@@ -75,8 +75,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     return (
         <aside className="sidebar" aria-label="Main navigation">
             <div className="sidebar-logo">
-                <Seal size={34} />
-                <span className="logo-text">Finance<span> VA</span></span>
+                <ZayloLogo size={28} onDark />
             </div>
 
             <WorkspaceSwitcher onNavigate={onNavigate} />

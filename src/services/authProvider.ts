@@ -1,5 +1,5 @@
 /**
- * Finance VA — Supabase Auth Provider
+ * Zaylo — Supabase Auth Provider
  *
  * This module wraps Supabase Auth and provides fallback behaviour
  * when Supabase is not configured (local dev / offline mode).
@@ -367,7 +367,7 @@ export function getAuthAvailability(): Promise<AuthAvailability> {
 /** Turns Supabase/network errors into sentences a person can act on. */
 export function friendlyAuthError(message: string | undefined, fallback: string): string {
     const m = message || '';
-    if (/failed to fetch|networkerror|load failed/i.test(m)) return "Can't reach the Finance VA server. Check your connection and try again.";
+    if (/failed to fetch|networkerror|load failed/i.test(m)) return "Can't reach the Zaylo server. Check your connection and try again.";
     if (/unsupported phone provider|phone.*(disabled|not enabled)|sms.*provider/i.test(m)) return 'Phone sign-in is not switched on yet. Use email for now.';
     if (/provider is not enabled|unsupported provider/i.test(m)) return 'That sign-in option is not switched on yet. Use email for now.';
     if (/signups? not allowed|signup is disabled/i.test(m)) return 'New sign-ups are closed right now.';

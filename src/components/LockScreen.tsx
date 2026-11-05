@@ -4,7 +4,7 @@ import { Delete, Fingerprint, ScanFace } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { hashPin, pinMatches } from '../utils/pin';
 import { hasBiometric, verifyBiometric, getBiometricSupport, type BiometricSupport } from '../utils/biometric';
-import { Seal } from './brand/Brand';
+import { ZayloAppIcon } from './brand/Brand';
 
 /** App lock. Unlocks with a correct PIN or a real device biometric check — nothing else. */
 export default function LockScreen() {
@@ -63,12 +63,12 @@ export default function LockScreen() {
     });
 
     return (
-        <div className="lock" role="dialog" aria-label="Finance VA is locked">
-            <Seal size={56} />
+        <div className="lock" role="dialog" aria-label="Zaylo is locked">
+            <ZayloAppIcon size={64} />
             <div style={{ textAlign: 'center' }}>
-                <h2 style={{ fontSize: 26 }}>{hasPin ? 'Enter your PIN' : 'Finance VA is locked'}</h2>
+                <h2 style={{ fontSize: 26 }}>{hasPin ? 'Enter your PIN' : 'Zaylo is locked'}</h2>
                 <p style={{ color: 'var(--ink-3)', marginTop: 6, fontSize: 14 }}>
-                    {bioMsg || (attempts >= 3 ? 'Forgot it? Sign out and sign back in to reset the lock.' : 'Finance VA locked after a period of inactivity.')}
+                    {bioMsg || (attempts >= 3 ? 'Forgot it? Sign out and sign back in to reset the lock.' : 'Zaylo locked after a period of inactivity.')}
                 </p>
             </div>
             {bio && (

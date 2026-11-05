@@ -222,7 +222,7 @@ function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
         finally { setBusy(''); }
     }
     async function impersonate() {
-        if (!confirm(`Open Finance VA as ${u?.name}? It opens in a new tab, signed in as them. You stay signed in here. This is logged.`)) return;
+        if (!confirm(`Open Zaylo as ${u?.name}? It opens in a new tab, signed in as them. You stay signed in here. This is logged.`)) return;
         setBusy('impersonate');
         try { await openAsUser(id); }
         catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }

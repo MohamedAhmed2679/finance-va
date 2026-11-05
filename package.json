@@ -2,7 +2,7 @@
   "name": "finance-va",
   "private": true,
   "version": "1.5.0",
-  "description": "Finance VA - Professional AI-Powered Financial Assistant with Advanced Security and Data Integrity",
+  "description": "Zaylo — Your money. Your move. Track spending, bills and savings in any currency.",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -20,8 +20,7 @@
     "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0",
     "@capgo/capacitor-native-biometric": "8.8.3",
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
-    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource-variable/inter": "5.2.5",
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@react-oauth/google": "^0.13.4",
     "@supabase/supabase-js": "^2.101.1",
@@ -67,7 +66,7 @@
   },
   "build": {
     "appId": "com.financeva.app",
-    "productName": "Finance VA",
+    "productName": "Zaylo",
     "directories": {
       "output": "release"
     },
@@ -75,7 +74,7 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
-    "artifactName": "FinanceVA-${os}-${arch}.${ext}",
+    "artifactName": "Zaylo-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {

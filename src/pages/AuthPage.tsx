@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
-import { Guilloche, Seal } from '../components/brand/Brand';
+import { ZayloWave, ZPattern, ZayloLogo } from '../components/brand/Brand';
 
 interface AuthPageProps { onAuth: () => void; }
 type Mode = 'signin' | 'signup' | 'phone' | 'forgot' | 'recovery';
@@ -156,7 +156,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         const result = await signInWithEmail(email.trim(), password);
         setLoading(null);
         if (!result.success) {
-            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Finance VA team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
+            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Zaylo team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
             return;
         }
         if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
@@ -259,7 +259,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     );
 
     const serverDown = avail && !avail.reachable && (
-        <div className="auth-msg error" role="alert">Finance VA can't reach its server right now, so signing in and creating accounts won't work. Please try again shortly.</div>
+        <div className="auth-msg error" role="alert">Zaylo can't reach its server right now, so signing in and creating accounts won't work. Please try again shortly.</div>
     );
 
     const submit = (label: string, busyLabel: string) => (
@@ -271,14 +271,15 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     return (
         <div className="auth">
             <section className="auth-hero">
-                <Guilloche width={760} height={900} rosetteX={0.74} ribbonY={0.62} />
-                <div className="auth-brand"><Seal size={40} tone="paper" /> Finance VA</div>
+                <ZPattern opacity={0.09} />
+                <ZayloWave className="auth-wave" />
+                <div className="auth-brand"><ZayloLogo size={34} onDark /></div>
                 <div>
                     <motion.h1 className="auth-headline" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-                        Every pound, dollar and riyal, accounted for.
+                        Your money. Your move.
                     </motion.h1>
                     <motion.p className="auth-lede" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}>
-                        Track spending, bills and savings in any currency. Share a workspace with family and see exactly where the month went.
+                        Track spending, bills and savings in any currency. Share a workspace with the people you plan with, and see where every pound, dollar and riyal went.
                     </motion.p>
                 </div>
                 <div className="auth-points">

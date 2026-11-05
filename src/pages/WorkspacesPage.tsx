@@ -46,7 +46,7 @@ export default function WorkspacesPage() {
         try {
             const result = await inviteMember(showInvite, inviteEmail.trim(), inviteName, inviteRole);
             if (result === 'not_found') {
-                toast.error(`No Finance VA account uses ${inviteEmail.trim()}. Ask them to sign up first, then add them.`);
+                toast.error(`No Zaylo account uses ${inviteEmail.trim()}. Ask them to sign up first, then add them.`);
             } else {
                 toast.success(`${inviteEmail.trim()} was added and notified.`);
                 setInviteEmail(''); setInviteName(''); setShowInvite(null);
@@ -157,9 +157,9 @@ export default function WorkspacesPage() {
                         </div>
                         <form onSubmit={handleInvite}>
                             <div className="form-group">
-                                <label className="form-label">{inviteMethod === 'email' ? 'Their Finance VA email' : 'Their phone number with country code'}</label>
+                                <label className="form-label">{inviteMethod === 'email' ? 'Their Zaylo email' : 'Their phone number with country code'}</label>
                                 <input className="form-input" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={inviteMethod === 'email' ? 'name@example.com' : '+20 100 123 4567'} type={inviteMethod === 'email' ? 'email' : 'tel'} required />
-                                <div className="text-xs text-muted mt-1">They need a Finance VA account. They'll get a notification and see this workspace and its chat.</div>
+                                <div className="text-xs text-muted mt-1">They need a Zaylo account. They'll get a notification and see this workspace and its chat.</div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Role</label>

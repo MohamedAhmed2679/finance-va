@@ -75,7 +75,7 @@ export function mapGoal(r: Row): SavingsGoal {
         savedAmount: num(r.saved_amount ?? r.savedAmount),
         currency: str(r.currency, 'USD'),
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),
-        color: str(r.color, '#1E5B47'),
+        color: str(r.color, '#2563FF'),
         icon: str(r.icon, '🎯'),
     };
 }
@@ -101,7 +101,7 @@ export function mapWorkspace(r: Row, members: WorkspaceMember[] = []): Workspace
         ownerId: r.owner_id ?? r.ownerId ?? '',
         currency: str(r.currency, 'USD'),
         icon: str(r.icon, '👤'),
-        color: str(r.color, '#1E5B47'),
+        color: str(r.color, '#2563FF'),
         members: Array.isArray(r.members) ? r.members : members,
         activityLog: Array.isArray(r.activityLog) ? r.activityLog : [],
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),

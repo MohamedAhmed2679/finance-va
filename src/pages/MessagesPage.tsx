@@ -7,7 +7,7 @@ import { supabase, isSupabaseReady } from '../lib/supabase';
 
 interface SupportMessage { id: string; user_id: string; from_admin: boolean; sender_name: string; body: string; created_at: string; read_at: string | null }
 
-/** Private conversation between a user and the Finance VA team. */
+/** Private conversation between a user and the Zaylo team. */
 export default function MessagesPage() {
     const user = useStore(s => s.user);
     const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -51,7 +51,7 @@ export default function MessagesPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Messages</h1>
-                    <p className="page-subtitle">A private conversation with the Finance VA team.</p>
+                    <p className="page-subtitle">A private conversation with the Zaylo team.</p>
                 </div>
             </div>
             <section className="card chat-panel" style={{ maxWidth: 820 }}>
@@ -66,7 +66,7 @@ export default function MessagesPage() {
                     <AnimatePresence initial={false}>
                         {messages.map(m => (
                             <motion.div key={m.id} className={`bubble ${m.from_admin ? '' : 'mine'}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                                {m.from_admin && <span className="who">Finance VA team</span>}
+                                {m.from_admin && <span className="who">Zaylo team</span>}
                                 <div>{m.body}</div>
                                 <time>{new Date(m.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time>
                             </motion.div>
@@ -74,7 +74,7 @@ export default function MessagesPage() {
                     </AnimatePresence>
                 </div>
                 <div className="chat-compose">
-                    <textarea className="form-input" rows={1} placeholder="Write to the Finance VA team" value={text} aria-label="Message"
+                    <textarea className="form-input" rows={1} placeholder="Write to the Zaylo team" value={text} aria-label="Message"
                         onChange={e => setText(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
                     <button className="btn btn-primary btn-icon" style={{ width: 44, minHeight: 44 }} onClick={send} disabled={!text.trim()} aria-label="Send"><Send size={18} /></button>

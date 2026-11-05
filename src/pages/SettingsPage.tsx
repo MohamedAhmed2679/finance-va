@@ -86,7 +86,7 @@ export default function SettingsPage() {
         const csv = rows.map(r => r.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'financeva_export.csv'; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = 'zaylo_export.csv'; a.click();
     }
 
     function handleExportPDF() {
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                     {activeSection === 'referral' && (
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{t(lang, 'referral_id')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Share your unique code to invite friends to Finance VA</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Share your unique code to invite friends to Zaylo</div>
                             <div style={{ textAlign: 'center', padding: '32px 24px', background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--line)', marginBottom: 24 }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Your Referral Code</div>
                                 <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 4, color: 'var(--primary-light)', marginBottom: 16 }}>{user?.referralCode}</div>
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                     {activeSection === 'cloud' && (
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Cloud Backup & Sync</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Automatically back up your Finance VA data to your personal cloud.</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Automatically back up your Zaylo data to your personal cloud.</div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
@@ -483,14 +483,14 @@ export default function SettingsPage() {
 
                     {activeSection === 'desktop' && (
                         <div className="card animate-fadeIn">
-                            <div className="card-title" style={{ marginBottom: 4 }}>Finance VA on your devices</div>
+                            <div className="card-title" style={{ marginBottom: 4 }}>Zaylo on your devices</div>
                             <div style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 20 }}>Test builds of the apps. They open this same account, so everything stays in sync.</div>
                             <div className="card-grid card-grid-2">
                                 {[
-                                    { name: 'Android', file: 'FinanceVA-android.apk', note: 'Android 7 or later. Allow installs from your browser when asked.' },
-                                    { name: 'iPhone', file: 'FinanceVA-ios-unsigned.ipa', note: 'Install with Sideloadly or AltStore using your Apple ID.' },
-                                    { name: 'macOS', file: 'FinanceVA-mac.dmg', note: 'Right-click the app and choose Open the first time.' },
-                                    { name: 'Windows', file: 'FinanceVA-windows-setup.exe', note: 'Windows 10 or later. Choose More info → Run anyway if prompted.' },
+                                    { name: 'Android', file: 'Zaylo-android.apk', note: 'Android 7 or later. Allow installs from your browser when asked.' },
+                                    { name: 'iPhone', file: 'Zaylo-ios-unsigned.ipa', note: 'Install with Sideloadly or AltStore using your Apple ID.' },
+                                    { name: 'macOS', file: 'Zaylo-mac.dmg', note: 'Right-click the app and choose Open the first time.' },
+                                    { name: 'Windows', file: 'Zaylo-windows-setup.exe', note: 'Windows 10 or later. Choose More info → Run anyway if prompted.' },
                                 ].map(p => (
                                     <div key={p.name} style={{ background: 'var(--surface-2)', borderRadius: 14, padding: 18, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                         <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                             {oauthProvider === 'google' ? 'G' : oauthProvider === 'apple' ? '' : 'M'}
                         </div>
                         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Sign in with {oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1)}</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Finance VA wants to access your {oauthProvider} account to verify your identity and manage backups.</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Zaylo wants to access your {oauthProvider} account to verify your identity and manage backups.</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <button className="btn btn-primary w-full" onClick={processOauth} disabled={oauthConnecting}>

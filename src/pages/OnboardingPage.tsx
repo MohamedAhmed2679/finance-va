@@ -39,7 +39,7 @@ export default function OnboardingPage() {
 
                 {step === 1 && (
                     <div className="animate-fadeIn">
-                        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Welcome to Finance VA</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Welcome to Zaylo</div>
                         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Let's set up your profile to personalize your experience.</div>
                         <div className="form-group">
                             <label className="form-label">What should we call you?</label>

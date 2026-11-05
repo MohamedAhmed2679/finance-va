@@ -1,5 +1,5 @@
 /**
- * Finance VA — Supabase Data Sync Layer
+ * Zaylo — Supabase Data Sync Layer
  *
  * Provides CRUD operations that work with Supabase when available,
  * falling back to the Zustand store for offline-first behaviour.

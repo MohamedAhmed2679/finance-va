@@ -8,7 +8,7 @@ export async function exportToPDF(expenses: Expense[], categories: CategoryDef[]
     // Title
     doc.setFontSize(22);
     doc.setTextColor(40, 40, 40);
-    doc.text('Finance VA - Expense Report', 14, 22);
+    doc.text('Zaylo - Expense Report', 14, 22);
 
     // Header Info
     doc.setFontSize(10);
@@ -63,5 +63,5 @@ export async function exportToPDF(expenses: Expense[], categories: CategoryDef[]
     });
 
     // Save locally
-    doc.save('FinanceVA_Report.pdf');
+    doc.save('Zaylo_Report.pdf');
 }

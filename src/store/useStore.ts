@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CATEGORIES, PAYMENT_METHODS } from '../constants';
+import { CATEGORIES, PAYMENT_METHODS, WORKSPACE_COLORS } from '../constants';
 import {
     syncExpenseToCloud, deleteExpenseFromCloud, fetchExpensesFromCloud,
     syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
@@ -848,7 +848,7 @@ export const useStore = create<AppState>()(
                             ownerId: userId,
                             currency: s.user.defaultCurrency || 'USD',
                             icon: '👤',
-                            color: '#1E5B47',
+                            color: '#2563FF',
                             members: [{
                                 uid: userId,
                                 name: s.user.name,
@@ -878,9 +878,16 @@ export const useStore = create<AppState>()(
         }),
         {
             name: 'financeva-store',
-            version: 2,
-            // v2: refresh built-in category colours to the new palette, keep user-made categories
+            version: 3,
+            // v2/v3: refresh built-in category and workspace colours to the current (Zaylo) palette
             migrate: (persisted: any) => {
+                const OLD_WS = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E8A80', '#C4622D', '#13201C'];
+                if (persisted?.workspaces) {
+                    persisted.workspaces = persisted.workspaces.map((w: Workspace) => {
+                        const i = OLD_WS.indexOf(String(w.color).toUpperCase());
+                        return i >= 0 ? { ...w, color: WORKSPACE_COLORS[i] } : w;
+                    });
+                }
                 if (persisted?.categories) {
                     persisted.categories = persisted.categories.map((c: CategoryDef) => {
                         const def = CATEGORIES.find(d => d.key === c.key);

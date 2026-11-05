@@ -77,7 +77,7 @@ export async function enrollBiometric(user: { id: string; name?: string; email?:
     if (isNative()) {
         const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
         try {
-            await NativeBiometric.verifyIdentity({ reason: 'Turn on biometric unlock for Finance VA', title: 'Finance VA', subtitle: 'Confirm it\'s you' });
+            await NativeBiometric.verifyIdentity({ reason: 'Turn on biometric unlock for Zaylo', title: 'Zaylo', subtitle: 'Confirm it\'s you' });
         } catch { throw new Error('Not turned on: verification was cancelled or failed.'); }
         write(user.id, { type: 'native' });
         return;
@@ -87,8 +87,8 @@ export async function enrollBiometric(user: { id: string; name?: string; email?:
         const cred = await navigator.credentials.create({
             publicKey: {
                 challenge: randomBytes(),
-                rp: { name: 'Finance VA', id: window.location.hostname },
-                user: { id: new TextEncoder().encode(user.id).slice(0, 64), name: user.email || user.name || 'Finance VA user', displayName: user.name || user.email || 'Finance VA user' },
+                rp: { name: 'Zaylo', id: window.location.hostname },
+                user: { id: new TextEncoder().encode(user.id).slice(0, 64), name: user.email || user.name || 'Zaylo user', displayName: user.name || user.email || 'Zaylo user' },
                 pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
                 authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
                 timeout: 60_000,
@@ -113,7 +113,7 @@ export async function verifyBiometric(userId: string): Promise<boolean> {
         if (saved.type === 'native') {
             if (!isNative()) return false;
             const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
-            await NativeBiometric.verifyIdentity({ reason: 'Unlock Finance VA', title: 'Unlock Finance VA' });
+            await NativeBiometric.verifyIdentity({ reason: 'Unlock Zaylo', title: 'Unlock Zaylo' });
             return true;
         }
         if (!saved.credentialId || !window.PublicKeyCredential) return false;

@@ -5,7 +5,7 @@ const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 /**
  * The console keeps its own session (separate storage key), so signing in here
- * never touches a Finance VA app session in the same browser, and opening the
+ * never touches a Zaylo app session in the same browser, and opening the
  * app as another user never signs the admin out of the console.
  */
 export const sb = url && anon

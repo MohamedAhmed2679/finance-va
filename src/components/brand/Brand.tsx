@@ -1,78 +1,115 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
-/** Brass seal monogram — the Finance VA mark. */
-export function Seal({ size = 34, tone = 'brass' }: { size?: number; tone?: 'brass' | 'ink' | 'paper' }) {
-    const ring = tone === 'brass' ? 'var(--brass)' : tone === 'paper' ? '#E9F2EC' : 'var(--ink)';
-    const text = tone === 'paper' ? '#E9F2EC' : tone === 'brass' ? 'var(--brass)' : 'var(--ink)';
-    const teeth = 36;
-    const outer = 23, inner = 21;
-    let d = '';
-    for (let i = 0; i <= teeth * 2; i++) {
-        const a = (i / (teeth * 2)) * Math.PI * 2;
-        const r = i % 2 === 0 ? outer : inner;
-        d += `${i === 0 ? 'M' : 'L'}${(24 + r * Math.cos(a)).toFixed(2)},${(24 + r * Math.sin(a)).toFixed(2)}`;
-    }
+/** Geometry from the Zaylo brand kit (01_Logos/SVG). Do not alter. */
+const Z_PATH = 'M18 18 H82 L18 82 H82';
+const GRADIENT_STOPS = [
+    { offset: 0, color: '#22D3EE' },
+    { offset: 0.45, color: '#2563FF' },
+    { offset: 1, color: '#7C3AED' },
+];
+
+function BrandGradient({ id }: { id: string }) {
     return (
-        <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-            <path d={d + 'Z'} fill="none" stroke={ring} strokeWidth="1.4" />
-            <circle cx="24" cy="24" r="17" fill="none" stroke={ring} strokeWidth="0.8" strokeDasharray="1.2 1.6" />
-            <text x="24" y="29" textAnchor="middle" fontFamily="Bricolage Grotesque Variable, Bricolage Grotesque, sans-serif" fontWeight="700" fontSize="15" letterSpacing="-0.5" fill={text}>FV</text>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+            {GRADIENT_STOPS.map(s => <stop key={s.offset} offset={s.offset} stopColor={s.color} />)}
+        </linearGradient>
+    );
+}
+
+type MarkTone = 'gradient' | 'white' | 'ink';
+
+/** The Z mark. Gradient on any background; white on Midnight/photos; ink for mono. */
+export function ZayloMark({ size = 32, tone = 'gradient', title }: { size?: number; tone?: MarkTone; title?: string }) {
+    const gid = useId().replace(/:/g, '');
+    const stroke = tone === 'gradient' ? `url(#zg${gid})` : tone === 'white' ? '#FFFFFF' : 'var(--ink)';
+    return (
+        <svg width={size} height={size} viewBox="0 0 100 100" role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
+            <defs><BrandGradient id={`zg${gid}`} /></defs>
+            <path d={Z_PATH} fill="none" stroke={stroke} strokeWidth="26" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
     );
 }
 
-/**
- * Banknote guilloché: interleaved sine ribbons plus a rosette.
- * Drawn once on mount (stroke reveal), then static.
- */
-export function Guilloche({ width = 800, height = 260, rosette = true, seed = 0, rosetteX = 0.86, ribbonY = 0.8 }: { width?: number; height?: number; rosette?: boolean; seed?: number; rosetteX?: number; ribbonY?: number }) {
-    const reduce = useReducedMotion();
-    const paths = useMemo(() => {
-        const out: string[] = [];
-        const lines = 16;
-        for (let i = 0; i < lines; i++) {
-            const phase = (i / lines) * Math.PI * 2 + seed;
-            let d = '';
-            for (let x = 0; x <= width; x += 6) {
-                const env = 0.55 + 0.45 * Math.sin((x / width) * Math.PI);
-                const y = height * ribbonY
-                    + Math.sin(x / 46 + phase) * 26 * env
-                    + Math.sin(x / 113 - phase * 0.5) * 18;
-                d += `${x === 0 ? 'M' : 'L'}${x},${y.toFixed(1)}`;
-            }
-            out.push(d);
-        }
-        if (rosette) {
-            const cx = width * rosetteX, cy = height * 0.36;
-            for (let k = 0; k < 9; k++) {
-                let d = '';
-                const R = 54 + k * 5;
-                for (let s = 0; s <= 360; s += 2) {
-                    const a = (s * Math.PI) / 180;
-                    const r = R + 9 * Math.sin(12 * a + k * 0.7);
-                    d += `${s === 0 ? 'M' : 'L'}${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
-                }
-                out.push(d + 'Z');
-            }
-        }
-        return out;
-    }, [width, height, rosette, seed, rosetteX, ribbonY]);
-
+/** App-icon tile: the gradient Z on a Midnight rounded square. */
+export function ZayloAppIcon({ size = 40 }: { size?: number }) {
+    const gid = useId().replace(/:/g, '');
     return (
-        <div className="note-guilloche" aria-hidden="true">
-            <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid slice">
-                {paths.map((d, i) => (
-                    <motion.path
-                        key={i}
-                        d={d}
-                        initial={reduce ? false : { pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.6, delay: i * 0.035, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                ))}
+        <svg width={size} height={size} viewBox="0 0 1024 1024" aria-hidden="true">
+            <defs><BrandGradient id={`ai${gid}`} /></defs>
+            <rect width="1024" height="1024" rx="224" fill="#0B0F1A" />
+            <path transform="translate(192,192) scale(6.4)" d={Z_PATH} fill="none" stroke={`url(#ai${gid})`} strokeWidth="26" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+/** Mark + wordmark. `onDark` switches the wordmark to white (logo rules). */
+export function ZayloLogo({ size = 28, onDark = false, mono = false, suffix }: { size?: number; onDark?: boolean; mono?: boolean; suffix?: string }) {
+    return (
+        <span className="zaylo-logo" style={{ fontSize: size * 0.82, color: onDark ? '#FFFFFF' : 'var(--ink)' }}>
+            <ZayloMark size={size} tone={mono ? (onDark ? 'white' : 'ink') : 'gradient'} />
+            <span className="zaylo-wordmark">Zaylo</span>
+            {suffix && <span className="zaylo-suffix">{suffix}</span>}
+        </span>
+    );
+}
+
+/**
+ * Brand element: "A motion that moves with you."
+ * Layered gradient ribbons that draw in once, then drift very slowly.
+ */
+export function ZayloWave({ className = '', intensity = 1 }: { className?: string; intensity?: number }) {
+    const reduce = useReducedMotion();
+    const gid = useId().replace(/:/g, '');
+    const ribbons = [
+        { d: 'M-40 420 C260 120 520 90 820 300 S1300 540 1640 190', w: 92, o: 0.95 },
+        { d: 'M-40 470 C300 200 560 170 840 360 S1320 560 1640 260', w: 2, o: 0.55 },
+        { d: 'M-40 500 C320 240 580 220 860 400 S1330 590 1640 300', w: 2, o: 0.35 },
+        { d: 'M-40 380 C240 60 500 40 800 250 S1290 500 1640 140', w: 2, o: 0.45 },
+        { d: 'M-40 340 C220 10 480 0 780 210 S1280 470 1640 100', w: 1.5, o: 0.25 },
+    ];
+    return (
+        <div className={`zaylo-wave ${className}`} aria-hidden="true">
+            <svg viewBox="0 0 1600 600" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <BrandGradient id={`w${gid}`} />
+                </defs>
+                <motion.g
+                    animate={reduce ? undefined : { x: [0, -24, 0], y: [0, 10, 0] }}
+                    transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    {ribbons.map((r, i) => (
+                        <motion.path
+                            key={i}
+                            d={r.d}
+                            fill="none"
+                            stroke={`url(#w${gid})`}
+                            strokeWidth={r.w}
+                            strokeLinecap="round"
+                            opacity={r.o * intensity}
+                            initial={reduce ? false : { pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 1.4, delay: 0.1 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                    ))}
+                </motion.g>
             </svg>
         </div>
+    );
+}
+
+/** Brand pattern: repeating outlined Z marks, for depth on Midnight surfaces. */
+export function ZPattern({ className = '', opacity = 0.1 }: { className?: string; opacity?: number }) {
+    const pid = useId().replace(/:/g, '');
+    return (
+        <svg className={`zaylo-pattern ${className}`} aria-hidden="true" width="100%" height="100%">
+            <defs>
+                <pattern id={`p${pid}`} width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">
+                    <path transform="translate(30,30) scale(0.6)" d={Z_PATH} fill="none" stroke="#5B8CFF" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#p${pid})`} opacity={opacity} />
+        </svg>
     );
 }
 

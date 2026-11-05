@@ -90,7 +90,7 @@ export default function ChatPage() {
         if (!ws || !adding.trim()) return;
         try {
             const r = await inviteMember(ws.id, adding.trim(), '', role);
-            if (r === 'not_found') toast.error('No Finance VA account uses that email or phone.');
+            if (r === 'not_found') toast.error('No Zaylo account uses that email or phone.');
             else { toast.success('Added to the workspace and chat'); setAdding(''); }
         } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed'); }
     }
