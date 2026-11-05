@@ -296,6 +296,14 @@ a { color: var(--note); }
   --note: #5B8CFF;
 }
 .sidebar .zaylo-pattern { position: absolute; inset: 0; pointer-events: none; }
+/* Menus opened from the Midnight sidebar need a solid panel, not the sidebar's glassy surface */
+.sidebar .dropdown-menu {
+  background: #151C2E;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  z-index: 400;
+}
+.sidebar .dropdown-item:hover { background: rgba(255, 255, 255, 0.08); }
 
 .sidebar-logo {
   display: flex;

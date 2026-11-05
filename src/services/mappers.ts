@@ -4,6 +4,12 @@
  * fields like `workspaceId`, `purchaseAt` and `members` being present.
  */
 import type { Expense, Income, MonthlyBill, SavingsGoal, Workspace, WorkspaceMember, AppNotification } from '../store/useStore';
+import { WORKSPACE_COLORS } from '../constants';
+
+/** Colours saved before the Zaylo rebrand map to their Zaylo equivalents. */
+const OLD_PALETTE = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E8A80', '#C4622D', '#13201C'];
+const brandColor = (c: string) => { const i = OLD_PALETTE.indexOf(c.toUpperCase()); return i >= 0 ? WORKSPACE_COLORS[i] : c; };
+
 
 type Row = Record<string, any>;
 const num = (v: unknown) => (v === null || v === undefined || v === '' ? 0 : Number(v));
@@ -75,7 +81,7 @@ export function mapGoal(r: Row): SavingsGoal {
         savedAmount: num(r.saved_amount ?? r.savedAmount),
         currency: str(r.currency, 'USD'),
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),
-        color: str(r.color, '#2563FF'),
+        color: brandColor(str(r.color, '#2563FF')),
         icon: str(r.icon, '🎯'),
     };
 }
@@ -101,7 +107,7 @@ export function mapWorkspace(r: Row, members: WorkspaceMember[] = []): Workspace
         ownerId: r.owner_id ?? r.ownerId ?? '',
         currency: str(r.currency, 'USD'),
         icon: str(r.icon, '👤'),
-        color: str(r.color, '#2563FF'),
+        color: brandColor(str(r.color, '#2563FF')),
         members: Array.isArray(r.members) ? r.members : members,
         activityLog: Array.isArray(r.activityLog) ? r.activityLog : [],
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),
