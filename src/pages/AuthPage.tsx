@@ -91,7 +91,12 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [resendIn, setResendIn] = useState(0);
 
     const [loading, setLoading] = useState<string | null>(null);
-    const [error, setError] = useState('');
+    // Errors that come back from Google/Microsoft/Apple in the URL after a redirect
+    const [error, setError] = useState(() => {
+        const q = new URLSearchParams(window.location.search + '&' + window.location.hash.replace(/^#/, ''));
+        const desc = q.get('error_description');
+        return desc ? friendlyAuthError(decodeURIComponent(desc), 'Sign-in did not complete. Try again.') : '';
+    });
     const [notice, setNotice] = useState('');
 
     const [avail, setAvail] = useState<AuthAvailability | null>(null);

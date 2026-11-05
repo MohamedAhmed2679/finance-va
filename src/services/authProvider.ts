@@ -372,6 +372,8 @@ export function friendlyAuthError(message: string | undefined, fallback: string)
     if (/provider is not enabled|unsupported provider/i.test(m)) return 'That sign-in option is not switched on yet. Use email for now.';
     if (/signups? not allowed|signup is disabled/i.test(m)) return 'New sign-ups are closed right now.';
     if (/database error saving new user/i.test(m)) return "Your account couldn't be set up. Please try again in a minute.";
+    if (/unable to exchange external code|invalid_client|AADSTS7000215|AADSTS7000222/i.test(m)) return "That sign-in provider isn't set up correctly yet, so it couldn't finish signing you in. Use email for now.";
+    if (/AADSTS50020|AADSTS50194/i.test(m)) return 'Microsoft sign-in only accepts accounts from one organisation right now. Use email instead.';
     if (/rate limit|too many/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
     if (/invalid.*phone|phone.*invalid/i.test(m)) return 'That phone number is not valid. Include the country code, for example +20 100 123 4567.';
     if (/token has expired|otp.*(expired|invalid)/i.test(m)) return 'That code is wrong or has expired. Request a new one.';
