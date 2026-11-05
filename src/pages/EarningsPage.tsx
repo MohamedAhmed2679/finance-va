@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { t, tx } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
-import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
+import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
+import ReportSheet from '../components/ReportSheet';
 import { format } from 'date-fns';
 import { preloadRates } from '../services/exchangeRates';
 import { toBase } from '../utils/money';
@@ -23,6 +24,7 @@ export default function EarningsPage() {
     const cur = ws?.currency ?? 'USD';
     const hideAmounts = user?.hideAmounts ?? false;
 
+    const [showReport, setShowReport] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [incName, setIncName] = useState('');
     const [incAmount, setIncAmount] = useState('');
@@ -82,6 +84,7 @@ export default function EarningsPage() {
 
     return (
         <>
+            {showReport && <ReportSheet initial={['income']} onClose={() => setShowReport(false)} />}
             <div className="page animate-fadeIn">
                 <header className="page-header" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
@@ -94,11 +97,14 @@ export default function EarningsPage() {
                             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{lang === 'ar' ? `(تبدأ يوم ${cycleStartDay} من كل شهر)` : `(Starts on the ${cycleStartDay}${cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})`}</span>
                         </div>
                     </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary" onClick={() => setShowReport(true)} aria-label={tx('Create a report')}><FileDown size={16} /><span className="hide-sm">{tx('Report')}</span></button>
                     {!isViewer && (
                         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
                             <Plus size={16} />{' '}{tx('Add Income')}
                         </button>
                     )}
+                    </div>
                 </header>
 
                 <div className="card-grid card-grid-3 mb-6">

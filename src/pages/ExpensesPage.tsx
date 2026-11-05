@@ -20,7 +20,8 @@ function dayLabel(day: string) {
 }
 import { t, tx } from '../i18n/translations';
 import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
-import { Search, Filter, X, Trash2, Plus, Edit2, Target } from 'lucide-react';
+import { Search, Filter, X, Trash2, Plus, Edit2, Target, FileDown } from 'lucide-react';
+import ReportSheet from '../components/ReportSheet';
 import AddExpenseModal from '../components/AddExpenseModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { toBase } from '../utils/money';
@@ -44,6 +45,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
         }
     }, [activeWorkspace?.cycleStartDay, filters.dateFrom, filters.dateTo, activeWorkspace, setFilters]);
 
+    const [showReport, setShowReport] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [editId, setEditId] = useState<string | undefined>();
@@ -83,12 +85,14 @@ export default function ExpensesPage({ }: ExpensesProps) {
 
     return (
         <div className="page">
+            {showReport && <ReportSheet initial={['expenses']} onClose={() => setShowReport(false)} />}
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'expenses')}</h1>
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{filtered.length} transactions</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary" onClick={() => setShowReport(true)} aria-label={tx('Create a report')}><FileDown size={16} /><span className="hide-sm">{tx('Report')}</span></button>
                     {!isViewer && <button className="btn btn-secondary" onClick={() => setShowBudget(true)}><Target size={16} />{' '}{tx('Budget')}</button>}
                     {!isViewer && <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={16} />{t(lang, 'add_expense')}</button>}
                 </div>

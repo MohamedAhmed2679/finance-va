@@ -1669,3 +1669,34 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 [dir="rtl"] .who-field .form-input { padding-right: 14px; padding-left: 84px; }
 [dir="rtl"] .who-kind { right: auto; left: 10px; }
 [dir="rtl"] .fab-action { padding: 6px 16px 6px 6px; }
+
+/* ---------- Reports ---------- */
+.report-sheet { max-width: 520px; }
+.report-label { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 4px 0 8px; }
+.report-sections { display: grid; gap: 8px; margin-bottom: 18px; }
+.report-section {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-2); font: inherit; font-size: 14px; font-weight: 600; text-align: start; cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+}
+.report-section > span:nth-child(2) { flex: 1; }
+.report-section.on { border-color: var(--primary); background: var(--primary-soft); color: var(--ink); }
+.report-section.on > svg { color: var(--primary); }
+.report-check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line-strong); display: grid; place-items: center; color: #fff; }
+.report-section.on .report-check { background: var(--primary); border-color: var(--primary); }
+.report-periods { display: flex; flex-wrap: wrap; gap: 6px; }
+.report-periods > button {
+  padding: 7px 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.report-periods > button.on { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.report-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.report-dates label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-3); }
+.report-period-note { font-size: 12.5px; color: var(--ink-3); margin: 8px 0 20px; }
+.report-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.report-actions .btn { justify-content: center; padding: 13px 12px; }
+@media (max-width: 600px) { .hide-sm { display: none; } }
+.auth-google { display: flex; justify-content: center; min-height: 44px; margin-bottom: 8px; }
+.auth-google > div { width: 100%; display: flex; justify-content: center; }
+.auth-google iframe { margin: 0 auto !important; }

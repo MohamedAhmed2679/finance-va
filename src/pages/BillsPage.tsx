@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useStore, type MonthlyBill } from '../store/useStore';
 import { t, tx } from '../i18n/translations';
-import { CalendarSync, Plus, CheckCircle, Circle, Trash2, CalendarDays, Edit2 } from 'lucide-react';
+import { CalendarSync, Plus, CheckCircle, Circle, Trash2, CalendarDays, Edit2, FileDown } from 'lucide-react';
+import ReportSheet from '../components/ReportSheet';
 import { format } from 'date-fns';
 
 export default function BillsPage() {
     const { user, bills, workspaces, activeWorkspaceId, categories, addBill, updateBill, deleteBill, markBillPaid } = useStore();
     const lang = user?.language ?? 'en';
 
+    const [showReport, setShowReport] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [billName, setBillName] = useState('');
     const [billAmount, setBillAmount] = useState('');
@@ -146,17 +148,21 @@ export default function BillsPage() {
 
     return (
         <>
+            {showReport && <ReportSheet initial={['bills']} onClose={() => setShowReport(false)} />}
             <div className="page animate-fadeIn">
                 <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h1 className="page-title">{t(lang, 'bills_commitments')}</h1>
                         <p className="page-subtitle">{tx('Track recurring payments and automatically log expenses')}</p>
                     </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary" onClick={() => setShowReport(true)} aria-label={tx('Create a report')}><FileDown size={16} /><span className="hide-sm">{tx('Report')}</span></button>
                     {!isViewer && (
                         <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || tx('Add Bill')}>
                             <Plus size={16} />{' '}{tx('Add Bill')}
                         </button>
                     )}
+                    </div>
                 </header>
 
                 {showAdd && (

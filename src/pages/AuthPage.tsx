@@ -1,11 +1,40 @@
 import { tx } from '../i18n/translations';
 import { hasPendingJoin } from '../components/JoinInvite';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
 import { ZayloWave, ZPattern, ZayloLogo } from '../components/brand/Brand';
+import { canUseGoogleButton, mountGoogleButton } from '../services/googleSignIn';
+import type { AuthResult } from '../services/authProvider';
+
+/** Google's own button (web): the Google window then says zaylo.cc, not the Supabase address. Falls back to the redirect button if it can't load. */
+function GoogleButton({ lang, dark, disabled, fallback, onStart, onResult }: { lang: string; dark: boolean; disabled: boolean; fallback: React.ReactNode; onStart: () => void; onResult: (r: AuthResult) => void }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
+    const cb = useRef({ onStart, onResult });
+    cb.current = { onStart, onResult };
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        let alive = true;
+        mountGoogleButton(el, {
+            width: el.parentElement?.clientWidth || 320,
+            locale: lang === 'ar' ? 'ar' : 'en',
+            theme: dark ? 'filled_black' : 'outline',
+            onStart: () => cb.current.onStart(),
+            onResult: r => cb.current.onResult(r),
+        }).then(() => alive && setState('ready')).catch(() => alive && setState('failed'));
+        return () => { alive = false; };
+    }, [lang, dark]);
+    if (state === 'failed') return <>{fallback}</>;
+    return (
+        <div className="auth-google" aria-busy={state === 'loading'} style={disabled ? { pointerEvents: 'none', opacity: 0.55 } : undefined}>
+            <div ref={ref} />
+        </div>
+    );
+}
 
 interface AuthPageProps { onAuth: () => void; }
 type Mode = 'signin' | 'signup' | 'phone' | 'forgot' | 'recovery';
@@ -118,6 +147,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         return () => clearTimeout(t);
     }, [resendIn]);
 
+    const lang = useStore(s => s.user?.language || s.language || 'en');
+    const theme = useStore(s => s.theme);
     const busy = loading !== null;
 
     function doLogin(userId: string, userName: string, userEmail: string, provider?: string, userPhone?: string) {
@@ -247,15 +278,32 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     ] as const).filter(([k]) => !avail || avail[k]);
     const spinner = <span className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--line-strong)', borderTopColor: 'var(--ink)', borderRadius: '50%' }} />;
 
+    const providerButton = ([k, label, icon]: typeof providers[number]) => (
+        <button key={k} type="button" onClick={() => oauth(k)} disabled={busy} aria-label={`Continue with ${label}`}>
+            {loading === k ? spinner : icon} {label}
+        </button>
+    );
+    const googleNative = providers.some(([k]) => k === 'google') && canUseGoogleButton();
+    const others = googleNative ? providers.filter(([k]) => k !== 'google') : providers;
     const social = providers.length === 0 ? null : (
         <>
-            <div className="auth-social" style={{ gridTemplateColumns: `repeat(${providers.length}, 1fr)` }}>
-                {providers.map(([k, label, icon]) => (
-                    <button key={k} type="button" onClick={() => oauth(k)} disabled={busy} aria-label={`Continue with ${label}`}>
-                        {loading === k ? spinner : icon} {label}
-                    </button>
-                ))}
-            </div>
+            {googleNative && (
+                <GoogleButton
+                    lang={lang} dark={theme === 'dark'} disabled={busy}
+                    fallback={<div className="auth-social" style={{ gridTemplateColumns: '1fr', marginBottom: others.length ? 8 : 0 }}>{providerButton(providers.find(([k]) => k === 'google')!)}</div>}
+                    onStart={() => { setLoading('google'); setError(''); }}
+                    onResult={r => {
+                        setLoading(null);
+                        if (!r.success) { setError(friendlyAuthError(r.error, 'Sign-in didn\'t complete. Try again.')); return; }
+                        if (r.user) doLogin(r.user.id, r.user.name, r.user.email, 'google');
+                    }}
+                />
+            )}
+            {others.length > 0 && (
+                <div className="auth-social" style={{ gridTemplateColumns: `repeat(${others.length}, 1fr)` }}>
+                    {others.map(providerButton)}
+                </div>
+            )}
             <div className="auth-or">{tx('or with email')}</div>
         </>
     );

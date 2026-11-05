@@ -71,9 +71,9 @@ function setupVapid() {
 const TITLES: Record<string, string> = {
     member_added: 'Added to a workspace', member_joined: 'New member', member_removed: 'Removed from a workspace', member_left: 'Someone left',
     role_change: 'Your role changed', invite: 'Workspace invite', join_request: 'Join request', admin_message: 'Message from Zaylo',
-    admin_notice: 'Zaylo', bill_due: 'Payment reminder', payday: 'Payday', expense_added: 'New expense', workspace_archived: 'Workspace archived', workspace_deleted: 'Workspace deleted',
+    admin_notice: 'Zaylo', bill_due: 'Payment reminder', payday: 'Payday', expense_added: 'New expense', workspace_archived: 'Workspace archived', workspace_deleted: 'Workspace deleted', backup: 'Backup saved',
 };
-const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/messages', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces' };
+const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/messages', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces', backup: '/settings?section=cloud' };
 
 interface Payload { title: string; body: string; url: string; tag?: string }
 

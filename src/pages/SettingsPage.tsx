@@ -7,11 +7,11 @@ import BiometricToggle from '../components/BiometricToggle';
 import toast from 'react-hot-toast';
 import { t, tx } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
-import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2 } from 'lucide-react';
-import { exportToPDF } from '../utils/pdfExport';
+import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown } from 'lucide-react';
+import ReportSheet from '../components/ReportSheet';
 
 export default function SettingsPage() {
-    const { user, workspaces, activeWorkspaceId, updateWorkspace, updateUser, setTheme, theme, language, setLanguage, currency, setCurrency, logout, deleteAllData, expenses, categories, paymentMethods, addCategory, deleteCategory, addPaymentMethod, deletePaymentMethod } = useStore();
+    const { user, workspaces, activeWorkspaceId, updateWorkspace, updateUser, setTheme, theme, language, setLanguage, currency, setCurrency, logout, deleteAllData, categories, paymentMethods, addCategory, deleteCategory, addPaymentMethod, deletePaymentMethod } = useStore();
     const lang = user?.language ?? 'en';
 
     const [pinDraft, setPinDraft] = useState('');
@@ -29,6 +29,7 @@ export default function SettingsPage() {
     const [oauthConnecting, setOauthConnecting] = useState(false);
     const [emailInput, setEmailInput] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showReport, setShowReport] = useState(false);
 
     // Categories state
     const [newCatName, setNewCatName] = useState('');
@@ -75,19 +76,6 @@ export default function SettingsPage() {
             setOauthMode(null);
         }, 1500);
     };
-
-    function handleExportCSV() {
-        const rows = [['Date', 'Merchant', 'Description', 'Category', 'Amount', 'Currency', 'Payment Method']];
-        expenses.filter(e => !e.deleted).forEach(e => { rows.push([e.purchaseAt.slice(0, 10), e.merchant, e.description, e.category, String(e.amount), e.currency, e.paymentMethod]); });
-        const csv = rows.map(r => r.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'zaylo_export.csv'; a.click();
-    }
-
-    function handleExportPDF() {
-        exportToPDF(expenses.filter(e => !e.deleted), categories, user);
-    }
 
     const menuSections = [
         { id: 'profile', label: t(lang, 'profile'), icon: User },
@@ -384,16 +372,11 @@ export default function SettingsPage() {
 
                     {activeSection === 'export' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Export Your Data')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Download all your financial data in various formats')}</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <button className="btn btn-secondary" onClick={handleExportCSV} style={{ justifyContent: 'flex-start', gap: 12, padding: '16px' }}>
-                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_csv')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{tx('Spreadsheet-compatible format')}</div></div>
-                                </button>
-                                <button className="btn btn-ghost" onClick={handleExportPDF} style={{ justifyContent: 'flex-start', gap: 12, padding: '16px', border: '1px solid var(--border)' }}>
-                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_pdf')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{tx('Premium formatted report')}</div></div>
-                                </button>
-                            </div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Reports')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Download your expenses, bills and commitments, and income as an Excel workbook or a PDF report.')}</div>
+                            <button className="btn btn-primary" onClick={() => setShowReport(true)} style={{ gap: 10, padding: '14px 18px' }}>
+                                <FileDown size={18} />{tx('Create a report')}
+                            </button>
                         </div>
                     )}
 
@@ -495,6 +478,8 @@ export default function SettingsPage() {
                     )}
                 </div>
             </div>
+
+            {showReport && <ReportSheet onClose={() => setShowReport(false)} />}
 
             {/* Email Modal */}
             {showEmailModal && (
