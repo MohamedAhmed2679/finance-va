@@ -27,8 +27,8 @@ import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './co
 import { ZayloLogo } from './components/brand/Brand';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
-import VoiceExpenseEntry from './components/VoiceExpenseEntry';
-import SMSParser from './components/SMSParser';
+import SmartCapture, { type CaptureMode } from './components/SmartCapture';
+import AssistantPage from './pages/AssistantPage';
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
@@ -90,8 +90,8 @@ function Shell() {
     const location = useLocation();
     const navigate = useNavigate();
     const [showAdd, setShowAdd] = useState(false);
-    const [showVoiceEntry, setShowVoiceEntry] = useState(false);
-    const [showSMSParser, setShowSMSParser] = useState(false);
+    const [capture, setCapture] = useState<CaptureMode | null>(null);
+    const [captureSource, setCaptureSource] = useState<string>('text');
     const [pendingAIExpenses, setPendingAIExpenses] = useState<ParsedExpense[] | null>(null);
 
     const active = location.pathname.split('/')[1] || 'overview';
@@ -114,6 +114,7 @@ function Shell() {
         activity: <ActivityPage />,
         settings: <SettingsPage />,
         chat: <ChatPage />,
+        assistant: <AssistantPage />,
         messages: <MessagesPage />,
     };
     useLiveNotifications();
@@ -137,25 +138,20 @@ function Shell() {
             </main>
             <TabBar active={active} onNavigate={go} />
 
-            {!['chat', 'messages'].includes(active) && <QuickAddMenu
+            {!['chat', 'messages', 'assistant'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
-                onVoiceAdd={() => setShowVoiceEntry(true)}
-                onScanAdd={() => setShowSMSParser(true)}
+                onVoiceAdd={() => setCapture('voice')}
+                onScanAdd={() => setCapture('scan')}
+                onPasteAdd={() => setCapture('text')}
                 onAddIncome={() => go('earnings')}
             />}
             {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
 
-            {showVoiceEntry && (
-                <VoiceExpenseEntry
-                    onClose={() => setShowVoiceEntry(false)}
-                    onAdd={(expenses) => { setShowVoiceEntry(false); setPendingAIExpenses(expenses); }}
-                />
-            )}
-
-            {showSMSParser && (
-                <SMSParser
-                    onClose={() => setShowSMSParser(false)}
-                    onAdd={(expenses) => { setShowSMSParser(false); setPendingAIExpenses(expenses); }}
+            {capture && (
+                <SmartCapture
+                    initialMode={capture}
+                    onClose={() => setCapture(null)}
+                    onResult={(expenses, source) => { setCapture(null); setCaptureSource(source); setPendingAIExpenses(expenses); }}
                 />
             )}
 
@@ -170,16 +166,16 @@ function Shell() {
                                 workspaceId: store.activeWorkspaceId,
                                 createdByUid: store.user?.dbId || store.user?.id || 'guest',
                                 createdByName: store.user?.name || 'Guest',
-                                purchaseAt: new Date().toISOString(),
+                                purchaseAt: exp.date && exp.date !== new Date().toISOString().slice(0, 10) ? new Date(`${exp.date}T12:00:00`).toISOString() : new Date().toISOString(),
                                 merchant: exp.merchant,
                                 description: exp.description,
                                 amount: exp.amount,
                                 currency: exp.currency || store.currency,
                                 category: exp.category,
-                                paymentMethod: 'cash',
+                                paymentMethod: exp.paymentMethod || 'card',
                                 tags: [],
-                                notes: 'Added via AI Entry',
-                                source: 'import',
+                                notes: captureSource === 'voice' ? 'Added by voice with Zaylo AI' : captureSource === 'scan' || captureSource === 'upload' ? 'Read from a receipt by Zaylo AI' : 'Added with Zaylo AI',
+                                source: captureSource === 'scan' || captureSource === 'upload' ? 'ocr' : 'import',
                             });
                         });
                         setPendingAIExpenses(null);

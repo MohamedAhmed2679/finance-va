@@ -1,4 +1,3 @@
-import { useStore } from '../store/useStore';
 import type { CategoryKey } from '../store/useStore';
 import { CURRENCIES } from '../constants';
 
@@ -9,45 +8,20 @@ export interface ParsedExpense {
     category: CategoryKey;
     description: string;
     confidence: number;
+    date?: string;          // YYYY-MM-DD, from the receipt or what was said
+    paymentMethod?: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '';
-
 /**
- * Turns free text (bank SMS, voice transcript) into expenses.
- * Order: server AI endpoint → the user's own Gemini key (Settings) → on-device rules.
- * The on-device rules mean the feature still works with no AI configured.
+ * Free text → expenses. Uses Zaylo AI (server, Gemini) and falls back to on-device rules,
+ * so pasting an SMS still works offline or when AI isn't configured.
  */
 export async function parseExpensesText(text: string, baseCurrency: string): Promise<ParsedExpense[]> {
-    const today = new Date().toISOString().slice(0, 10);
     try {
-        const res = await fetch(`${API_BASE}/api/ai/parse-expenses`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, baseCurrency, dateContext: today }),
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data.expenses) && data.expenses.length) return normalise(data.expenses, baseCurrency);
-        }
-    } catch { /* fall through */ }
-
-    const personalKey = useStore.getState().user?.geminiKey;
-    if (personalKey) {
-        try {
-            const prompt = `Extract expenses from this text. Default currency ${baseCurrency}. Reply with JSON only: {"expenses":[{"amount":number,"currency":"ISO code","merchant":string,"category":"groceries|dining|transport|shopping|entertainment|utilities|healthcare|travel|education|other","description":string,"confidence":number}]}. Text: """${text.slice(0, 2000)}"""`;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${personalKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0 } }),
-            });
-            const data = await res.json();
-            const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
-            if (Array.isArray(parsed.expenses) && parsed.expenses.length) return normalise(parsed.expenses, baseCurrency);
-        } catch { /* fall through */ }
-    }
-
+        const { extractExpenses } = await import('./zayloAI');
+        const r = await extractExpenses({ source: 'text', text });
+        if (r.expenses.length) return normalise(r.expenses, baseCurrency);
+    } catch { /* fall through to local rules */ }
     return parseLocally(text, baseCurrency);
 }
 

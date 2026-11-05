@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/((?!api/|assets/|.*\\.[a-zA-Z0-9]+$).*)",
-      "has": [{ "type": "host", "value": "finance-va-admin.vercel.app" }],
+      "has": [{ "type": "host", "value": "admin.zaylo.cc" }],
       "destination": "/admin.html"
     },
     { "source": "/console(/.*)?", "destination": "/admin.html" },

@@ -4,6 +4,7 @@ import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getPaymentMethodInfo } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import CurrencyDisplay from '../components/CurrencyDisplay';
+import HealthCard from '../components/HealthCard';
 
 export default function InsightsPage() {
     const { user, expenses, activeWorkspaceId, currency } = useStore();
@@ -50,6 +51,8 @@ export default function InsightsPage() {
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Spending analytics for your workspace</p>
                 </div>
             </div>
+
+            <div className="mb-6"><HealthCard /></div>
 
             {/* Summary stats */}
             <div className="card-grid card-grid-3 mb-6">

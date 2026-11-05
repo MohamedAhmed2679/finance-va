@@ -14,7 +14,7 @@ export const sb = url && anon
 
 /** Where the member-facing app lives (used for impersonation and email links). */
 export const MAIN_APP_URL: string = import.meta.env.VITE_MAIN_APP_URL
-    || (/finance-va-admin/.test(window.location.hostname) ? 'https://finance-va.vercel.app' : window.location.origin);
+    || (window.location.hostname.startsWith('admin.') ? `https://${window.location.hostname.slice(6)}` : window.location.origin);
 
 /** Base path of the console on this host ("/console" on the app domain, "" on its own domain). */
 export const CONSOLE_BASE = window.location.pathname.startsWith('/console') ? '/console' : '';

@@ -1,6 +1,6 @@
 export const translations: Record<string, Record<string, string>> = {
     en: {
-        app_name: 'Zaylo', overview: 'Overview', expenses: 'Expenses', savings: 'Savings', converter: 'Converter', settings: 'Settings',
+        app_name: 'Zaylo', ask_zaylo: 'Ask Zaylo', overview: 'Overview', expenses: 'Expenses', savings: 'Savings', converter: 'Converter', settings: 'Settings',
         today_spend: "Today's Spend", this_month: 'This Month', add_expense: 'Add Expense', recent_expenses: 'Recent Expenses',
         merchant: 'Merchant', category: 'Category', date: 'Date', amount: 'Amount', user: 'User',
         search_merchant: 'Search by merchant...', filters: 'Filters', date_range: 'Date Range', all_users: 'All Users',
@@ -98,7 +98,7 @@ export const translations: Record<string, Record<string, string>> = {
         dark_mode: 'ダークモード', light_mode: 'ライトモード', name: '表示名', finish: '始める', skip: 'スキップ', referral_id: '紹介ID',
     },
     ar: {
-        app_name: 'فاينانس في أيه', overview: 'نظرة عامة', expenses: 'المصروفات', savings: 'المدخرات', converter: 'محول العملات', settings: 'الإعدادات',
+        app_name: 'زايلو', ask_zaylo: 'اسأل زايلو', overview: 'نظرة عامة', expenses: 'المصروفات', savings: 'المدخرات', converter: 'محول العملات', settings: 'الإعدادات',
         today_spend: 'إنفاق اليوم', this_month: 'هذا الشهر', add_expense: 'إضافة مصروف', recent_expenses: 'أحدث المصروفات',
         merchant: 'التاجر', category: 'الفئة', date: 'التاريخ', amount: 'المبلغ',
         savings_goals: 'أهداف الادخار', add_goal: 'هدف جديد', dream_goal: 'حلم / هدف', target_amount: 'المبلغ المستهدف', saved: 'المدخر', add_funds: 'إضافة أموال', delete: 'حذف',

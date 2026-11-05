@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Mic, MessageSquareText, PenLine, TrendingUp } from 'lucide-react';
+import { Plus, Mic, MessageSquareText, PenLine, TrendingUp, ScanLine } from 'lucide-react';
 
 interface QuickAddMenuProps {
     onManualAdd: () => void;
     onVoiceAdd: () => void;
     onScanAdd: () => void;
+    onPasteAdd: () => void;
     onAddIncome: () => void;
 }
 
-export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onAddIncome }: QuickAddMenuProps) {
+export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onPasteAdd, onAddIncome }: QuickAddMenuProps) {
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -21,7 +22,8 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onAdd
 
     const actions = [
         { label: 'Add income', icon: TrendingUp, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onAddIncome },
-        { label: 'Paste bank SMS', icon: MessageSquareText, tint: 'var(--sky)', bg: 'var(--sky-soft)', run: onScanAdd },
+        { label: 'Paste bank SMS', icon: MessageSquareText, tint: 'var(--sky)', bg: 'var(--sky-soft)', run: onPasteAdd },
+        { label: 'Scan or upload receipt', icon: ScanLine, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onScanAdd },
         { label: 'Say an expense', icon: Mic, tint: 'var(--brass)', bg: 'var(--brass-soft)', run: onVoiceAdd },
         { label: 'Add expense', icon: PenLine, tint: 'var(--note)', bg: 'var(--note-soft)', run: onManualAdd },
     ];

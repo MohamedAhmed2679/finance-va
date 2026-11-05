@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ZayloWave, ZPattern, ZayloMark, useCountUp } from '../components/brand/Brand';
 import { useStore, type Expense } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Sparkles, RefreshCw, CalendarClock, Plus } from 'lucide-react';
+import { TrendingUp, TrendingDown, CalendarClock, Plus } from 'lucide-react';
+import HealthCard from '../components/HealthCard';
 import { convertAmountSync, preloadRates } from '../services/exchangeRates';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 
@@ -74,43 +75,6 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
         .filter(b => b.workspaceId === activeWorkspaceId && b.lastPaidMonth !== monthStr && (b.dueDate - currentDay) <= 7 && (b.dueDate - currentDay) >= -31)
         .sort((a, b) => a.dueDate - b.dueDate);
 
-    const [aiText, setAiText] = useState<string>('');
-    const [aiLoading, setAiLoading] = useState(false);
-
-    async function generateAdvice() {
-        setAiLoading(true);
-        try {
-            const topCats = catData.slice(0, 3).map(c => `${c.name}: ${formatCurrency(c.value, cur)}`).join(', ');
-            const prompt = `You are a friendly personal finance advisor. Analyze these monthly expenses: Total this month: ${formatCurrency(monthTotal, cur)}. Top spending categories: ${topCats}. Provide 3 concise, actionable tips to save money and improve financial health. Be encouraging and specific. Max 120 words.`;
-
-            // Try server-side endpoint first (API key stays on server)
-            const res = await fetch(`${import.meta.env.VITE_API_BASE ?? ''}/api/ai/advice`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setAiText(data.text || 'Unable to generate advice at this time.');
-            } else {
-                // Fallback: use user's personal key if server endpoint fails
-                const apiKeyToUse = user?.geminiKey;
-                if (!apiKeyToUse) {
-                    setAiText('AI advice is temporarily unavailable. Add your Gemini API key in Settings → AI Integrations.');
-                    return;
-                }
-                const fallbackRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKeyToUse}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                const data = await fallbackRes.json();
-                if (data.error) {
-                    setAiText(data.error.code === 429 ? 'AI quota exhausted. Please set your personal Gemini API Key in Settings.' : `AI Error: ${data.error.message}`);
-                    return;
-                }
-                setAiText(data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Unable to generate advice at this time.');
-            }
-        } catch { setAiText('AI advice is unavailable right now. Check your connection and try again.'); }
-        finally { setAiLoading(false); }
-    }
 
     // Note figures are shown in the viewer's display currency
     const toDisplay = (v: number) => convertAmountSync(v, cur, currency) ?? v;
@@ -279,29 +243,8 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                     )}
                 </div>
 
-                {/* AI advice */}
-                <div className="card animate-fadeIn" style={{ animationDelay: '260ms', background: 'var(--surface-2)' }}>
-                    <div className="card-head">
-                        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={17} style={{ color: 'var(--brass)' }} /> {t(lang, 'ai_analysis')}</div>
-                        {aiText && <button onClick={generateAdvice} disabled={aiLoading} className="btn btn-ghost btn-sm btn-icon" aria-label="Refresh advice"><RefreshCw size={15} className={aiLoading ? 'animate-spin' : ''} /></button>}
-                    </div>
-                    {aiLoading ? (
-                        <div style={{ display: 'flex', gap: 9, flexDirection: 'column' }}>
-                            <div className="skeleton" style={{ height: 13, width: '92%' }} />
-                            <div className="skeleton" style={{ height: 13, width: '78%' }} />
-                            <div className="skeleton" style={{ height: 13, width: '85%' }} />
-                            <div className="skeleton" style={{ height: 13, width: '60%' }} />
-                        </div>
-                    ) : aiText ? (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--ink-2)', whiteSpace: 'pre-line' }}>{aiText.replace(/\*\*/g, '')}</motion.p>
-                    ) : (
-                        <div>
-                            <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 14 }}>Get three specific ways to spend less, based on this cycle's categories.</p>
-                            <button className="btn btn-secondary btn-sm" onClick={generateAdvice} disabled={monthTotal === 0}>{t(lang, 'generate_advice')}</button>
-                            {monthTotal === 0 && <p className="text-xs text-muted mt-2">Add a few expenses first.</p>}
-                        </div>
-                    )}
-                </div>
+                {/* Zaylo AI money health */}
+                <HealthCard onAsk={() => onNavigate('assistant')} />
             </div>
         </div>
     );

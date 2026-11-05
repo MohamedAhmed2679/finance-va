@@ -1,10 +1,11 @@
-import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy } from 'lucide-react';
+import { Sparkles, LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavEntry { key: string; labelKey: string; label?: string; icon: LucideIcon; group: 'money' | 'plan' | 'people' | 'account' | 'admin'; adminOnly?: boolean }
 
 export const NAV: NavEntry[] = [
     { key: 'overview', labelKey: 'overview', icon: LayoutDashboard, group: 'money' },
+    { key: 'assistant', labelKey: 'ask_zaylo', label: 'Ask Zaylo', icon: Sparkles, group: 'money' },
     { key: 'expenses', labelKey: 'expenses', icon: Receipt, group: 'money' },
     { key: 'earnings', labelKey: 'earnings', icon: TrendingUp, group: 'money' },
     { key: 'bills', labelKey: 'bills_commitments', icon: CalendarDays, group: 'money' },
@@ -23,7 +24,8 @@ export const navFor = (isAdmin?: boolean) => NAV.filter(n => !n.adminOnly || isA
 export const PAGE_KEYS = NAV.map(n => n.key);
 
 /** The admin console is a separate app, served at /console (and its own domain when configured). */
-export const ADMIN_CONSOLE_URL = import.meta.env.VITE_ADMIN_CONSOLE_URL || '/console';
+export const ADMIN_CONSOLE_URL = import.meta.env.VITE_ADMIN_CONSOLE_URL
+    || (typeof window !== 'undefined' && window.location.hostname === 'zaylo.cc' ? 'https://admin.zaylo.cc' : '/console');
 
 /** Tabs shown directly in the mobile bar; the rest live under "More". */
 export const TAB_KEYS = ['overview', 'expenses', 'chat'];

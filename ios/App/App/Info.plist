@@ -44,13 +44,13 @@
 		</dict>
 	</array>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Finance VA uses Face ID to unlock the app.</string>
+	<string>Zaylo uses Face ID to unlock the app.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Finance VA uses the camera to photograph receipts you want to add as expenses.</string>
+	<string>Zaylo uses the camera to photograph receipts you want to add as expenses.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Finance VA uses the microphone when you add an expense by voice.</string>
+	<string>Zaylo uses the microphone when you add an expense by voice.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Finance VA lets you attach receipt photos from your library.</string>
+	<string>Zaylo lets you attach receipt photos from your library.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
