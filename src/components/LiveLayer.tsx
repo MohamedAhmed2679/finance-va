@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { X, Megaphone, UserCheck } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { supabase, isSupabaseReady } from '../lib/supabase';
-import { getImpersonation, stopImpersonation } from '../services/adminApi';
+import { getImpersonation, endImpersonation } from '../services/adminApi';
 import { mapNotification } from '../services/mappers';
 
 interface Announcement { id: string; title: string; body: string; level: 'info' | 'success' | 'warning' }
@@ -22,10 +22,10 @@ export function ImpersonationBar() {
     return (
         <div className="impersonation-bar" role="status">
             <UserCheck size={16} />
-            <span>You're signed in as {info.name} ({info.email}).</span>
+            <span>Admin view: you're signed in as {info.name}{info.email ? ` (${info.email})` : ''}. Changes you make are real and logged.</span>
             <button className="btn btn-sm" style={{ background: '#1b1405', color: '#fff' }} disabled={busy}
-                onClick={async () => { setBusy(true); await stopImpersonation(); window.location.assign('/admin?tab=users'); }}>
-                Return to admin
+                onClick={async () => { setBusy(true); await endImpersonation(); }}>
+                End and close
             </button>
         </div>
     );

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, LogOut, Moon, Sun, Plus, Check } from 'lucide-react';
+import { ChevronDown, LogOut, Moon, Sun, Plus, Check, ShieldCheck } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
 import { Seal } from './brand/Brand';
-import { navFor } from './nav';
+import { navFor, ADMIN_CONSOLE_URL } from './nav';
 
 interface SidebarProps { active: string; onNavigate: (page: string) => void; }
 
@@ -99,6 +99,11 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             </nav>
 
             <div className="sidebar-footer">
+                {user?.isAdmin && (
+                    <a className="nav-item" href={ADMIN_CONSOLE_URL} target="_blank" rel="noreferrer">
+                        <ShieldCheck size={18} /><span>Admin console</span>
+                    </a>
+                )}
                 <button className="nav-item" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                     {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                     <span>{theme === 'dark' ? t(lang, 'light_mode') : t(lang, 'dark_mode')}</span>

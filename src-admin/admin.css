@@ -1,0 +1,86 @@
+/* Finance VA admin console — its own frame around the shared design tokens.
+   The rail is a solid ink-green "ledger spine" so the console never reads as the member app. */
+
+html, body { background: var(--paper); }
+#root > * { flex: 1; min-width: 0; }
+
+.adm-loading { min-height: 100dvh; display: grid; place-items: center; }
+.adm-loading svg { animation: adm-pulse 1.4s ease-in-out infinite; }
+@keyframes adm-pulse { 50% { opacity: 0.45; transform: scale(0.96); } }
+
+/* Sign in */
+.adm-auth {
+    min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px;
+    background:
+        radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--note) 14%, transparent), transparent 70%),
+        var(--paper);
+}
+.adm-auth-card {
+    width: 100%; max-width: 420px; background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 20px; padding: 32px 28px; box-shadow: var(--elev-pop);
+}
+.adm-auth-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.adm-auth-brand div { display: flex; flex-direction: column; line-height: 1.15; }
+.adm-auth-brand strong { font-family: var(--font-display); font-size: 18px; }
+.adm-auth-brand span { font-size: 13px; color: var(--ink-3); }
+.adm-link {
+    display: block; margin: 12px auto 0; background: none; border: 0; color: var(--note);
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.adm-auth-card .btn-secondary { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* Shell */
+.adm-shell { display: grid; grid-template-columns: 252px minmax(0, 1fr); min-height: 100dvh; }
+.adm-rail {
+    position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 18px;
+    background: var(--note-deep, #12392C); color: #E9F2EC; padding: 22px 14px;
+}
+.adm-rail-brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 6px; }
+.adm-rail-brand div { display: flex; flex-direction: column; line-height: 1.15; flex: 1; }
+.adm-rail-brand strong { font-family: var(--font-display); font-size: 17px; }
+.adm-rail-brand span { font-size: 12.5px; color: rgba(233, 242, 236, 0.66); }
+.adm-rail-close { display: none; background: none; border: 0; color: inherit; cursor: pointer; }
+.adm-rail nav { display: flex; flex-direction: column; gap: 2px; }
+.adm-rail-item {
+    position: relative; display: flex; align-items: center; gap: 11px; width: 100%;
+    padding: 10px 12px; border: 0; border-radius: 10px; background: none; color: rgba(233, 242, 236, 0.78);
+    font: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; text-decoration: none; text-align: start;
+}
+.adm-rail-item > * { position: relative; z-index: 1; }
+.adm-rail-item:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+.adm-rail-item.active { color: var(--ink); font-weight: 600; }
+.adm-rail-pill { position: absolute !important; inset: 0; z-index: 0 !important; border-radius: 10px; background: var(--paper); }
+.adm-rail-item:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.adm-rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.adm-me { display: flex; align-items: center; gap: 10px; padding: 10px 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.adm-me-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.adm-me-text strong { font-size: 13.5px; }
+.adm-me-text span { font-size: 12px; color: rgba(233, 242, 236, 0.62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; border: 0; background: none; color: inherit; cursor: pointer; }
+.adm-icon:hover { background: rgba(127, 127, 127, 0.14); }
+
+.adm-main { min-width: 0; }
+.adm-top {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px;
+    padding: 18px 32px; background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+}
+.adm-top h1 { font-family: var(--font-display); font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+.adm-menu { display: none; color: var(--ink); }
+.adm-body { padding: 24px 32px 48px; max-width: 1280px; }
+.adm-scrim { display: none; }
+
+@media (max-width: 860px) {
+    .adm-shell { grid-template-columns: minmax(0, 1fr); }
+    .adm-rail {
+        position: fixed; inset: 0 auto 0 0; width: min(290px, 86vw); z-index: 1200;
+        transform: translateX(-102%); transition: transform 0.28s var(--ease-out, ease);
+    }
+    .adm-rail.open { transform: none; }
+    .adm-rail-close { display: inline-grid; }
+    .adm-scrim { display: block; position: fixed; inset: 0; z-index: 1150; background: rgba(10, 20, 16, 0.42); }
+    .adm-menu { display: inline-grid; }
+    .adm-top { padding: 12px 16px; }
+    .adm-top h1 { font-size: 20px; }
+    .adm-body { padding: 16px 16px 40px; }
+}

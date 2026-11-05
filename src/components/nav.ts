@@ -1,4 +1,4 @@
-import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavEntry { key: string; labelKey: string; label?: string; icon: LucideIcon; group: 'money' | 'plan' | 'people' | 'account' | 'admin'; adminOnly?: boolean }
@@ -16,12 +16,14 @@ export const NAV: NavEntry[] = [
     { key: 'activity', labelKey: 'activity', icon: Bell, group: 'account' },
     { key: 'messages', labelKey: 'messages', label: 'Messages', icon: LifeBuoy, group: 'account' },
     { key: 'settings', labelKey: 'settings', icon: Settings, group: 'account' },
-    { key: 'admin', labelKey: 'admin_console', label: 'Admin console', icon: ShieldCheck, group: 'admin', adminOnly: true },
 ];
 
 export const navFor = (isAdmin?: boolean) => NAV.filter(n => !n.adminOnly || isAdmin);
 
 export const PAGE_KEYS = NAV.map(n => n.key);
+
+/** The admin console is a separate app, served at /console (and its own domain when configured). */
+export const ADMIN_CONSOLE_URL = import.meta.env.VITE_ADMIN_CONSOLE_URL || '/console/';
 
 /** Tabs shown directly in the mobile bar; the rest live under "More". */
 export const TAB_KEYS = ['overview', 'expenses', 'chat'];

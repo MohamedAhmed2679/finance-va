@@ -1,12 +1,29 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/((?!api/|assets/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|assets/|.*\\.[a-zA-Z0-9]+$).*)",
+      "has": [{ "type": "host", "value": "finance-va-admin.vercel.app" }],
+      "destination": "/admin.html"
+    },
+    { "source": "/console", "destination": "/admin.html" },
+    { "source": "/console/:path*", "destination": "/admin.html" },
+    { "source": "/((?!api/|assets/|console|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { "source": "/admin", "destination": "/console/", "permanent": false }
   ],
   "headers": [
     {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/console(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
     },
     {
       "source": "/(.*)",

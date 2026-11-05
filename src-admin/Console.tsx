@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, createContext, useContext } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Users, MessageSquare, Megaphone, Bell, ScrollText, Search, UserPlus, X, ShieldCheck, ShieldOff, Ban, KeyRound, Trash2, LogIn, Send, RefreshCw, FolderOpen, Plus, Gauge } from 'lucide-react';
-import { adminCall, startImpersonation } from '../../services/adminApi';
-import { useStore } from '../../store/useStore';
+import { adminCall, openAsUser, MAIN_APP_URL, type Me } from './client';
+
+const MeContext = createContext<Me | null>(null);
 
 type Tab = 'overview' | 'users' | 'workspaces' | 'messages' | 'announcements' | 'notify' | 'logs';
 type Row = Record<string, any>;
@@ -176,7 +177,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 email: mode !== 'phone' ? email : undefined,
                 phone: mode === 'phone' ? phone : undefined,
                 password: mode === 'password' ? password : undefined,
-                redirectTo: `${window.location.origin}/`,
+                redirectTo: `${MAIN_APP_URL}/`,
             });
             toast.success(res.invited ? `Invitation emailed to ${email}` : 'User created');
             onCreated();
@@ -208,7 +209,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
 function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
     const { data, error, loading, reload } = useAdmin<Row>('getUser', { id }, [id]);
-    const me = useStore(s => s.user);
+    const me = useContext(MeContext);
     const [busy, setBusy] = useState('');
     const [note, setNote] = useState('');
     const u = data?.user;
@@ -221,10 +222,11 @@ function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
         finally { setBusy(''); }
     }
     async function impersonate() {
-        if (!confirm(`Sign in as ${u?.name}? You'll see the app exactly as they do. Use "Return to admin" in the banner to come back. This is logged.`)) return;
+        if (!confirm(`Open Finance VA as ${u?.name}? It opens in a new tab, signed in as them. You stay signed in here. This is logged.`)) return;
         setBusy('impersonate');
-        try { await startImpersonation(id); window.location.assign('/overview'); }
-        catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); setBusy(''); }
+        try { await openAsUser(id); }
+        catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
+        finally { setBusy(''); }
     }
     async function send() {
         if (!note.trim()) return;
@@ -233,7 +235,7 @@ function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
         catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
         finally { setBusy(''); }
     }
-    const self = u && me?.dbId === u.id;
+    const self = u && me?.id === u.id;
 
     return (
         <>
@@ -261,8 +263,8 @@ function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
                         </dl>
 
                         <div className="admin-actions">
-                            <button className="btn btn-secondary btn-sm" disabled={!!busy || !!self} onClick={impersonate}><LogIn size={15} /> Sign in as user</button>
-                            <button className="btn btn-secondary btn-sm" disabled={!!busy || !u.email} onClick={() => act('resetPassword', { id, redirectTo: `${window.location.origin}/?type=recovery` }, 'Password reset email sent')}><KeyRound size={15} /> Send password reset</button>
+                            <button className="btn btn-secondary btn-sm" disabled={!!busy || !!self} onClick={impersonate}><LogIn size={15} /> Open app as user</button>
+                            <button className="btn btn-secondary btn-sm" disabled={!!busy || !u.email} onClick={() => act('resetPassword', { id, redirectTo: `${MAIN_APP_URL}/?type=recovery` }, 'Password reset email sent')}><KeyRound size={15} /> Send password reset</button>
                             <button className="btn btn-secondary btn-sm" disabled={!!busy || !!self} onClick={() => act('updateUser', { id, isAdmin: !u.is_admin }, u.is_admin ? 'Admin access removed' : 'Now an admin', u.is_admin ? undefined : `Give ${u.name} full admin access?`)}>
                                 {u.is_admin ? <><ShieldOff size={15} /> Remove admin</> : <><ShieldCheck size={15} /> Make admin</>}
                             </button>
@@ -535,37 +537,14 @@ function LogsTab() {
 }
 
 // ───────────────────────── Shell ─────────────────────────
-export default function AdminPage() {
-    const user = useStore(s => s.user);
-    const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') as Tab) || 'overview');
+export const TAB_LIST = TABS;
+export type { Tab };
+
+export default function Console({ me, tab, setTab }: { me: Me; tab: Tab; setTab: (t: Tab) => void }) {
     const [openUser, setOpenUser] = useState<string | null>(null);
     const [usersKey, setUsersKey] = useState(0);
-    useEffect(() => { const u = new URL(window.location.href); u.searchParams.set('tab', tab); window.history.replaceState({}, '', u); }, [tab]);
-
-    if (!user?.isAdmin) {
-        return (
-            <div className="page"><div className="empty-state" style={{ paddingTop: 80 }}>
-                <div className="empty-title">Admins only</div>
-                <div className="empty-desc">This area is for Finance VA administrators.</div>
-            </div></div>
-        );
-    }
-
     return (
-        <div className="page">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Admin console</h1>
-                    <p className="page-subtitle">Signed in as {user.email}. Every change here is logged.</p>
-                </div>
-            </div>
-            <div className="tabs" role="tablist">
-                {TABS.map(t => (
-                    <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-                        <span className="flex items-center gap-2"><t.icon size={16} />{t.label}</span>
-                    </button>
-                ))}
-            </div>
+        <MeContext.Provider value={me}>
             <AnimatePresence mode="wait">
                 <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                     {tab === 'overview' && <Overview go={setTab} />}
@@ -580,6 +559,6 @@ export default function AdminPage() {
             <AnimatePresence>
                 {openUser && <UserDrawer id={openUser} onClose={() => setOpenUser(null)} onChanged={() => setUsersKey(k => k + 1)} />}
             </AnimatePresence>
-        </div>
+        </MeContext.Provider>
     );
 }

@@ -22,6 +22,8 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
+      // Two separate apps: the member app and the admin console.
+      input: isElectron ? undefined : { main: 'index.html', admin: 'admin.html' },
       output: {
         manualChunks: {
           react: ['react', 'react-dom', 'react-router-dom'],

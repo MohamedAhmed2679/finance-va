@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { useStore } from './store/useStore';
 import { fetchUserProfile } from './services/supabaseSync';
 import { onAuthStateChange, initNativeAuthListener } from './services/authProvider';
+import { consumeImpersonationLink } from './services/adminApi';
 import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
 import { PAGE_KEYS } from './components/nav';
@@ -22,7 +23,6 @@ import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
-import AdminPage from './pages/admin/AdminPage';
 import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './components/LiveLayer';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
@@ -45,6 +45,7 @@ function restoreSession(): Promise<void> {
 async function doRestore() {
     const { supabase, isSupabaseReady } = await import('./lib/supabase');
     if (!isSupabaseReady() || !supabase) return;
+    await consumeImpersonationLink();
     const { data } = await supabase.auth.getSession();
     const sbUser = data.session?.user;
     if (!sbUser) return;
@@ -113,7 +114,6 @@ function Shell() {
         settings: <SettingsPage />,
         chat: <ChatPage />,
         messages: <MessagesPage />,
-        admin: <AdminPage />,
     };
     useLiveNotifications();
 
@@ -135,7 +135,7 @@ function Shell() {
             </main>
             <TabBar active={active} onNavigate={go} />
 
-            {!['chat', 'messages', 'admin'].includes(active) && <QuickAddMenu
+            {!['chat', 'messages'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setShowVoiceEntry(true)}
                 onScanAdd={() => setShowSMSParser(true)}
