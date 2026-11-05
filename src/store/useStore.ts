@@ -1,12 +1,10 @@
 import { withBase } from '../utils/money';
+import { enqueue, flushOutbox, pendingChanges, setOutboxOwner } from '../services/outbox';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CATEGORIES, PAYMENT_METHODS, WORKSPACE_COLORS } from '../constants';
 import {
-    syncExpenseToCloud, deleteExpenseFromCloud, fetchExpensesFromCloud,
-    syncIncomeToCloud, deleteIncomeFromCloud, fetchIncomesFromCloud,
-    syncBillToCloud, deleteBillFromCloud, fetchBillsFromCloud,
-    syncSavingsGoalToCloud, deleteSavingsGoalFromCloud, fetchSavingsGoalsFromCloud,
+    fetchExpensesFromCloud, fetchIncomesFromCloud, fetchBillsFromCloud, fetchSavingsGoalsFromCloud,
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
     fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud,
@@ -18,6 +16,14 @@ import toast from 'react-hot-toast';
 import { isSupabaseReady } from '../lib/supabase';
 
 let lastSyncToast = 0;
+// Per-account memory of the last workspace and whether the account ever had one.
+const lsGet = (k: string) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+function rememberWorkspace(authId: string | undefined, wsId: string) { if (authId && wsId) lsSet(`zaylo_last_ws_${authId}`, wsId); }
+function recalledWorkspace(authId: string | undefined) { return authId ? lsGet(`zaylo_last_ws_${authId}`) : ''; }
+function markHasWorkspaces(userId: string) { lsSet(`zaylo_has_ws_${userId}`, '1'); }
+function hadWorkspaces(userId: string) { return lsGet(`zaylo_has_ws_${userId}`) === '1'; }
+
 /** Marks the store as out of sync and tells the user once per burst of failures. */
 function reportSyncError(err: unknown) {
     console.error('[Sync]', err);
@@ -25,8 +31,8 @@ function reportSyncError(err: unknown) {
     if (Date.now() - lastSyncToast > 8000) {
         lastSyncToast = Date.now();
         toast.error(navigator.onLine === false
-            ? "You're offline. Changes are saved on this device and need to be re-entered online."
-            : "Couldn't save to the cloud. Your change is kept on this device.", { id: 'sync-error' });
+            ? "You're offline. Your changes are saved and will sync automatically when you're back online."
+            : "Couldn't save to the cloud yet. Your change is kept and will retry automatically.", { id: 'sync-error' });
     }
 }
 
@@ -355,6 +361,8 @@ export const useStore = create<AppState>()(
                 get().hydrateStore();
             },
             logout: () => {
+                // Unsent changes stay in the outbox and are sent the next time this user signs in.
+                flushOutbox().catch(() => {}).finally(() => setOutboxOwner(''));
                 supabaseSignOut().catch(() => {});
                 set({ 
                 isAuthenticated: false, 
@@ -377,6 +385,7 @@ export const useStore = create<AppState>()(
             },
             setActiveWorkspace: (id) => {
                 set({ activeWorkspaceId: id });
+                rememberWorkspace(get().user?.id, id);
                 get().loadWorkspaceData(id).catch(reportSyncError);
             },
             loadWorkspaceData: async (wsId) => {
@@ -390,14 +399,20 @@ export const useStore = create<AppState>()(
                     return;
                 }
                 // The cloud is the source of truth for this workspace; other workspaces' rows are untouched.
+                // Rows with changes still waiting in the outbox keep their local version.
                 set(s => {
-                    const merge = <T extends { workspaceId: string }>(local: T[], cloud: T[] | null) =>
-                        cloud === null ? local : [...cloud, ...local.filter(l => l.workspaceId !== wsId)];
+                    const merge = <T extends { id: string; workspaceId: string }>(local: T[], cloud: T[] | null, kind: 'expense' | 'income' | 'bill' | 'goal') => {
+                        if (cloud === null) return local;
+                        const { rows, deleted } = pendingChanges<T>(kind, wsId);
+                        const keepIds = new Set(rows.map(r => r.id));
+                        const fromCloud = cloud.filter(c => !keepIds.has(c.id) && !deleted.has(c.id));
+                        return [...rows, ...fromCloud, ...local.filter(l => l.workspaceId !== wsId)];
+                    };
                     return {
-                        expenses: merge(s.expenses, expenses ? expenses.map(mapExpense) : null),
-                        incomes: merge(s.incomes, incomes ? incomes.map(mapIncome) : null),
-                        bills: merge(s.bills, bills ? bills.map(mapBill) : null),
-                        savingsGoals: merge(s.savingsGoals, goals ? goals.map(mapGoal) : null),
+                        expenses: merge(s.expenses, expenses ? expenses.map(mapExpense) : null, 'expense'),
+                        incomes: merge(s.incomes, incomes ? incomes.map(mapIncome) : null, 'income'),
+                        bills: merge(s.bills, bills ? bills.map(mapBill) : null, 'bill'),
+                        savingsGoals: merge(s.savingsGoals, goals ? goals.map(mapGoal) : null, 'goal'),
                         syncStatus: 'synced',
                     };
                 });
@@ -439,7 +454,7 @@ export const useStore = create<AppState>()(
                 const newWorkspaces = s.workspaces.map(w => {
                     if (w.id === id) {
                         const merged = { ...w, ...data };
-                        syncWorkspaceToCloud(merged).catch(reportSyncError);
+                        enqueue('workspace', 'upsert', merged.id, merged).catch(reportSyncError);
                         return merged;
                     }
                     return w;
@@ -554,7 +569,7 @@ export const useStore = create<AppState>()(
                 const newExp: Expense = withBase({ ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false }, ws?.currency);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'expense_added', workspaceId: ws.id, workspaceName: ws.name, message: `New expense of ${exp.amount} ${exp.currency} added in "${ws.name}" by ${exp.createdByName}.`, actioned: false, createdAt: now } : null;
 
-                syncExpenseToCloud(newExp).catch(reportSyncError);
+                enqueue('expense', 'upsert', newExp.id, newExp).catch(reportSyncError);
 
                 return {
                     expenses: [newExp, ...s.expenses],
@@ -569,11 +584,11 @@ export const useStore = create<AppState>()(
                     const ws = s.workspaces.find(w => w.id === merged.workspaceId);
                     merged = withBase(merged, ws?.currency);
                 }
-                syncExpenseToCloud(merged).catch(reportSyncError);
+                enqueue('expense', 'upsert', merged.id, merged).catch(reportSyncError);
                 return { expenses: s.expenses.map(e => e.id === id ? merged : e) };
             }),
             deleteExpense: (id) => set(s => {
-                deleteExpenseFromCloud(id).catch(reportSyncError);
+                enqueue('expense', 'delete', id).catch(reportSyncError);
                 return { expenses: s.expenses.map(e => e.id === id ? { ...e, deleted: true } : e) };
             }),
             setFilters: (f) => set(s => ({ filters: { ...s.filters, ...f } })),
@@ -592,7 +607,7 @@ export const useStore = create<AppState>()(
                 const ws = s.workspaces.find(w => w.id === bill.workspaceId);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: bill.createdByUid, userName: s.user?.name || 'User', action: 'added bill', entityType: 'bill', entityId: newBill.id, timestamp: now } : null;
 
-                syncBillToCloud(newBill).catch(reportSyncError);
+                enqueue('bill', 'upsert', newBill.id, newBill).catch(reportSyncError);
                 if (log) logActivityToCloud({ workspaceId: ws!.id, userId: log.uid, userName: log.userName, action: log.action, entityType: 'bill', entityId: newBill.id }).catch(reportSyncError);
 
                 return {
@@ -606,7 +621,7 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const log: ActivityEntry = { id: generateId(), uid: s.user?.id || 'sys', userName: s.user?.name || 'User', action: `updated bill '${data.name || bill.name}'`, entityType: 'bill', entityId: id, timestamp: now };
 
-                syncBillToCloud({ ...bill, ...data }).catch(reportSyncError);
+                enqueue('bill', 'upsert', bill.id, { ...bill, ...data }).catch(reportSyncError);
                 return {
                     bills: s.bills.map(b => b.id === id ? { ...b, ...data } : b),
                     workspaces: s.workspaces.map(w => w.id === bill.workspaceId ? { ...w, activityLog: [log, ...w.activityLog] } : w)
@@ -618,7 +633,7 @@ export const useStore = create<AppState>()(
                 const now = new Date().toISOString();
                 const log: ActivityEntry = { id: generateId(), uid: s.user?.id || 'sys', userName: s.user?.name || 'User', action: `deleted bill '${bill.name}'`, entityType: 'bill', entityId: id, timestamp: now };
 
-                deleteBillFromCloud(id).catch(reportSyncError);
+                enqueue('bill', 'delete', id).catch(reportSyncError);
 
                 return {
                     bills: s.bills.filter(b => b.id !== id),
@@ -652,8 +667,8 @@ export const useStore = create<AppState>()(
                 };
 
                 // Sync the auto-created expense and the updated bill to cloud
-                syncExpenseToCloud(newExp).catch(reportSyncError);
-                syncBillToCloud({ ...bill, lastPaidMonth: currentMonth }).catch(reportSyncError);
+                enqueue('expense', 'upsert', newExp.id, newExp).catch(reportSyncError);
+                enqueue('bill', 'upsert', bill.id, { ...bill, lastPaidMonth: currentMonth }).catch(reportSyncError);
 
                 return {
                     bills: s.bills.map(b => b.id === id ? { ...b, lastPaidMonth: currentMonth } : b),
@@ -704,16 +719,16 @@ export const useStore = create<AppState>()(
                     console.warn('[Store] Adding savings goal without dbId');
                 }
 
-                syncSavingsGoalToCloud(newGoal).catch(reportSyncError);
+                enqueue('goal', 'upsert', newGoal.id, newGoal).catch(reportSyncError);
                 return { savingsGoals: [...s.savingsGoals, newGoal] };
             }),
             addFundsToGoal: (id: string, amount: number) => set(s => {
                 const goal = s.savingsGoals.find(g => g.id === id);
-                if (goal) syncSavingsGoalToCloud({ ...goal, savedAmount: Math.min(goal.savedAmount + amount, goal.targetAmount) }).catch(reportSyncError);
+                if (goal) enqueue('goal', 'upsert', goal.id, { ...goal, savedAmount: Math.min(goal.savedAmount + amount, goal.targetAmount) }).catch(reportSyncError);
                 return { savingsGoals: s.savingsGoals.map(g => g.id === id ? { ...g, savedAmount: Math.min(g.savedAmount + amount, g.targetAmount) } : g) };
             }),
             deleteSavingsGoal: (id) => set(s => {
-                deleteSavingsGoalFromCloud(id).catch(reportSyncError);
+                enqueue('goal', 'delete', id).catch(reportSyncError);
                 return { savingsGoals: s.savingsGoals.filter(g => g.id !== id) };
             }),
             addIncome: (inc) => set(s => {
@@ -728,7 +743,7 @@ export const useStore = create<AppState>()(
                 const newInc: Income = withBase({ ...inc, id: generateId(), createdByUid: userId, createdAt: now }, ws?.currency);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
 
-                syncIncomeToCloud(newInc).catch(reportSyncError);
+                enqueue('income', 'upsert', newInc.id, newInc).catch(reportSyncError);
 
                 return {
                     incomes: [newInc, ...s.incomes],
@@ -740,11 +755,11 @@ export const useStore = create<AppState>()(
                 if (!inc) return {};
                 let merged: Income = { ...inc, ...data };
                 if (data.amount !== undefined || data.currency !== undefined) merged = withBase(merged, s.workspaces.find(w => w.id === merged.workspaceId)?.currency);
-                syncIncomeToCloud(merged).catch(reportSyncError);
+                enqueue('income', 'upsert', merged.id, merged).catch(reportSyncError);
                 return { incomes: s.incomes.map(i => i.id === id ? merged : i) };
             }),
             deleteIncome: (id) => set(s => {
-                deleteIncomeFromCloud(id).catch(reportSyncError);
+                enqueue('income', 'delete', id).catch(reportSyncError);
                 return { incomes: s.incomes.filter(i => i.id !== id) };
             }),
             setTheme: (t) => { set({ theme: t }); document.documentElement.setAttribute('data-theme', t); },
@@ -807,6 +822,9 @@ export const useStore = create<AppState>()(
                     }
                 }
                 if (!userId) userId = s.user.id;
+                // Send anything this user changed but couldn't sync before (even from a previous session).
+                setOutboxOwner(userId);
+                await flushOutbox().catch(() => {});
 
                 try {
                     let ws = await fetchAccessibleWorkspaces(userId);
@@ -837,8 +855,10 @@ export const useStore = create<AppState>()(
                         const memberRows = await fetchWorkspaceMembers(ws.map(w => w.id));
                         const workspaces = ws.map(w => mapWorkspace(w, memberRows.filter(m => m.workspace_id === w.id).map(m => mapMember(m, self))));
                         // Keep the workspace the user was last on, if it still exists
-                        const current = get().activeWorkspaceId;
+                        const current = get().activeWorkspaceId || recalledWorkspace(s.user.id);
                         const activeId = workspaces.some(w => w.id === current) ? current : workspaces[0].id;
+                        rememberWorkspace(s.user.id, activeId);
+                        markHasWorkspaces(userId);
                         set({ workspaces, activeWorkspaceId: activeId, showOnboarding: false });
                         workspaces.forEach(w => { get().refreshMembers(w.id).catch(() => {}); });
 
@@ -850,6 +870,12 @@ export const useStore = create<AppState>()(
                     } else if (ws === null && isSupabaseReady()) {
                         // Network/DB failure: keep the cached data instead of creating a duplicate workspace
                         set({ syncStatus: navigator.onLine === false ? 'offline' : 'error' });
+                        return;
+                    } else if (hadWorkspaces(userId)) {
+                        // This account had workspaces before: an empty answer is a glitch, never a reason
+                        // to start over with a blank workspace.
+                        set({ syncStatus: 'error' });
+                        toast.error("Couldn't load your workspaces. Your data is safe — pull to refresh or reload.", { id: 'ws-load' });
                         return;
                     } else {
                         // Create a default workspace for new user using the safe internal ID

@@ -1508,3 +1508,11 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .lightbox-count { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 12px; opacity: .7; }
 @media (max-width: 640px) { .lightbox-stage { padding: 4px 4px 44px; } .lightbox-nav { top: auto; bottom: 6px; transform: none; } }
 @media (max-width: 860px) { .chat-members { max-height: none; } }
+
+/* ── History / checkpoints ───────────────────────────── */
+.history-pending { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 14px 16px; border-color: var(--primary); color: var(--text); flex-wrap: wrap; }
+.history-pending > div { flex: 1; min-width: 200px; font-size: 13.5px; }
+.history-filter { max-width: 380px; margin-bottom: 14px; }
+.history-day { font-size: 13px; font-weight: 600; color: var(--text-muted); padding: 16px 4px 6px; border-bottom: 1px solid var(--line); }
+.history-row { grid-template-columns: minmax(0, 1fr) auto !important; align-items: center; }
+.history-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; overflow-wrap: anywhere; }

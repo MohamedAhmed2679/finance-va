@@ -29,6 +29,7 @@ import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
+import HistoryPage from './pages/HistoryPage';
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
@@ -112,6 +113,7 @@ function Shell() {
         converter: <ConverterPage />,
         workspaces: <WorkspacesPage />,
         activity: <ActivityPage />,
+        history: <HistoryPage />,
         settings: <SettingsPage />,
         chat: <ChatPage />,
         assistant: <AssistantPage />,

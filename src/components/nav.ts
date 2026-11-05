@@ -1,4 +1,4 @@
-import { Sparkles, LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy } from 'lucide-react';
+import { Sparkles, LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy, History } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavEntry { key: string; labelKey: string; label?: string; icon: LucideIcon; group: 'money' | 'plan' | 'people' | 'account' | 'admin'; adminOnly?: boolean }
@@ -15,6 +15,7 @@ export const NAV: NavEntry[] = [
     { key: 'chat', labelKey: 'chat', label: 'Workspace chat', icon: MessagesSquare, group: 'people' },
     { key: 'workspaces', labelKey: 'workspaces', icon: FolderOpen, group: 'people' },
     { key: 'activity', labelKey: 'activity', icon: Bell, group: 'account' },
+    { key: 'history', labelKey: 'history', label: 'History', icon: History, group: 'account' },
     { key: 'messages', labelKey: 'messages', label: 'Messages', icon: LifeBuoy, group: 'account' },
     { key: 'settings', labelKey: 'settings', icon: Settings, group: 'account' },
 ];
