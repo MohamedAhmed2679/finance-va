@@ -1,3 +1,4 @@
+import { toBase } from '../utils/money';
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
@@ -15,31 +16,31 @@ export default function InsightsPage() {
 
     const catData = useMemo(() => {
         const map: Record<string, number> = {};
-        wsExp.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+        wsExp.forEach(e => { map[e.category] = (map[e.category] || 0) + toBase(e, cur); });
         return Object.entries(map).map(([cat, val]) => { const info = getCategoryInfo(cat); return { name: info.label, value: +val.toFixed(2), color: info.color, emoji: info.emoji }; }).sort((a, b) => b.value - a.value);
     }, [wsExp]);
 
     const pmData = useMemo(() => {
         const map: Record<string, number> = {};
-        wsExp.forEach(e => { map[e.paymentMethod] = (map[e.paymentMethod] || 0) + e.amount; });
+        wsExp.forEach(e => { map[e.paymentMethod] = (map[e.paymentMethod] || 0) + toBase(e, cur); });
         return Object.entries(map).map(([pm, val]) => { const info = getPaymentMethodInfo(pm); return { name: info.label, value: +val.toFixed(2), emoji: info.emoji }; });
     }, [wsExp]);
 
     const merchantData = useMemo(() => {
         const map: Record<string, number> = {};
-        wsExp.forEach(e => { map[e.merchant] = (map[e.merchant] || 0) + e.amount; });
+        wsExp.forEach(e => { map[e.merchant] = (map[e.merchant] || 0) + toBase(e, cur); });
         return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([m, v]) => ({ name: m, value: +v.toFixed(2) }));
     }, [wsExp]);
 
     const monthlyData = useMemo(() => {
         const map: Record<string, number> = {};
-        wsExp.forEach(e => { const month = e.purchaseAt.slice(0, 7); map[month] = (map[month] || 0) + e.amount; });
+        wsExp.forEach(e => { const month = e.purchaseAt.slice(0, 7); map[month] = (map[month] || 0) + toBase(e, cur); });
         return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0])).slice(-6).map(([m, v]) => ({ month: m.slice(5) + '/' + m.slice(2, 4), amount: +v.toFixed(2) }));
     }, [wsExp]);
 
-    const total = wsExp.reduce((s, e) => s + e.amount, 0);
+    const total = wsExp.reduce((s, e) => s + toBase(e, cur), 0);
     const avg = wsExp.length ? total / wsExp.length : 0;
-    const maxExpense = wsExp.reduce((m, e) => e.amount > m.amount ? e : m, wsExp[0]);
+    const maxExpense = wsExp.reduce((m, e) => toBase(e, cur) > toBase(m, cur) ? e : m, wsExp[0]);
 
     const COLORS = ['var(--note)', '#06d6a0', 'var(--amber)', '#3b82f6', '#ec4899', 'var(--cinnabar)', '#14b8a6', '#84cc16'];
 
@@ -59,7 +60,7 @@ export default function InsightsPage() {
                 {[
                     { label: 'Total Spent', value: <CurrencyDisplay amount={total} currency={cur} hideAmounts={hideAmounts} /> },
                     { label: 'Avg Transaction', value: <CurrencyDisplay amount={avg} currency={cur} hideAmounts={hideAmounts} /> },
-                    { label: 'Largest Expense', value: maxExpense ? <CurrencyDisplay amount={maxExpense.amount} currency={cur} hideAmounts={hideAmounts} /> : '-' },
+                    { label: 'Largest Expense', value: maxExpense ? <CurrencyDisplay amount={toBase(maxExpense, cur)} currency={cur} hideAmounts={hideAmounts} /> : '-' },
                 ].map((stat, i) => (
                     <div key={i} className="card stat-card animate-fadeIn" style={{ animationDelay: `${i * 60}ms` }}>
                         <div className="stat-label">{stat.label}</div>

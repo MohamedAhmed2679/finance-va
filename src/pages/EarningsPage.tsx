@@ -4,7 +4,10 @@ import { t } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
 import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
-import { convertAmountSync, preloadRates } from '../services/exchangeRates';
+import { preloadRates } from '../services/exchangeRates';
+import { toBase } from '../utils/money';
+import { CURRENCIES } from '../constants';
+import ConversionHint from '../components/ConversionHint';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 
 export default function EarningsPage() {
@@ -25,6 +28,8 @@ export default function EarningsPage() {
     const [incAmount, setIncAmount] = useState('');
     const [incType, setIncType] = useState<'fixed' | 'variable'>('fixed');
     const [incDate, setIncDate] = useState('');
+    const [incCurrency, setIncCurrency] = useState(cur);
+    useEffect(() => { setIncCurrency(cur); }, [cur]);
 
     // Active Cycle calculations
     const today = new Date();
@@ -42,8 +47,8 @@ export default function EarningsPage() {
     // Preload exchange rates
     useEffect(() => { preloadRates(); }, []);
 
-    const fixedTotal = activeIncomes.filter(i => i.type === 'fixed').reduce((sum, i) => sum + (convertAmountSync(i.amount, i.currency, cur) ?? i.amount), 0);
-    const variableTotal = activeIncomes.filter(i => i.type === 'variable').reduce((sum, i) => sum + (convertAmountSync(i.amount, i.currency, cur) ?? i.amount), 0);
+    const fixedTotal = activeIncomes.filter(i => i.type === 'fixed').reduce((sum, i) => sum + toBase(i, cur), 0);
+    const variableTotal = activeIncomes.filter(i => i.type === 'variable').reduce((sum, i) => sum + toBase(i, cur), 0);
     const totalIncome = fixedTotal + variableTotal;
 
     // Calculate expenses for this exact cycle
@@ -53,7 +58,7 @@ export default function EarningsPage() {
         e.purchaseAt.slice(0, 10) >= cycleStart &&
         e.purchaseAt.slice(0, 10) <= cycleEnd
     );
-    const totalSpent = cycleExpenses.reduce((sum, e) => sum + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
+    const totalSpent = cycleExpenses.reduce((sum, e) => sum + toBase(e, cur), 0);
     const leftover = totalIncome - totalSpent;
 
     function handleAddIncome(e: React.FormEvent) {
@@ -65,7 +70,7 @@ export default function EarningsPage() {
             createdByUid: user?.id || 'sys',
             name: incName,
             amount: parseFloat(incAmount),
-            currency: cur,
+            currency: incCurrency,
             type: incType,
             date: incType === 'variable' ? incDate : new Date().toISOString()
         });
@@ -132,8 +137,14 @@ export default function EarningsPage() {
                                 <input type="text" className="form-input" value={incName} onChange={e => setIncName(e.target.value)} required autoFocus />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Amount ({cur})</label>
-                                <input type="number" step="0.01" className="form-input" value={incAmount} onChange={e => setIncAmount(e.target.value)} required />
+                                <label className="form-label" htmlFor="inc-amount">Amount</label>
+                                <div className="amount-currency">
+                                    <select className="form-select" aria-label="Currency" value={incCurrency} onChange={e => setIncCurrency(e.target.value)}>
+                                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+                                    </select>
+                                    <input id="inc-amount" type="number" step="0.01" min="0" className="form-input" value={incAmount} onChange={e => setIncAmount(e.target.value)} required />
+                                </div>
+                                <ConversionHint amount={incAmount} from={incCurrency} to={cur} />
                             </div>
                             {incType === 'variable' && (
                                 <div className="form-group">
@@ -176,7 +187,7 @@ export default function EarningsPage() {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                                         <span style={{ fontWeight: 700, fontSize: 16 }}>
-                                            <CurrencyDisplay amount={inc.amount} currency={inc.currency} hideAmounts={hideAmounts} />
+                                            <CurrencyDisplay amount={inc.amount} currency={inc.currency} entry={inc} showOriginal hideAmounts={hideAmounts} />
                                         </span>
                                         {!isViewer && (
                                             <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm('Delete income source?')) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>

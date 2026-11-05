@@ -1,3 +1,4 @@
+import { withBase } from '../utils/money';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CATEGORIES, PAYMENT_METHODS, WORKSPACE_COLORS } from '../constants';
@@ -146,6 +147,10 @@ export interface Expense {
     ocrText?: string;
     source: 'manual' | 'ocr' | 'import';
     deleted: boolean;
+    /** Value in the workspace currency at entry time (multi-currency). */
+    baseAmount?: number;
+    baseCurrency?: string;
+    fxRate?: number;
 }
 
 export interface MonthlyBill {
@@ -186,6 +191,9 @@ export interface Income {
     type: 'fixed' | 'variable';
     date: string; // ISO date string for variable income, or just the creation date for fixed
     createdAt: string;
+    baseAmount?: number;
+    baseCurrency?: string;
+    fxRate?: number;
 }
 
 export interface AppFilters {
@@ -542,8 +550,8 @@ export const useStore = create<AppState>()(
                     console.warn('[Store] Adding expense without dbId');
                 }
 
-                const newExp: Expense = { ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false };
                 const ws = s.workspaces.find(w => w.id === exp.workspaceId);
+                const newExp: Expense = withBase({ ...exp, id: generateId(), createdByUid: userId, createdAt: now, updatedAt: now, deleted: false }, ws?.currency);
                 const newNotif: AppNotification | null = ws ? { id: generateId(), type: 'expense_added', workspaceId: ws.id, workspaceName: ws.name, message: `New expense of ${exp.amount} ${exp.currency} added in "${ws.name}" by ${exp.createdByName}.`, actioned: false, createdAt: now } : null;
 
                 syncExpenseToCloud(newExp).catch(reportSyncError);
@@ -555,11 +563,14 @@ export const useStore = create<AppState>()(
             }),
             updateExpense: (id, data) => set(s => {
                 const exp = s.expenses.find(e => e.id === id);
-                if (exp) {
-                    const merged = { ...exp, ...data, updatedAt: new Date().toISOString() };
-                    syncExpenseToCloud(merged).catch(reportSyncError);
+                if (!exp) return {};
+                let merged: Expense = { ...exp, ...data, updatedAt: new Date().toISOString() };
+                if (data.amount !== undefined || data.currency !== undefined) {
+                    const ws = s.workspaces.find(w => w.id === merged.workspaceId);
+                    merged = withBase(merged, ws?.currency);
                 }
-                return { expenses: s.expenses.map(e => e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e) };
+                syncExpenseToCloud(merged).catch(reportSyncError);
+                return { expenses: s.expenses.map(e => e.id === id ? merged : e) };
             }),
             deleteExpense: (id) => set(s => {
                 deleteExpenseFromCloud(id).catch(reportSyncError);
@@ -713,8 +724,8 @@ export const useStore = create<AppState>()(
                     console.warn('[Store] Adding income without dbId');
                 }
 
-                const newInc = { ...inc, id: generateId(), createdByUid: userId, createdAt: now };
                 const ws = s.workspaces.find(w => w.id === inc.workspaceId);
+                const newInc: Income = withBase({ ...inc, id: generateId(), createdByUid: userId, createdAt: now }, ws?.currency);
                 const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: `added ${inc.type} income`, entityType: 'income', entityId: newInc.id, timestamp: now } : null;
 
                 syncIncomeToCloud(newInc).catch(reportSyncError);
@@ -726,8 +737,11 @@ export const useStore = create<AppState>()(
             }),
             updateIncome: (id, data) => set(s => {
                 const inc = s.incomes.find(i => i.id === id);
-                if (inc) syncIncomeToCloud({ ...inc, ...data }).catch(reportSyncError);
-                return { incomes: s.incomes.map(i => i.id === id ? { ...i, ...data } : i) };
+                if (!inc) return {};
+                let merged: Income = { ...inc, ...data };
+                if (data.amount !== undefined || data.currency !== undefined) merged = withBase(merged, s.workspaces.find(w => w.id === merged.workspaceId)?.currency);
+                syncIncomeToCloud(merged).catch(reportSyncError);
+                return { incomes: s.incomes.map(i => i.id === id ? merged : i) };
             }),
             deleteIncome: (id) => set(s => {
                 deleteIncomeFromCloud(id).catch(reportSyncError);

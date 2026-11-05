@@ -14,6 +14,12 @@ const brandColor = (c: string) => { const i = OLD_PALETTE.indexOf(c.toUpperCase(
 type Row = Record<string, any>;
 const num = (v: unknown) => (v === null || v === undefined || v === '' ? 0 : Number(v));
 const str = (v: unknown, d = '') => (v === null || v === undefined ? d : String(v));
+const optNum = (v: unknown) => (v === null || v === undefined || v === '' ? undefined : Number(v));
+const fx = (r: Row) => ({
+    baseAmount: optNum(r.base_amount ?? r.baseAmount),
+    baseCurrency: (r.base_currency ?? r.baseCurrency) || undefined,
+    fxRate: optNum(r.fx_rate ?? r.fxRate),
+});
 
 export function mapExpense(r: Row): Expense {
     return {
@@ -37,6 +43,7 @@ export function mapExpense(r: Row): Expense {
         ocrText: r.ocr_text ?? r.ocrText ?? undefined,
         source: (r.source === 'bill' ? 'manual' : r.source) || 'manual',
         deleted: Boolean(r.is_deleted ?? r.deleted ?? false),
+        ...fx(r),
     };
 }
 
@@ -51,6 +58,7 @@ export function mapIncome(r: Row): Income {
         type: r.type === 'variable' ? 'variable' : 'fixed',
         date: str(r.income_date ?? r.date ?? r.created_at, new Date().toISOString()),
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),
+        ...fx(r),
     };
 }
 

@@ -23,6 +23,7 @@ import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../c
 import { Search, Filter, X, Trash2, Plus, Edit2, Target } from 'lucide-react';
 import AddExpenseModal from '../components/AddExpenseModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
+import { toBase } from '../utils/money';
 
 interface ExpensesProps { }
 
@@ -52,7 +53,9 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const hideAmounts = user?.hideAmounts ?? false;
 
     const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
-    const maxAmt = Math.max(...wsExp.map(e => e.amount), 100);
+    const wsCur = activeWorkspace?.currency ?? currency;
+    const base = (e: Expense) => toBase(e, wsCur);
+    const maxAmt = Math.ceil(Math.max(...wsExp.map(base), 100));
 
     const filtered = useMemo(() => {
         let result = wsExp;
@@ -61,12 +64,12 @@ export default function ExpensesPage({ }: ExpensesProps) {
         if (filters.paymentMethods.length) result = result.filter(e => filters.paymentMethods.includes(e.paymentMethod));
         if (filters.dateFrom) result = result.filter(e => e.purchaseAt >= filters.dateFrom!);
         if (filters.dateTo) result = result.filter(e => e.purchaseAt <= filters.dateTo! + 'T23:59:59Z');
-        if (filters.amountMax != null) result = result.filter(e => e.amount <= filters.amountMax!);
-        if (filters.amountMin != null) result = result.filter(e => e.amount >= filters.amountMin!);
+        if (filters.amountMax != null) result = result.filter(e => base(e) <= filters.amountMax!);
+        if (filters.amountMin != null) result = result.filter(e => base(e) >= filters.amountMin!);
         switch (filters.sortBy) {
             case 'date_asc': return [...result].sort((a, b) => a.purchaseAt.localeCompare(b.purchaseAt));
-            case 'amount_desc': return [...result].sort((a, b) => b.amount - a.amount);
-            case 'amount_asc': return [...result].sort((a, b) => a.amount - b.amount);
+            case 'amount_desc': return [...result].sort((a, b) => base(b) - base(a));
+            case 'amount_asc': return [...result].sort((a, b) => base(a) - base(b));
             default: return [...result].sort((a, b) => b.purchaseAt.localeCompare(a.purchaseAt));
         }
     }, [wsExp, filters]);
@@ -114,38 +117,36 @@ export default function ExpensesPage({ }: ExpensesProps) {
 
                 {/* Filters panel */}
                 {showFilters && (
-                    <div className="animate-fadeIn" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                        <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                            <div>
-                                <div className="form-label">Category</div>
-                                <div className="category-chips">
-                                    {categories.map(cat => (
-                                        <div key={cat.key} className={`category - chip ${filters.categories.includes(cat.key as any) ? 'selected' : ''} `} onClick={() => toggleCategory(cat.key)}>
-                                            {cat.emoji} {cat.label}
-                                        </div>
-                                    ))}
-                                </div>
+                    <div className="filter-panel animate-fadeIn">
+                        <fieldset className="filter-group filter-group-wide">
+                            <legend className="form-label">Category</legend>
+                            <div className="chip-wrap">
+                                {categories.map(cat => (
+                                    <button type="button" key={cat.key} aria-pressed={filters.categories.includes(cat.key as any)} className={`category-chip ${filters.categories.includes(cat.key as any) ? 'selected' : ''}`} onClick={() => toggleCategory(cat.key)}>
+                                        {cat.emoji} {cat.label}
+                                    </button>
+                                ))}
                             </div>
-                            <div>
-                                <div className="form-label">Date Range</div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    <input type="date" className="form-input" value={filters.dateFrom ?? ''} onChange={e => setFilters({ dateFrom: e.target.value || undefined })} />
-                                    <input type="date" className="form-input" value={filters.dateTo ?? ''} onChange={e => setFilters({ dateTo: e.target.value || undefined })} />
-                                </div>
+                        </fieldset>
+                        <fieldset className="filter-group">
+                            <legend className="form-label">Date range</legend>
+                            <div className="date-pair">
+                                <label><span>From</span><input type="date" className="form-input" value={filters.dateFrom ?? ''} onChange={e => setFilters({ dateFrom: e.target.value || undefined })} /></label>
+                                <label><span>To</span><input type="date" className="form-input" value={filters.dateTo ?? ''} onChange={e => setFilters({ dateTo: e.target.value || undefined })} /></label>
                             </div>
-                            <div>
-                                <div className="form-label">Max Amount: ${filters.amountMax ?? maxAmt}</div>
-                                <input type="range" min={0} max={maxAmt} value={filters.amountMax ?? maxAmt} onChange={e => setFilters({ amountMax: +e.target.value })} style={{ width: '100%', accentColor: 'var(--primary)' }} />
-                                <div className="form-label" style={{ marginTop: 12 }}>Payment Method</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                    {paymentMethods.map(pm => (
-                                        <div key={pm.key} className={`category - chip ${filters.paymentMethods.includes(pm.key as any) ? 'selected' : ''} `} onClick={() => { const pms = filters.paymentMethods.includes(pm.key as any) ? filters.paymentMethods.filter(p => p !== pm.key) : [...filters.paymentMethods, pm.key as any]; setFilters({ paymentMethods: pms }); }}>
-                                            {pm.emoji} {pm.label}
-                                        </div>
-                                    ))}
-                                </div>
+                        </fieldset>
+                        <fieldset className="filter-group">
+                            <legend className="form-label">Up to {wsCur} {(filters.amountMax ?? maxAmt).toLocaleString()}</legend>
+                            <input type="range" aria-label="Maximum amount" min={0} max={maxAmt} value={Math.min(filters.amountMax ?? maxAmt, maxAmt)} onChange={e => setFilters({ amountMax: +e.target.value >= maxAmt ? undefined : +e.target.value })} style={{ width: '100%', accentColor: 'var(--primary)' }} />
+                            <div className="form-label" style={{ marginTop: 14 }}>Payment method</div>
+                            <div className="chip-wrap">
+                                {paymentMethods.map(pm => (
+                                    <button type="button" key={pm.key} aria-pressed={filters.paymentMethods.includes(pm.key as any)} className={`category-chip ${filters.paymentMethods.includes(pm.key as any) ? 'selected' : ''}`} onClick={() => { const pms = filters.paymentMethods.includes(pm.key as any) ? filters.paymentMethods.filter(p => p !== pm.key) : [...filters.paymentMethods, pm.key as any]; setFilters({ paymentMethods: pms }); }}>
+                                        {pm.emoji} {pm.label}
+                                    </button>
+                                ))}
                             </div>
-                        </div>
+                        </fieldset>
                     </div>
                 )}
             </div>
@@ -183,7 +184,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                             {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
                                                         </div>
                                                     </div>
-                                                    <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></div>
+                                                    <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} entry={e} showOriginal hideAmounts={hideAmounts} /></div>
                                                     {!isViewer && (
                                                         <div className="row-actions" style={{ display: 'flex', gap: 2 }}>
                                                             <button className="icon-btn" aria-label={`Edit ${e.merchant}`} onClick={() => { setEditId(e.id); setShowAdd(true); }}><Edit2 size={15} /></button>

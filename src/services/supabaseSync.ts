@@ -18,6 +18,16 @@ function must<T extends { error: { message: string } | null }>(res: T): T {
     return res;
 }
 
+/** Upsert, retrying without the multi-currency columns if the database hasn't been updated yet. */
+async function upsertWithFx(table: string, row: Record<string, unknown>) {
+    const res = await supabase!.from(table).upsert(row);
+    if (res.error && /base_amount|base_currency|fx_rate/i.test(res.error.message)) {
+        const { base_amount: _a, base_currency: _c, fx_rate: _r, ...rest } = row;
+        return must(await supabase!.from(table).upsert(rest));
+    }
+    return must(res);
+}
+
 // ─── Expenses ────────────────────────────────────────────────────
 
 export async function syncExpenseToCloud(expense: {
@@ -34,10 +44,13 @@ export async function syncExpenseToCloud(expense: {
     notes: string;
     purchaseAt: string;
     source?: string;
+    baseAmount?: number;
+    baseCurrency?: string;
+    fxRate?: number;
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    must(await supabase.from('expenses').upsert({
+    await upsertWithFx('expenses', {
         id: expense.id,
         workspace_id: expense.workspaceId,
         created_by: expense.createdByUid, // MUST BE dbId from profile
@@ -51,7 +64,10 @@ export async function syncExpenseToCloud(expense: {
         notes: expense.notes,
         purchased_at: expense.purchaseAt,
         source: expense.source || 'manual',
-    }));
+        base_amount: expense.baseAmount ?? null,
+        base_currency: expense.baseCurrency ?? null,
+        fx_rate: expense.fxRate ?? null,
+    });
     
     if (import.meta.env.DEV) {
         console.log(`[Sync] Expense synced for user ${expense.createdByUid}`);
@@ -92,10 +108,13 @@ export async function syncIncomeToCloud(income: {
     currency: string;
     type: 'fixed' | 'variable';
     date: string;
+    baseAmount?: number;
+    baseCurrency?: string;
+    fxRate?: number;
 }) {
     if (!isSupabaseReady() || !supabase) return;
 
-    must(await supabase.from('incomes').upsert({
+    await upsertWithFx('incomes', {
         id: income.id,
         workspace_id: income.workspaceId,
         created_by: income.createdByUid,
@@ -104,7 +123,10 @@ export async function syncIncomeToCloud(income: {
         currency: income.currency,
         type: income.type,
         income_date: income.date,
-    }));
+        base_amount: income.baseAmount ?? null,
+        base_currency: income.baseCurrency ?? null,
+        fx_rate: income.fxRate ?? null,
+    });
 }
 
 export async function deleteIncomeFromCloud(id: string) {

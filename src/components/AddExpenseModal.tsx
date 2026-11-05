@@ -4,7 +4,8 @@ import { CURRENCIES } from '../constants';
 import { X, Camera, Upload, RefreshCw, FileText } from 'lucide-react';
 import Webcam from 'react-webcam';
 import Tesseract from 'tesseract.js';
-import { convertAmount, preloadRates, areRatesStale } from '../services/exchangeRates';
+import { preloadRates } from '../services/exchangeRates';
+import ConversionHint from './ConversionHint';
 
 interface Props { onClose: () => void; editId?: string; }
 
@@ -29,8 +30,6 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
     const webcamRef = useRef<Webcam>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState('');
-    const [isConverting, setIsConverting] = useState(false);
-    const [ratesStale, setRatesStale] = useState(false);
 
     const uid = user?.id ?? 'user_demo_001';
     const userName = user?.name ?? 'User';
@@ -38,24 +37,9 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
     // Preload exchange rates on mount
     useEffect(() => { preloadRates(); }, []);
 
-    // Handle live currency conversion
-    const prevCurrencyRef = useRef(currency);
-    async function handleCurrencyChange(newCurrency: string) {
-        const oldCurrency = prevCurrencyRef.current;
-        setCurrency(newCurrency);
-        if (amount && oldCurrency !== newCurrency) {
-            setIsConverting(true);
-            try {
-                const converted = await convertAmount(parseFloat(amount), oldCurrency, newCurrency);
-                setAmount(converted.toFixed(2));
-                setRatesStale(areRatesStale());
-            } catch {
-                // Keep the amount as-is if conversion fails
-            }
-            setIsConverting(false);
-        }
-        prevCurrencyRef.current = newCurrency;
-    }
+    // The amount stays in the currency it was paid in; the store saves its
+    // value in the workspace currency alongside it.
+    function handleCurrencyChange(newCurrency: string) { setCurrency(newCurrency); }
 
     function handleKeypad(val: string) {
         if (val === '⌫') { setAmount(a => a.slice(0, -1)); return; }
@@ -196,8 +180,9 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                             <select aria-label="Select currency" className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                             </select>
-                            {isConverting ? <span className="opacity-50">...</span> : (amount || '0')}
+                            {amount || '0'}
                         </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: -8, marginBottom: 12 }}><ConversionHint amount={amount} from={currency} to={ws?.currency} /></div>
                         <div className="keypad">
                             {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => (
                                 <button key={k} aria-label={`Dial ${k}`} className="keypad-btn" onClick={() => handleKeypad(k)}>{k}</button>
@@ -209,7 +194,10 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                     <div className="animate-fadeIn">
                         {!editId && (
                             <div className="flex-row items-center gap-3 mb-5 cursor-pointer" style={{ background: 'var(--primary-soft)', borderRadius: 12, padding: '12px 16px' }} onClick={() => setStep('amount')}>
-                                <div className="font-extrabold" style={{ fontSize: 28, color: 'var(--primary-light)' }}>{currency} {amount}</div>
+                                <div>
+                                    <div className="font-extrabold" style={{ fontSize: 28, color: 'var(--primary-light)' }}>{currency} {amount}</div>
+                                    <ConversionHint amount={amount} from={currency} to={ws?.currency} />
+                                </div>
                                 <div className="text-muted text-xs ml-auto">tap to change</div>
                             </div>
                         )}
@@ -224,7 +212,6 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                                 <select aria-label="Currency" className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
                                     {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>)}
                                 </select>
-                                {ratesStale && <div className="text-muted text-xs mt-2">⚠ Rates may be outdated</div>}
                             </div>
                         </div>
 
@@ -263,8 +250,9 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
 
                         {editId && (
                             <div className="form-group">
-                                <label className="form-label">Amount ({ws?.currency ?? 'USD'})</label>
+                                <label className="form-label">Amount ({currency})</label>
                                 <input type="number" className="form-input" value={amount} onChange={e => setAmount(e.target.value)} step="0.01" min="0" title="Amount" placeholder="Amount" />
+                                <ConversionHint amount={amount} from={currency} to={ws?.currency} />
                             </div>
                         )}
 

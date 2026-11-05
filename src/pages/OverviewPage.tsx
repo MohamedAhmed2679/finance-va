@@ -1,3 +1,4 @@
+import { toBase } from '../utils/money';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ZayloWave, ZPattern, ZayloMark, useCountUp } from '../components/brand/Brand';
@@ -19,7 +20,7 @@ function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: stri
     const map: Record<string, number> = {};
     periodExp.forEach(e => {
         const day = e.purchaseAt.slice(0, 10);
-        const amt = convertAmountSync(e.amount, e.currency, baseCur) ?? e.amount;
+        const amt = toBase(e, baseCur);
         map[day] = (map[day] || 0) + amt;
     });
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0])).map(([date, amount]) => ({ date: date.slice(5), amount: +amount.toFixed(2) }));
@@ -28,7 +29,7 @@ function getSpendByDay(expenses: Expense[], workspaceId: string, startDate: stri
 function getCategoryData(expenses: Expense[], workspaceId: string, startDate: string, endDate: string, baseCur: string) {
     const map: Record<string, number> = {};
     expenses.filter(e => !e.deleted && e.workspaceId === workspaceId && e.purchaseAt.slice(0, 10) >= startDate && e.purchaseAt.slice(0, 10) <= endDate).forEach(e => {
-        const amt = convertAmountSync(e.amount, e.currency, baseCur) ?? e.amount;
+        const amt = toBase(e, baseCur);
         map[e.category] = (map[e.category] || 0) + amt;
     });
     return Object.entries(map).map(([cat, val]) => { const info = getCategoryInfo(cat); return { name: info.label, value: +val.toFixed(2), color: info.color, emoji: info.emoji }; }).sort((a, b) => b.value - a.value).slice(0, 8);
@@ -59,10 +60,10 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
     const { start: lastCycleStart, end: lastCycleEnd } = getActiveCycleDates(lastMonthDate, cycleStartDay);
 
     const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
-    const todayTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) === today).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
+    const todayTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) === today).reduce((s, e) => s + toBase(e, cur), 0);
 
-    const monthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= cycleStart && e.purchaseAt.slice(0, 10) <= cycleEnd).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
-    const lastMonthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= lastCycleStart && e.purchaseAt.slice(0, 10) <= lastCycleEnd).reduce((s, e) => s + (convertAmountSync(e.amount, e.currency, cur) ?? e.amount), 0);
+    const monthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= cycleStart && e.purchaseAt.slice(0, 10) <= cycleEnd).reduce((s, e) => s + toBase(e, cur), 0);
+    const lastMonthTotal = wsExp.filter(e => e.purchaseAt.slice(0, 10) >= lastCycleStart && e.purchaseAt.slice(0, 10) <= lastCycleEnd).reduce((s, e) => s + toBase(e, cur), 0);
     const monthChange = lastMonthTotal ? ((monthTotal - lastMonthTotal) / lastMonthTotal * 100) : 0;
 
     const spendData = getSpendByDay(expenses, activeWorkspaceId, cycleStart, cycleEnd, cur);
@@ -235,7 +236,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                             <div className="ledger-title">{e.merchant || catInfo.label}</div>
                                             <div className="ledger-sub">{catInfo.label} · {new Date(e.purchaseAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' })}</div>
                                         </div>
-                                        <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} hideAmounts={hideAmounts} /></div>
+                                        <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} entry={e} showOriginal hideAmounts={hideAmounts} /></div>
                                     </motion.div>
                                 );
                             })}

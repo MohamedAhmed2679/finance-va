@@ -2,7 +2,29 @@ import { useEffect, useMemo, useState, useCallback, createContext, useContext } 
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Users, MessageSquare, Megaphone, Bell, ScrollText, Search, UserPlus, X, ShieldCheck, ShieldOff, Ban, KeyRound, Trash2, LogIn, Send, RefreshCw, FolderOpen, Plus, Gauge } from 'lucide-react';
-import { adminCall, openAsUser, MAIN_APP_URL, type Me } from './client';
+import { adminCall, openAsUser, MAIN_APP_URL, sb, type Me } from './client';
+
+/** Files a user attached to a support message, opened through short-lived signed links. */
+function SupportFiles({ files }: { files?: { path: string; name: string; type: string; size: number }[] }) {
+    const [urls, setUrls] = useState<Record<string, string>>({});
+    const key = (files || []).map(f => f.path).join('|');
+    useEffect(() => {
+        if (!key || !sb) return;
+        sb.storage.from('chat-attachments').createSignedUrls(key.split('|'), 3600).then(({ data }) => {
+            const u: Record<string, string> = {};
+            (data || []).forEach(d => { if (d.path && d.signedUrl) u[d.path] = d.signedUrl; });
+            setUrls(u);
+        });
+    }, [key]);
+    if (!files?.length) return null;
+    return (
+        <div style={{ display: 'grid', gap: 6, marginBottom: 4 }}>
+            {files.map(f => f.type.startsWith('image/') && urls[f.path]
+                ? <a key={f.path} href={urls[f.path]} target="_blank" rel="noreferrer"><img src={urls[f.path]} alt={f.name} style={{ maxWidth: 220, maxHeight: 180, borderRadius: 8, display: 'block' }} /></a>
+                : <a key={f.path} href={urls[f.path]} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>📎 {f.name} ({Math.max(1, Math.round(f.size / 1024))} KB)</a>)}
+        </div>
+    );
+}
 
 const MeContext = createContext<Me | null>(null);
 
@@ -290,7 +312,7 @@ function UserDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
                         <div className="admin-thread">
                             {data.support.length === 0 && <p className="text-sm text-muted">No messages yet.</p>}
                             {data.support.map((m: Row) => (
-                                <div key={m.id} className={`bubble ${m.from_admin ? 'mine' : ''}`}><div>{m.body}</div><time>{fmtDate(m.created_at)}</time></div>
+                                <div key={m.id} className={`bubble ${m.from_admin ? 'mine' : ''}`}><SupportFiles files={m.attachments} />{m.body && <div>{m.body}</div>}<time>{fmtDate(m.created_at)}</time></div>
                             ))}
                         </div>
                         <div className="flex gap-2 mt-2">
@@ -389,7 +411,7 @@ function MessagesTab() {
                     <button key={t.user.id} className="dropdown-item w-full" style={{ border: 'none', background: sel?.user.id === t.user.id ? 'var(--surface-2)' : 'none', alignItems: 'flex-start' }} onClick={() => open(t)}>
                         <span className="flex-1" style={{ textAlign: 'start', minWidth: 0 }}>
                             <span style={{ display: 'block', fontWeight: 600, color: 'var(--ink)' }}>{t.user.name || t.user.email}</span>
-                            <span className="truncate" style={{ display: 'block', fontSize: 12.5 }}>{t.last.from_admin ? 'You: ' : ''}{t.last.body}</span>
+                            <span className="truncate" style={{ display: 'block', fontSize: 12.5 }}>{t.last.from_admin ? 'You: ' : ''}{t.last.body || '📎 Attachment'}</span>
                         </span>
                         {t.unread > 0 && <span className="nav-badge">{t.unread}</span>}
                     </button>
@@ -400,7 +422,7 @@ function MessagesTab() {
                     <>
                         <div className="card-head"><div className="card-title">{sel.user.name}</div><span className="text-xs text-muted">{sel.user.email || sel.user.phone}</span></div>
                         <div className="admin-thread" style={{ maxHeight: 420 }}>
-                            {msgs.map(m => <div key={m.id} className={`bubble ${m.from_admin ? 'mine' : ''}`}><div>{m.body}</div><time>{fmtDate(m.created_at)}</time></div>)}
+                            {msgs.map(m => <div key={m.id} className={`bubble ${m.from_admin ? 'mine' : ''}`}><SupportFiles files={m.attachments} />{m.body && <div>{m.body}</div>}<time>{fmtDate(m.created_at)}</time></div>)}
                         </div>
                         <div className="flex gap-2 mt-2">
                             <input className="form-input" placeholder="Reply" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }} aria-label="Reply" />

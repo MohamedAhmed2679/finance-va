@@ -1,3 +1,4 @@
+import { toBase } from '../utils/money';
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { t } from '../i18n/translations';
@@ -64,9 +65,9 @@ export default function SavingsPage() {
 
         cycleDatesEvaluated.forEach(cycleKey => {
             const [start, end] = cycleKey.split('_');
-            const cycleFixedInc = wsIncomes.filter(i => i.type === 'fixed').reduce((s, i) => s + i.amount, 0);
-            const cycleVarInc = wsIncomes.filter(i => i.type === 'variable' && i.date! >= start && i.date! <= end).reduce((s, i) => s + i.amount, 0);
-            const cycleExp = wsExpenses.filter(e => e.purchaseAt.slice(0, 10) >= start && e.purchaseAt.slice(0, 10) <= end).reduce((s, e) => s + e.amount, 0);
+            const cycleFixedInc = wsIncomes.filter(i => i.type === 'fixed').reduce((s, i) => s + toBase(i, cur), 0);
+            const cycleVarInc = wsIncomes.filter(i => i.type === 'variable' && i.date! >= start && i.date! <= end).reduce((s, i) => s + toBase(i, cur), 0);
+            const cycleExp = wsExpenses.filter(e => e.purchaseAt.slice(0, 10) >= start && e.purchaseAt.slice(0, 10) <= end).reduce((s, e) => s + toBase(e, cur), 0);
 
             const leftover = (cycleFixedInc + cycleVarInc) - cycleExp;
             if (leftover > 0) {
