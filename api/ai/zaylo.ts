@@ -9,7 +9,7 @@
  * - chat:     "Ask Zaylo" — help using the app and questions about the user's own numbers
  *
  * Only signed-in Zaylo users can call it. The client sends aggregates, never raw account data.
- * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, default gemini-3.8-flash),
+ * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, default gemini-3.5-flash-lite),
  *      VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (already set, used to verify the caller).
  */
 // Node runtime: AI answers can take longer than the 25 s edge limit.
@@ -30,8 +30,10 @@ const MAX_INLINE_BYTES = 3_500_000; // keep requests under Vercel's body limit
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 
 // ───────────────────────── Gemini ─────────────────────────
-const DEFAULT_MODEL = 'gemini-3.8-flash';
-const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+// Flash-Lite answers fastest; Flash is the backup when Lite is busy.
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+const thinkingFor = (model: string) => (/lite/.test(model) ? 'minimal' : 'low');
 
 async function gemini(parts: Part[], opts: { system: string; schema?: object; temperature?: number; history?: { role: 'user' | 'model'; text: string }[] }) {
     const key = process.env.GEMINI_API_KEY;
@@ -65,7 +67,7 @@ async function gemini(parts: Part[], opts: { system: string; schema?: object; te
         const left = TIME_BUDGET_MS - (Date.now() - started);
         if (left < 4000) break;
         // Gemini 3 models think before answering; keep that short so replies arrive quickly.
-        const withThinking = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: { thinkingLevel: 'low' } } };
+        const withThinking = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: { thinkingLevel: thinkingFor(model) } } };
         const t0 = Date.now();
         let attempt = await callModel(model, withThinking, key, left);
         if (attempt.status === 400 && /thinking/i.test(attempt.error || '')) attempt = await callModel(model, body, key, TIME_BUDGET_MS - (Date.now() - started));
