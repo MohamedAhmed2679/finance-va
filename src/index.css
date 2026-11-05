@@ -1698,5 +1698,20 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .report-actions .btn { justify-content: center; padding: 13px 12px; }
 @media (max-width: 600px) { .hide-sm { display: none; } }
 .auth-google { display: flex; justify-content: center; min-height: 44px; margin-bottom: 8px; }
-.auth-google > div { width: 100%; display: flex; justify-content: center; }
-.auth-google iframe { margin: 0 auto !important; }
+
+/* ---------- Cloud backup ---------- */
+.cloud-list { display: grid; gap: 10px; }
+.cloud-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); }
+.cloud-icon { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--surface-2); }
+.cloud-body { flex: 1; min-width: 0; }
+.cloud-name { font-weight: 600; font-size: 14.5px; margin-bottom: 2px; }
+.cloud-meta { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; overflow-wrap: anywhere; }
+.cloud-meta a { color: var(--primary); font-weight: 600; text-decoration: none; }
+.cloud-error { font-size: 12.5px; color: var(--danger); margin-top: 4px; }
+.cloud-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.cloud-note { font-size: 13px; padding: 10px 12px; border-radius: var(--radius-md); margin-bottom: 14px; }
+.cloud-note.warn { background: var(--amber-soft); color: var(--ink); }
+@media (max-width: 600px) {
+  .cloud-card { flex-wrap: wrap; }
+  .cloud-actions { width: 100%; justify-content: flex-start; padding-inline-start: 54px; }
+}

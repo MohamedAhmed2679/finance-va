@@ -245,6 +245,13 @@ export default function App() {
         if (isAuthenticated) {
             checkBillReminders();
             initSessionManager();
+            // Desktop app: save last month's backup into iCloud Drive / OneDrive folder if it isn't there yet
+            const t = setTimeout(() => {
+                import('./services/cloudBackup').then(m => m.desktopMonthlyCatchUp()).then(r => {
+                    if (r) import('react-hot-toast').then(({ default: toast }) => toast.success(`Zaylo backup for ${r.month} saved`));
+                }).catch(e => console.warn('[backup] desktop', e));
+            }, 8000);
+            return () => { clearTimeout(t); cleanupSessionManager(); };
         }
         return () => cleanupSessionManager();
     }, [isAuthenticated, checkBillReminders]);

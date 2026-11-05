@@ -84,33 +84,38 @@ function toBase64(bytes: Uint8Array) {
 
 export const isAppleDevice = () => /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && ('ontouchend' in document || Capacitor.getPlatform() === 'ios');
 
+type OutFile = { bytes: Uint8Array; name: string; mime: string };
+
 /**
- * Gives the file to the user:
+ * Gives files to the user:
  *  - in the phone apps, the system share sheet (Save to Files / iCloud Drive / Google Drive / OneDrive…)
- *  - on iPhone and iPad in the browser, the share sheet too when `share` is set
+ *  - in a browser on a phone or tablet, the share sheet too when `share` is set
  *  - everywhere else, a normal download.
- * Returns how it was delivered.
  */
-export async function deliverFile(file: { bytes: Uint8Array; name: string; mime: string }, opts: { share?: boolean } = {}): Promise<'shared' | 'downloaded' | 'cancelled'> {
+export async function deliverFiles(files: OutFile[], opts: { share?: boolean } = {}): Promise<'shared' | 'downloaded' | 'cancelled'> {
     if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share')) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         const { Share } = await import('@capacitor/share');
-        const w = await Filesystem.writeFile({ path: file.name, data: toBase64(file.bytes), directory: Directory.Cache });
-        try { await Share.share({ title: file.name, files: [w.uri], dialogTitle: tx('Save or send the report') }); return 'shared'; }
+        const uris: string[] = [];
+        for (const f of files) uris.push((await Filesystem.writeFile({ path: f.name, data: toBase64(f.bytes), directory: Directory.Cache })).uri);
+        try { await Share.share({ title: files[0].name, files: uris, dialogTitle: tx('Save or send the report') }); return 'shared'; }
         catch { return 'cancelled'; }
     }
-    const blob = new Blob([file.bytes as BlobPart], { type: file.mime });
     if (opts.share || Capacitor.isNativePlatform()) {
-        const f = new File([blob], file.name, { type: file.mime });
-        if (navigator.canShare?.({ files: [f] })) {
-            try { await navigator.share({ files: [f], title: file.name }); return 'shared'; }
+        const list = files.map(f => new File([f.bytes as BlobPart], f.name, { type: f.mime }));
+        if (navigator.canShare?.({ files: list })) {
+            try { await navigator.share({ files: list, title: files[0].name }); return 'shared'; }
             catch (e) { if ((e as Error).name === 'AbortError') return 'cancelled'; }
         }
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = file.name; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    for (const f of files) {
+        const url = URL.createObjectURL(new Blob([f.bytes as BlobPart], { type: f.mime }));
+        const a = document.createElement('a');
+        a.href = url; a.download = f.name; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        if (files.length > 1) await new Promise(r => setTimeout(r, 400));
+    }
     return 'downloaded';
 }
+export const deliverFile = (file: OutFile, opts: { share?: boolean } = {}) => deliverFiles([file], opts);

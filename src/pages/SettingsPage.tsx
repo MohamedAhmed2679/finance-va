@@ -9,6 +9,7 @@ import { t, tx } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
 import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown } from 'lucide-react';
 import ReportSheet from '../components/ReportSheet';
+import CloudBackupSettings from '../components/CloudBackupSettings';
 
 export default function SettingsPage() {
     const { user, workspaces, activeWorkspaceId, updateWorkspace, updateUser, setTheme, theme, language, setLanguage, currency, setCurrency, logout, deleteAllData, categories, paymentMethods, addCategory, deleteCategory, addPaymentMethod, deletePaymentMethod } = useStore();
@@ -19,7 +20,7 @@ export default function SettingsPage() {
     const [curDraft, setCurDraft] = useState(currency);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name ?? '');
-    const [activeSection, setActiveSection] = useState<string | null>('profile');
+    const [activeSection, setActiveSection] = useState<string | null>(() => new URLSearchParams(window.location.search).get('section') || 'profile');
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -397,61 +398,7 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {activeSection === 'cloud' && (
-                        <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Cloud Backup & Sync')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Automatically back up your Zaylo data to your personal cloud.')}</div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                    <svg viewBox="0 0 24 24" width="24" height="24"><path fill="#FFC107" d="M12.7,11.5l3.8,6.8H8.9L12.7,11.5z"></path><path fill="#03A9F4" d="M20.2,18H12.7l-3.8-6.5l3.8-6.5l7.5,13z"></path><path fill="#4CAF50" d="M16.4,5L12.7,11.5L5.1,11.5l3.8-6.5L16.4,5z"></path></svg>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Google Drive')}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('google') ? tx('Connected') : tx('Not Connected')}</div>
-                                    </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('google', 'cloud')} disabled={user?.connectedClouds?.includes('google')}>
-                                        {user?.connectedClouds?.includes('google') ? tx('Connected') : tx('Connect')}
-                                    </button>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#0078D4"><path d="M19.5,8c-0.1,0-0.3,0-0.4,0c-0.4-3.3-3.2-5.9-6.6-5.9c-2.3,0-4.3,1.2-5.4,3c-0.3-0.1-0.7-0.1-1.1-0.1c-2.5,0-4.5,2-4.5,4.5 C1.5,12,3.5,14,6,14h13.5c2.5,0,4.5-2,4.5-4.5S22,8,19.5,8z" /></svg>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Microsoft OneDrive')}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('microsoft') ? tx('Connected') : tx('Not Connected')}</div>
-                                    </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('microsoft', 'cloud')} disabled={user?.connectedClouds?.includes('microsoft')}>
-                                        {user?.connectedClouds?.includes('microsoft') ? tx('Connected') : tx('Connect')}
-                                    </button>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                    <Cloud size={24} style={{ color: '#0070c9' }} />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Apple iCloud')}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('apple') ? tx('Connected') : tx('Not Connected')}</div>
-                                    </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('apple', 'cloud')} disabled={user?.connectedClouds?.includes('apple')}>
-                                        {user?.connectedClouds?.includes('apple') ? tx('Connected') : tx('Connect')}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {user?.connectedClouds?.length ? (
-                                <div style={{ marginTop: 24 }}>
-                                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{tx('Backup Frequency')}</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                                        {['daily', 'weekly', 'monthly', 'manual'].map(interval => (
-                                            <div key={interval} onClick={() => updateUser({ backupInterval: interval as any })} style={{ padding: '10px', textAlign: 'center', background: user?.backupInterval === interval ? 'var(--primary-light)' : 'var(--bg-input)', color: user?.backupInterval === interval ? '#fff' : 'inherit', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)' }}>
-                                                {interval.charAt(0).toUpperCase() + interval.slice(1)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{tx('Backups are uploaded automatically on background thread.')}</div>
-                                </div>
-                            ) : null}
-                        </div>
-                    )}
+                    {activeSection === 'cloud' && <CloudBackupSettings />}
 
                     {activeSection === 'desktop' && (
                         <div className="card animate-fadeIn">

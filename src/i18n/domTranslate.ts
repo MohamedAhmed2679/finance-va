@@ -39,6 +39,7 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
     [/^A new budget cycle starts today in "(.+)"\. Add this month's income to plan ahead\.$/, m => `تبدأ دورة ميزانية جديدة اليوم في "${m[1]}". أضف دخل هذا الشهر لتخطط مسبقًا.`],
     [/^New expense of ([\d,.]+) ([A-Z]{3}) added in "(.+)" by (.+)\.$/, m => `مصروف جديد بقيمة ${m[1]} ${m[2]} أُضيف في "${m[3]}" بواسطة ${m[4]}.`],
     [/^(Remove|Archive|Unarchive|Delete|Edit|Open|Add people to) (.+)$/, m => `${{ Remove: 'إزالة', Archive: 'أرشفة', Unarchive: 'إلغاء أرشفة', Delete: 'حذف', Edit: 'تعديل', Open: 'فتح', 'Add people to': 'إضافة أشخاص إلى' }[m[1]]} ${m[2]}`],
+    [new RegExp(`^Your (${MON}) (\\d{4}) backup is saved to (.+)\\.$`), m => `حُفظت نسخة ${MONTHS[m[1]]} ${m[2]} الاحتياطية في ${m[3]}.`],
     [/^Role for (.+)$/, m => `دور ${m[1]}`],
     [/^Members of (.+)$/, m => `أعضاء ${m[1]}`],
     [/^Workspace: (.+)\. Switch or create$/, m => `مساحة العمل: ${m[1]}. تبديل أو إنشاء`],
