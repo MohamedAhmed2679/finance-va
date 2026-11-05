@@ -12,6 +12,12 @@
     { "source": "/((?!api/|assets/|console|privacy|terms|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
   ],
   "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "finance-va.vercel.app" }],
+      "destination": "https://zaylo.cc/:path",
+      "permanent": false
+    },
     { "source": "/admin", "destination": "/console", "permanent": false }
   ],
   "headers": [

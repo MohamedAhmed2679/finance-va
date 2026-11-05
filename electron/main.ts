@@ -17,7 +17,7 @@ let win: BrowserWindow | null;
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 // Desktop test builds load the live deployment (same backend and API routes as the web app).
-const APP_URL = process.env['ZAYLO_URL'] || process.env['FINANCE_VA_URL'] || 'https://finance-va.vercel.app';
+const APP_URL = process.env['ZAYLO_URL'] || process.env['FINANCE_VA_URL'] || 'https://zaylo.cc';
 
 function createWindow() {
     win = new BrowserWindow({

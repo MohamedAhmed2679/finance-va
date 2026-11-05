@@ -2,7 +2,7 @@ name: App builds (Android, iOS, macOS, Windows)
 
 # Builds installable test apps on every push to main and publishes them to the
 # "test-build" pre-release:  https://github.com/MohamedAhmed2679/finance-va/releases/tag/test-build
-# The apps load https://finance-va.vercel.app, so they always match the live web app.
+# The apps load https://zaylo.cc, so they always match the live web app.
 
 on:
   push:
@@ -119,7 +119,7 @@ jobs:
           gh release delete test-build --yes --cleanup-tag || true
           gh release create test-build out/* --prerelease --target "${{ github.sha }}" \
             --title "Test build — ${GITHUB_SHA::7}" \
-            --notes "Installable test apps for commit ${GITHUB_SHA::7}. They load https://finance-va.vercel.app.
+            --notes "Installable test apps for commit ${GITHUB_SHA::7}. They load https://zaylo.cc.
 
           - **Android**: Zaylo-android.apk — open on the phone and allow installs from your browser.
           - **iPhone**: Zaylo-ios-unsigned.ipa — install with Sideloadly (Windows/Mac) or AltStore using your Apple ID; free Apple IDs need a re-install every 7 days.
