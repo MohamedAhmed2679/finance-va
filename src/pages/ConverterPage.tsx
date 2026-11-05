@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { CURRENCIES } from '../constants';
 import { ArrowLeftRight, RefreshCw, TrendingUp } from 'lucide-react';
 import CurrencySelect from '../components/CurrencySelect';
@@ -45,7 +45,7 @@ export default function ConverterPage() {
             if (!r) throw new Error('Rate not available');
             setRate(r);
             setResult(parseFloat(amount) * r);
-        } catch (e) { setError('Unable to fetch rates. Using cached data.'); }
+        } catch (e) { setError(tx('Unable to fetch rates. Using cached data.')); }
         setLoading(false);
     }
 
@@ -74,19 +74,19 @@ export default function ConverterPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'currency_converter')}</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Real-time exchange rates {lastUpdate && `· Updated ${lastUpdate}`}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{tx('Real-time exchange rates')}{' '}{lastUpdate && `· ${tx('Updated')} ${tx(lastUpdate)}`}</p>
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => fetchRates('USD')}><RefreshCw size={14} /> Refresh</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => fetchRates('USD')}><RefreshCw size={14} />{' '}{tx('Refresh')}</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
                 {/* Main converter */}
                 <div className="card">
-                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Real-Time Converter</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Get up-to-date exchange rates powered by ExchangeRate API</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Real-Time Converter')}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Get up-to-date exchange rates powered by ExchangeRate API')}</div>
 
                     <div className="form-group">
-                        <label className="form-label">Amount</label>
+                        <label className="form-label">{tx('Amount')}</label>
                         <div className="input-with-icon">
                             <span className="input-icon" style={{ fontSize: 14, fontWeight: 600 }}>
                                 {CURRENCIES.find(c => c.code === fromCur)?.symbol ?? '$'}
@@ -104,7 +104,7 @@ export default function ConverterPage() {
                     </div>
 
                     <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleConvert} disabled={loading}>
-                        {loading ? <><RefreshCw size={16} className="animate-spin" />Converting…</> : <><ArrowLeftRight size={16} />{t(lang, 'convert')}</>}
+                        {loading ? <><RefreshCw size={16} className="animate-spin" />{tx('Converting…')}</> : <><ArrowLeftRight size={16} />{t(lang, 'convert')}</>}
                     </button>
 
                     {error && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--warning-soft)', borderRadius: 8, fontSize: 13, color: 'var(--warning)' }}>{error}</div>}
@@ -123,7 +123,7 @@ export default function ConverterPage() {
                 {/* Popular pairs */}
                 <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <TrendingUp size={16} style={{ color: 'var(--primary-light)' }} /> Popular Pairs
+                        <TrendingUp size={16} style={{ color: 'var(--primary-light)' }} />{' '}{tx('Popular Pairs')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                         {popularPairs.map(pair => {

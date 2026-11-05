@@ -1,3 +1,4 @@
+import { tx } from '../../i18n/translations';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Download, FileText, File as FileIcon, Film, Image as ImageIcon, Music, Paperclip, X } from 'lucide-react';
@@ -58,7 +59,7 @@ export function MessageAttachments({ items, urls, onOpen }: { items: GalleryItem
             ) : (
                 <button type="button" key={a.path} className="file-card" onClick={() => onOpen(a.path)}>
                     <span className={`file-ico k-${kindOf(a)}`}><KindIcon a={a} /></span>
-                    <span className="file-meta"><span className="file-name">{a.name}</span><span className="file-size">{kindOf(a) === 'pdf' ? 'PDF' : (a.name.split('.').pop() || 'File').toUpperCase()} · {formatBytes(a.size)}</span></span>
+                    <span className="file-meta"><span className="file-name">{a.name}</span><span className="file-size">{kindOf(a) === 'pdf' ? 'PDF' : (a.name.split('.').pop() || tx('File')).toUpperCase()} · {formatBytes(a.size)}</span></span>
                 </button>
             ))}
         </div>
@@ -88,8 +89,8 @@ export function Lightbox({ items, start, urls, onClose }: { items: GalleryItem[]
             onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <header className="lightbox-bar">
                 <div className="lightbox-title"><strong>{a.name}</strong><span>{a.sender} · {new Date(a.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {formatBytes(a.size)}</span></div>
-                {url && <a className="icon-btn" href={downloadUrl(url, a.name)} aria-label="Download"><Download size={18} /></a>}
-                <button ref={closeRef} className="icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
+                {url && <a className="icon-btn" href={downloadUrl(url, a.name)} aria-label={tx('Download')}><Download size={18} /></a>}
+                <button ref={closeRef} className="icon-btn" onClick={onClose} aria-label={tx('Close')}><X size={20} /></button>
             </header>
             <div className="lightbox-stage" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
                 {!url ? <div className="media-ph big"><KindIcon a={a} size={40} /></div>
@@ -97,11 +98,11 @@ export function Lightbox({ items, start, urls, onClose }: { items: GalleryItem[]
                     : k === 'video' ? <video src={url} controls autoPlay playsInline />
                     : k === 'audio' ? <audio src={url} controls autoPlay />
                     : k === 'pdf' ? <iframe src={url} title={a.name} />
-                    : <div className="lightbox-file"><span className={`file-ico k-${k}`}><KindIcon a={a} size={32} /></span><p>No preview for this file type.</p><a className="btn btn-primary" href={downloadUrl(url, a.name)}><Download size={16} /> Download</a></div>}
+                    : <div className="lightbox-file"><span className={`file-ico k-${k}`}><KindIcon a={a} size={32} /></span><p>{tx('No preview for this file type.')}</p><a className="btn btn-primary" href={downloadUrl(url, a.name)}><Download size={16} />{' '}{tx('Download')}</a></div>}
             </div>
             {items.length > 1 && <>
-                <button className="lightbox-nav prev" disabled={idx === 0} onClick={() => setIdx(i => i - 1)} aria-label="Previous"><ChevronLeft size={26} /></button>
-                <button className="lightbox-nav next" disabled={idx === items.length - 1} onClick={() => setIdx(i => i + 1)} aria-label="Next"><ChevronRight size={26} /></button>
+                <button className="lightbox-nav prev" disabled={idx === 0} onClick={() => setIdx(i => i - 1)} aria-label={tx('Previous')}><ChevronLeft size={26} /></button>
+                <button className="lightbox-nav next" disabled={idx === items.length - 1} onClick={() => setIdx(i => i + 1)} aria-label={tx('Next')}><ChevronRight size={26} /></button>
                 <div className="lightbox-count">{idx + 1} / {items.length}</div>
             </>}
         </motion.div>
@@ -122,19 +123,19 @@ export function ChatGallery({ items, urls, loading, onOpen, onClose }: { items: 
     return (
         <div className="chat-gallery">
             <div className="card-head">
-                <div className="card-title">Gallery</div>
-                {onClose && <button className="icon-btn" onClick={onClose} aria-label="Close gallery"><X size={16} /></button>}
+                <div className="card-title">{tx('Gallery')}</div>
+                {onClose && <button className="icon-btn" onClick={onClose} aria-label={tx('Close gallery')}><X size={16} /></button>}
             </div>
-            <div className="seg" role="tablist" aria-label="Gallery type">
-                <button role="tab" aria-selected={tab === 'media'} className={tab === 'media' ? 'active' : ''} onClick={() => setTab('media')}>Photos & videos <span>{media.length}</span></button>
-                <button role="tab" aria-selected={tab === 'files'} className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Files <span>{files.length}</span></button>
+            <div className="seg" role="tablist" aria-label={tx('Gallery type')}>
+                <button role="tab" aria-selected={tab === 'media'} className={tab === 'media' ? 'active' : ''} onClick={() => setTab('media')}>{tx('Photos & videos')}{' '}<span>{media.length}</span></button>
+                <button role="tab" aria-selected={tab === 'files'} className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>{tx('Files')}{' '}<span>{files.length}</span></button>
             </div>
             <div className="gallery-scroll">
                 {loading && !items.length && <div className="skeleton" style={{ height: 120 }} />}
                 {!loading && list.length === 0 && (
                     <div className="gallery-empty">
                         <Paperclip size={20} />
-                        <p>{tab === 'media' ? 'Photos and videos shared in this chat appear here.' : 'PDFs, documents and other files shared here appear in this list.'}</p>
+                        <p>{tab === 'media' ? tx('Photos and videos shared in this chat appear here.') : tx('PDFs, documents and other files shared here appear in this list.')}</p>
                     </div>
                 )}
                 {byMonth.map(([month, group]) => (
@@ -170,7 +171,7 @@ export function FilePicker({ onAdd, disabled }: { onAdd: (files: File[]) => void
     const input = useRef<HTMLInputElement>(null);
     return (
         <>
-            <button type="button" className="icon-btn attach-btn" onClick={() => input.current?.click()} disabled={disabled} aria-label="Attach files" title="Attach photos, videos or files"><Paperclip size={19} /></button>
+            <button type="button" className="icon-btn attach-btn" onClick={() => input.current?.click()} disabled={disabled} aria-label={tx('Attach files')} title={tx('Attach photos, videos or files')}><Paperclip size={19} /></button>
             <input ref={input} type="file" multiple accept={ACCEPT} hidden onChange={e => { const f = Array.from(e.target.files || []); if (f.length) onAdd(f); e.target.value = ''; }} />
         </>
     );
@@ -190,7 +191,7 @@ export function PendingFiles({ files, onRemove, progress }: { files: File[]; onR
                             {progress == null && <button type="button" className="icon-btn" onClick={() => onRemove(i)} aria-label={`Remove ${f.name}`}><X size={14} /></button>}
                         </div>
                     ))}
-                    {progress != null && <div className="pending-progress" role="status">Uploading {progress} of {files.length}…</div>}
+                    {progress != null && <div className="pending-progress" role="status">{tx('Uploading')}{' '}{progress} of {files.length}…</div>}
                 </motion.div>
             )}
         </AnimatePresence>

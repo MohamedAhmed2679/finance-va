@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useState } from 'react';
 import { Share2, X } from 'lucide-react';
 
@@ -74,7 +75,7 @@ export default function SocialShareMenu() {
             <button
                 className="social-share-toggle"
                 onClick={() => setOpen(!open)}
-                title={open ? 'Close' : 'Share'}
+                title={open ? tx('Close') : tx('Share')}
             >
                 {open ? <X size={22} /> : <Share2 size={22} />}
             </button>

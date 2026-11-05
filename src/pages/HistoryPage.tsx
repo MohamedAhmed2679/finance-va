@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { History, RotateCcw, CloudUpload, RefreshCw } from 'lucide-react';
@@ -29,18 +30,18 @@ function title(c: Checkpoint) {
 
 function describe(c: Checkpoint): { verb: string; detail: string; canRestore: boolean; action: string } {
     const kind = KIND[c.table_name] || c.table_name;
-    if (c.op === 'INSERT') return { verb: `${kind} added`, detail: '', canRestore: ['expenses', 'incomes'].includes(c.table_name), action: 'Undo add' };
-    if (c.op === 'DELETE') return { verb: `${kind} deleted`, detail: '', canRestore: true, action: 'Bring back' };
+    if (c.op === 'INSERT') return { verb: `${kind} added`, detail: '', canRestore: ['expenses', 'incomes'].includes(c.table_name), action: tx('Undo add') };
+    if (c.op === 'DELETE') return { verb: `${kind} deleted`, detail: '', canRestore: true, action: tx('Bring back') };
     const o = c.old_row || {}, n = c.new_row || {};
-    if (!o.is_deleted && n.is_deleted) return { verb: `${kind} deleted`, detail: '', canRestore: true, action: 'Bring back' };
-    if (o.is_deleted && !n.is_deleted) return { verb: `${kind} restored`, detail: '', canRestore: true, action: 'Delete again' };
+    if (!o.is_deleted && n.is_deleted) return { verb: `${kind} deleted`, detail: '', canRestore: true, action: tx('Bring back') };
+    if (o.is_deleted && !n.is_deleted) return { verb: `${kind} restored`, detail: '', canRestore: true, action: tx('Delete again') };
     const changed = Object.keys(n).filter(k => !IGNORE.has(k) && JSON.stringify(o[k]) !== JSON.stringify(n[k]));
     const detail = changed.slice(0, 3).map(k => {
         const f = FIELD[k] || k.replace(/_/g, ' ');
         const fmt = (v: any) => v == null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v).slice(0, 40);
         return `${f}: ${fmt(o[k])} → ${fmt(n[k])}`;
     }).join(' · ') + (changed.length > 3 ? ` · +${changed.length - 3} more` : '');
-    return { verb: `${kind} edited`, detail, canRestore: true, action: 'Restore previous' };
+    return { verb: `${kind} edited`, detail, canRestore: true, action: tx('Restore previous') };
 }
 
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -84,7 +85,7 @@ export default function HistoryPage() {
         const { error: err } = await supabase.rpc('restore_checkpoint', { p_history_id: c.id });
         setBusy(null);
         if (err) { toast.error(err.message.replace(/^.*?:\s*/, '') || "Couldn't restore that."); return; }
-        toast.success('Restored');
+        toast.success(tx('Restored'));
         if (c.table_name === 'users' || c.table_name === 'workspaces') await hydrateStore(); else if (ws) await loadWorkspaceData(ws.id);
         load();
     }
@@ -104,23 +105,23 @@ export default function HistoryPage() {
         <div className="page">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">History</h1>
-                    <p className="page-subtitle">Every change in {ws?.name || 'this workspace'} and to your profile is saved as a checkpoint. Restore any of them.</p>
+                    <h1 className="page-title">{tx('History')}</h1>
+                    <p className="page-subtitle">{tx('Every change in')}{' '}{ws?.name || tx('this workspace')}{' '}{tx('and to your profile is saved as a checkpoint. Restore any of them.')}</p>
                 </div>
-                <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}><RefreshCw size={14} /> Refresh</button>
+                <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}><RefreshCw size={14} />{' '}{tx('Refresh')}</button>
             </div>
 
             {pending > 0 && (
                 <div className="card history-pending" role="status">
                     <CloudUpload size={18} />
-                    <div><strong>{pending} {pending === 1 ? 'change is' : 'changes are'} waiting to sync.</strong> They're saved on this device and send automatically when the connection is back.</div>
-                    <button className="btn btn-primary btn-sm" onClick={() => flushOutbox().then(() => ws && loadWorkspaceData(ws.id))}>Sync now</button>
+                    <div><strong>{pending} {pending === 1 ? tx('change is') : tx('changes are')}{' '}{tx('waiting to sync.')}</strong>{' '}{tx('They\'re saved on this device and send automatically when the connection is back.')}</div>
+                    <button className="btn btn-primary btn-sm" onClick={() => flushOutbox().then(() => ws && loadWorkspaceData(ws.id))}>{tx('Sync now')}</button>
                 </div>
             )}
 
-            <div className="seg history-filter" role="tablist" aria-label="Show">
+            <div className="seg history-filter" role="tablist" aria-label={tx('Show')}>
                 {(['all', 'edited', 'deleted'] as const).map(f => (
-                    <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f === 'all' ? 'All changes' : f === 'edited' ? 'Edits' : 'Deleted'}</button>
+                    <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f === 'all' ? tx('All changes') : f === 'edited' ? tx('Edits') : tx('Deleted')}</button>
                 ))}
             </div>
 
@@ -128,7 +129,7 @@ export default function HistoryPage() {
                 {loading && <div className="skeleton" style={{ height: 48, margin: '14px 0' }} />}
                 {!loading && error && <div className="empty-state"><div className="empty-title">{error}</div></div>}
                 {!loading && !error && shown.length === 0 && (
-                    <div className="empty-state"><History size={22} /><div className="empty-title">No checkpoints yet</div><div className="empty-desc">Add, edit or delete something and it will appear here.</div></div>
+                    <div className="empty-state"><History size={22} /><div className="empty-title">{tx('No checkpoints yet')}</div><div className="empty-desc">{tx('Add, edit or delete something and it will appear here.')}</div></div>
                 )}
                 {groups.map(([day, list]) => (
                     <section key={day}>
@@ -144,7 +145,7 @@ export default function HistoryPage() {
                                             <div className="ledger-sub">{d.verb} · {who} · {new Date(c.changed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                             {d.detail && <div className="history-detail">{d.detail}</div>}
                                         </div>
-                                        {d.canRestore && <button className="btn btn-ghost btn-sm" disabled={busy === c.id} onClick={() => restore(c, d.action)}><RotateCcw size={14} /> {busy === c.id ? 'Restoring…' : d.action}</button>}
+                                        {d.canRestore && <button className="btn btn-ghost btn-sm" disabled={busy === c.id} onClick={() => restore(c, d.action)}><RotateCcw size={14} /> {busy === c.id ? tx('Restoring…') : d.action}</button>}
                                     </div>
                                 );
                             })}

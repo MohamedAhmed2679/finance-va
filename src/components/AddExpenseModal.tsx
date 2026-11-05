@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { CURRENCIES } from '../constants';
@@ -124,23 +125,23 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="modal animate-slideUp">
                 <div className="modal-header">
-                    <h2 className="modal-title">{editId ? 'Edit Expense' : 'Add Expense'}</h2>
-                    <button className="modal-close" title="Close" onClick={onClose}><X size={20} /></button>
+                    <h2 className="modal-title">{editId ? tx('Edit Expense') : tx('Add Expense')}</h2>
+                    <button className="modal-close" title={tx('Close')} onClick={onClose}><X size={20} /></button>
                 </div>
 
                 {step === 'scan' && !editId ? (
                     <div className="animate-fadeIn text-center">
                         <div className="mb-6">
                             <div className="flex-row gap-2 mb-5">
-                                <button className="btn btn-primary flex-1" title="Scan" onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
-                                <button className="btn btn-ghost flex-1" title="Manual" onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
+                                <button className="btn btn-primary flex-1" title={tx('Scan')} onClick={() => setStep('scan')}><Camera size={16} />{' '}{tx('Scan')}</button>
+                                <button className="btn btn-ghost flex-1" title={tx('Manual')} onClick={() => setStep('amount')}><FileText size={16} />{' '}{tx('Manual')}</button>
                             </div>
 
                             <div className="relative bg-black rounded-2xl overflow-hidden flex-col items-center justify-center p-4" style={{ height: 280 }}>
                                 {isScanning ? (
                                     <div className="text-white flex-col items-center gap-3">
                                         <RefreshCw className="animate-spin" size={32} />
-                                        <p>Scanning receipt...</p>
+                                        <p>{tx('Scanning receipt...')}</p>
                                     </div>
                                 ) : (
                                     <>
@@ -161,23 +162,23 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                         {scanError && <div className="text-danger text-sm mb-4">{scanError}</div>}
 
                         <div className="flex-row gap-3">
-                            <label className="btn btn-secondary flex-1 cursor-pointer" title="Upload Image">
-                                <Upload size={16} /> Upload Image
-                                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} title="Upload File" />
+                            <label className="btn btn-secondary flex-1 cursor-pointer" title={tx('Upload Image')}>
+                                <Upload size={16} />{' '}{tx('Upload Image')}
+                                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} title={tx('Upload File')} />
                             </label>
-                            <button className="btn btn-primary flex-2" title="Capture Receipt" onClick={capture} disabled={isScanning}>
-                                <Camera size={16} /> Capture Receipt
+                            <button className="btn btn-primary flex-2" title={tx('Capture Receipt')} onClick={capture} disabled={isScanning}>
+                                <Camera size={16} />{' '}{tx('Capture Receipt')}
                             </button>
                         </div>
                     </div>
                 ) : step === 'amount' && !editId ? (
                     <div className="animate-fadeIn">
                         <div className="flex-row gap-2 mb-5">
-                            <button className="btn btn-ghost flex-1" title="Scan" onClick={() => setStep('scan')}><Camera size={16} /> Scan</button>
-                            <button className="btn btn-primary flex-1" title="Manual" onClick={() => setStep('amount')}><FileText size={16} /> Manual</button>
+                            <button className="btn btn-ghost flex-1" title={tx('Scan')} onClick={() => setStep('scan')}><Camera size={16} />{' '}{tx('Scan')}</button>
+                            <button className="btn btn-primary flex-1" title={tx('Manual')} onClick={() => setStep('amount')}><FileText size={16} />{' '}{tx('Manual')}</button>
                         </div>
                         <div className="amount-display">
-                            <select aria-label="Select currency" className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
+                            <select aria-label={tx('Select currency')} className="form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)} style={{ padding: '4px 8px', borderRadius: 8, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, appearance: 'none', cursor: 'pointer', fontSize: 18 }}>
                                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                             </select>
                             {amount || '0'}
@@ -188,7 +189,7 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                                 <button key={k} aria-label={`Dial ${k}`} className="keypad-btn" onClick={() => handleKeypad(k)}>{k}</button>
                             ))}
                         </div>
-                        <button className="btn btn-primary w-full mt-6" title="Continue" onClick={() => setStep('details')} disabled={!amount || amount === '0'}>Continue →</button>
+                        <button className="btn btn-primary w-full mt-6" title={tx('Continue')} onClick={() => setStep('details')} disabled={!amount || amount === '0'}>{tx('Continue →')}</button>
                     </div>
                 ) : (
                     <div className="animate-fadeIn">
@@ -198,30 +199,30 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                                     <div className="font-extrabold" style={{ fontSize: 28, color: 'var(--primary-light)' }}>{currency} {amount}</div>
                                     <ConversionHint amount={amount} from={currency} to={ws?.currency} />
                                 </div>
-                                <div className="text-muted text-xs ml-auto">tap to change</div>
+                                <div className="text-muted text-xs ml-auto">{tx('tap to change')}</div>
                             </div>
                         )}
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12 }}>
                             <div className="form-group">
-                                <label className="form-label">Merchant *</label>
-                                <input className="form-input" value={merchant} onChange={e => setMerchant(e.target.value)} placeholder="e.g. Whole Foods Market" required />
+                                <label className="form-label">{tx('Merchant *')}</label>
+                                <input className="form-input" value={merchant} onChange={e => setMerchant(e.target.value)} placeholder={tx('e.g. Whole Foods Market')} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Currency</label>
-                                <select aria-label="Currency" className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
+                                <label className="form-label">{tx('Currency')}</label>
+                                <select aria-label={tx('Currency')} className="form-input form-select" value={currency} onChange={e => handleCurrencyChange(e.target.value)}>
                                     {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>)}
                                 </select>
                             </div>
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <input className="form-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="What was this for?" />
+                            <label className="form-label">{tx('Description')}</label>
+                            <input className="form-input" value={description} onChange={e => setDescription(e.target.value)} placeholder={tx('What was this for?')} />
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Category</label>
+                            <label className="form-label">{tx('Category')}</label>
                             <div className="category-chips" style={{ flexWrap: 'wrap' }}>
                                 {categories.map(cat => (
                                     <div key={cat.key} className={`category-chip ${category === cat.key ? 'selected' : ''}`} onClick={() => setCategory(cat.key)}>
@@ -232,7 +233,7 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Payment Method</label>
+                            <label className="form-label">{tx('Payment Method')}</label>
                             <div className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
                                 {paymentMethods.map(pm => (
                                     <div key={pm.key} className={`category-chip ${paymentMethod === pm.key ? 'selected' : ''}`} onClick={() => setPaymentMethod(pm.key)}>
@@ -240,31 +241,31 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
                                     </div>
                                 ))}
                             </div>
-                            {paymentMethod === 'card' && <input className="form-input mt-2" value={last4} onChange={e => setLast4(e.target.value.slice(-4))} placeholder="Last 4 digits (optional)" title="Last 4 digits" maxLength={4} />}
+                            {paymentMethod === 'card' && <input className="form-input mt-2" value={last4} onChange={e => setLast4(e.target.value.slice(-4))} placeholder={tx('Last 4 digits (optional)')} title={tx('Last 4 digits')} maxLength={4} />}
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Date & Time</label>
-                            <input type="datetime-local" className="form-input" value={purchaseAt} onChange={e => setPurchaseAt(e.target.value)} title="Date and Time" placeholder="Select Date and Time" />
+                            <label className="form-label">{tx('Date & Time')}</label>
+                            <input type="datetime-local" className="form-input" value={purchaseAt} onChange={e => setPurchaseAt(e.target.value)} title={tx('Date and Time')} placeholder={tx('Select Date and Time')} />
                         </div>
 
                         {editId && (
                             <div className="form-group">
-                                <label className="form-label">Amount ({currency})</label>
-                                <input type="number" className="form-input" value={amount} onChange={e => setAmount(e.target.value)} step="0.01" min="0" title="Amount" placeholder="Amount" />
+                                <label className="form-label">{tx('Amount (')}{currency})</label>
+                                <input type="number" className="form-input" value={amount} onChange={e => setAmount(e.target.value)} step="0.01" min="0" title={tx('Amount')} placeholder={tx('Amount')} />
                                 <ConversionHint amount={amount} from={currency} to={ws?.currency} />
                             </div>
                         )}
 
                         <div className="form-group">
-                            <label className="form-label">Notes</label>
-                            <textarea className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any additional notes..." title="Notes" rows={2} style={{ resize: 'none' }} />
+                            <label className="form-label">{tx('Notes')}</label>
+                            <textarea className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tx('Any additional notes...')} title={tx('Notes')} rows={2} style={{ resize: 'none' }} />
                         </div>
 
                         <div className="flex-row gap-3">
-                            {!editId && <button className="btn btn-ghost flex-1" onClick={() => setStep('amount')} title="Back">← Back</button>}
-                            <button className="btn btn-primary flex-2" onClick={handleSave} disabled={!merchant || !amount} title="Save Expense">
-                                {editId ? 'Save Changes' : '✓ Add Expense'}
+                            {!editId && <button className="btn btn-ghost flex-1" onClick={() => setStep('amount')} title={tx('Back')}>{tx('← Back')}</button>}
+                            <button className="btn btn-primary flex-2" onClick={handleSave} disabled={!merchant || !amount} title={tx('Save Expense')}>
+                                {editId ? tx('Save Changes') : tx('✓ Add Expense')}
                             </button>
                         </div>
                     </div>

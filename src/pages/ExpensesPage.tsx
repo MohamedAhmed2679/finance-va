@@ -18,7 +18,7 @@ function dayLabel(day: string) {
     if (day === localDay(y.toISOString())) return 'Yesterday';
     return new Date(day + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: day.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric' });
 }
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
 import { Search, Filter, X, Trash2, Plus, Edit2, Target } from 'lucide-react';
 import AddExpenseModal from '../components/AddExpenseModal';
@@ -89,7 +89,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{filtered.length} transactions</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    {!isViewer && <button className="btn btn-secondary" onClick={() => setShowBudget(true)}><Target size={16} /> Budget</button>}
+                    {!isViewer && <button className="btn btn-secondary" onClick={() => setShowBudget(true)}><Target size={16} />{' '}{tx('Budget')}</button>}
                     {!isViewer && <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={16} />{t(lang, 'add_expense')}</button>}
                 </div>
             </div>
@@ -107,19 +107,19 @@ export default function ExpensesPage({ }: ExpensesProps) {
                         {activeFilterCount > 0 && <span className="nav-badge" style={{ position: 'absolute', top: -6, right: -6 }}>{activeFilterCount}</span>}
                     </button>
                     <select className="form-input form-select" style={{ width: 'auto', padding: '8px 32px 8px 12px', fontSize: 13 }} value={filters.sortBy} onChange={e => setFilters({ sortBy: e.target.value as any })}>
-                        <option value="date_desc">Newest First</option>
-                        <option value="date_asc">Oldest First</option>
-                        <option value="amount_desc">Highest Amount</option>
-                        <option value="amount_asc">Lowest Amount</option>
+                        <option value="date_desc">{tx('Newest First')}</option>
+                        <option value="date_asc">{tx('Oldest First')}</option>
+                        <option value="amount_desc">{tx('Highest Amount')}</option>
+                        <option value="amount_asc">{tx('Lowest Amount')}</option>
                     </select>
-                    {activeFilterCount > 0 && <button className="btn btn-ghost btn-sm" onClick={resetFilters}><X size={14} /> Clear</button>}
+                    {activeFilterCount > 0 && <button className="btn btn-ghost btn-sm" onClick={resetFilters}><X size={14} />{' '}{tx('Clear')}</button>}
                 </div>
 
                 {/* Filters panel */}
                 {showFilters && (
                     <div className="filter-panel animate-fadeIn">
                         <fieldset className="filter-group filter-group-wide">
-                            <legend className="form-label">Category</legend>
+                            <legend className="form-label">{tx('Category')}</legend>
                             <div className="chip-wrap">
                                 {categories.map(cat => (
                                     <button type="button" key={cat.key} aria-pressed={filters.categories.includes(cat.key as any)} className={`category-chip ${filters.categories.includes(cat.key as any) ? 'selected' : ''}`} onClick={() => toggleCategory(cat.key)}>
@@ -129,16 +129,16 @@ export default function ExpensesPage({ }: ExpensesProps) {
                             </div>
                         </fieldset>
                         <fieldset className="filter-group">
-                            <legend className="form-label">Date range</legend>
+                            <legend className="form-label">{tx('Date range')}</legend>
                             <div className="date-pair">
-                                <label><span>From</span><input type="date" className="form-input" value={filters.dateFrom ?? ''} onChange={e => setFilters({ dateFrom: e.target.value || undefined })} /></label>
-                                <label><span>To</span><input type="date" className="form-input" value={filters.dateTo ?? ''} onChange={e => setFilters({ dateTo: e.target.value || undefined })} /></label>
+                                <label><span>{tx('From')}</span><input type="date" className="form-input" value={filters.dateFrom ?? ''} onChange={e => setFilters({ dateFrom: e.target.value || undefined })} /></label>
+                                <label><span>{tx('To')}</span><input type="date" className="form-input" value={filters.dateTo ?? ''} onChange={e => setFilters({ dateTo: e.target.value || undefined })} /></label>
                             </div>
                         </fieldset>
                         <fieldset className="filter-group">
-                            <legend className="form-label">Up to {wsCur} {(filters.amountMax ?? maxAmt).toLocaleString()}</legend>
-                            <input type="range" aria-label="Maximum amount" min={0} max={maxAmt} value={Math.min(filters.amountMax ?? maxAmt, maxAmt)} onChange={e => setFilters({ amountMax: +e.target.value >= maxAmt ? undefined : +e.target.value })} style={{ width: '100%', accentColor: 'var(--primary)' }} />
-                            <div className="form-label" style={{ marginTop: 14 }}>Payment method</div>
+                            <legend className="form-label">{tx('Up to')}{' '}{wsCur} {(filters.amountMax ?? maxAmt).toLocaleString()}</legend>
+                            <input type="range" aria-label={tx('Maximum amount')} min={0} max={maxAmt} value={Math.min(filters.amountMax ?? maxAmt, maxAmt)} onChange={e => setFilters({ amountMax: +e.target.value >= maxAmt ? undefined : +e.target.value })} style={{ width: '100%', accentColor: 'var(--primary)' }} />
+                            <div className="form-label" style={{ marginTop: 14 }}>{tx('Payment method')}</div>
                             <div className="chip-wrap">
                                 {paymentMethods.map(pm => (
                                     <button type="button" key={pm.key} aria-pressed={filters.paymentMethods.includes(pm.key as any)} className={`category-chip ${filters.paymentMethods.includes(pm.key as any) ? 'selected' : ''}`} onClick={() => { const pms = filters.paymentMethods.includes(pm.key as any) ? filters.paymentMethods.filter(p => p !== pm.key) : [...filters.paymentMethods, pm.key as any]; setFilters({ paymentMethods: pms }); }}>
@@ -156,9 +156,9 @@ export default function ExpensesPage({ }: ExpensesProps) {
                 {filtered.length === 0 ? (
                     <div className="empty-state" style={{ padding: '64px 0' }}>
                         <div className="empty-icon">🔍</div>
-                        <div className="empty-title">No expenses found</div>
-                        <div className="empty-desc">Try adjusting your filters or add a new expense</div>
-                        {!isViewer && <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add Expense</button>}
+                        <div className="empty-title">{tx('No expenses found')}</div>
+                        <div className="empty-desc">{tx('Try adjusting your filters or add a new expense')}</div>
+                        {!isViewer && <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>{tx('+ Add Expense')}</button>}
                     </div>
                 ) : (
                     <div style={{ padding: '6px 20px 10px' }}>
@@ -179,7 +179,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                     style={{ gridTemplateColumns: isViewer ? '40px minmax(0,1fr) auto' : '40px minmax(0,1fr) auto auto' }}>
                                                     <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <div className="ledger-title">{e.merchant || catInfo.label}</div>
+                                                        <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>
                                                         <div className="ledger-sub">
                                                             {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
                                                         </div>
@@ -207,17 +207,17 @@ export default function ExpensesPage({ }: ExpensesProps) {
             {showBudget && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
                     <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Set Monthly Budget</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Receive alerts when you approach or exceed this budget.</p>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Receive alerts when you approach or exceed this budget.')}</p>
 
                         <div className="form-group">
-                            <label className="form-label">Monthly Budget ({currency})</label>
+                            <label className="form-label">{tx('Monthly Budget (')}{currency})</label>
                             <input type="number" className="form-input" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="0.00" autoFocus />
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { updateUser({ monthlyBudget: parseFloat(budgetInput) || 0, notifyBudget: true }); setShowBudget(false); }}>Save Budget</button>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowBudget(false)}>Cancel</button>
+                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { updateUser({ monthlyBudget: parseFloat(budgetInput) || 0, notifyBudget: true }); setShowBudget(false); }}>{tx('Save Budget')}</button>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowBudget(false)}>{tx('Cancel')}</button>
                         </div>
                     </div>
                 </div>
@@ -230,14 +230,13 @@ export default function ExpensesPage({ }: ExpensesProps) {
                     <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
                         <div className="modal" onClick={ev => ev.stopPropagation()} style={{ maxWidth: 400, textAlign: 'center' }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
-                            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Delete Expense?</h3>
+                            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Delete Expense?')}</h3>
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
-                                Are you sure you want to delete <strong>{expToDelete?.merchant ?? 'this expense'}</strong>?
-                                This action cannot be undone.
+                                {tx('Are you sure you want to delete')}{' '}<strong>{expToDelete?.merchant ?? tx('this expense')}</strong>{tx('? This action cannot be undone.')}
                             </p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
-                                <button className="btn btn-danger" onClick={() => { deleteExpense(deleteConfirmId); setDeleteConfirmId(null); }}>Delete</button>
+                                <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>{tx('Cancel')}</button>
+                                <button className="btn btn-danger" onClick={() => { deleteExpense(deleteConfirmId); setDeleteConfirmId(null); }}>{tx('Delete')}</button>
                             </div>
                         </div>
                     </div>

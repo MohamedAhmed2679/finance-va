@@ -30,6 +30,8 @@ import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
 import HistoryPage from './pages/HistoryPage';
 import MobileTopBar from './components/MobileTopBar';
+import { setTxLanguage } from './i18n/translations';
+import { startDomTranslation } from './i18n/domTranslate';
 import { initPush, scheduleReminders } from './services/push';
 import JoinInvite, { captureJoinLink } from './components/JoinInvite';
 
@@ -215,6 +217,8 @@ function Shell() {
 export default function App() {
     const { isAuthenticated, showOnboarding, theme, checkBillReminders, isLocked, user } = useStore();
     const lang = user?.language ?? 'en';
+    // tx() reads the language synchronously while rendering, so set it before any child renders
+    setTxLanguage(lang);
 
     // Theme, writing direction and Electron title bar
     useEffect(() => {
@@ -227,6 +231,7 @@ export default function App() {
     useEffect(() => {
         document.documentElement.lang = lang;
         document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        return startDomTranslation(lang);
     }, [lang]);
 
     // Session restore on boot + native deep-link OAuth return

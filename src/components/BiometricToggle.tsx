@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Fingerprint, ScanFace } from 'lucide-react';
@@ -18,7 +19,7 @@ export default function BiometricToggle({ compact = false }: { compact?: boolean
         if (on) {
             removeBiometric(user.id);
             updateUser({ biometricEnabled: false });
-            toast.success('Biometric unlock turned off on this device');
+            toast.success(tx('Biometric unlock turned off on this device'));
             return;
         }
         setBusy(true);

@@ -495,7 +495,8 @@ a.nav-item { text-decoration: none; }
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
-.stat-icon { position: absolute; top: 20px; right: 20px; color: var(--ink-3); }
+.stat-icon { position: absolute; top: 20px; inset-inline-end: 20px; color: var(--ink-3); }
+.stat-card:has(> .stat-icon) .stat-label { padding-inline-end: 32px; }
 .stat-change { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; }
 .stat-positive { color: var(--gain); }
 .stat-negative { color: var(--cinnabar); }
@@ -1173,6 +1174,7 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 
   .quick-add-container { right: 50%; transform: translateX(50%); bottom: calc(18px + var(--safe-bottom)); }
   [dir="rtl"] .quick-add-container { left: auto; right: 50%; }
+  [dir="rtl"] .fab-menu { left: auto; right: 50%; align-items: center; }
   .fab { width: 54px; height: 54px; border-radius: 18px; }
   .fab-menu { right: 50%; transform: translateX(50%); bottom: 70px; align-items: center; }
 
@@ -1660,3 +1662,10 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .push-prompt strong { font-size: 14.5px; }
 .push-prompt p { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
 @media (max-width: 520px) { .push-prompt { flex-wrap: wrap; } .push-prompt > .btn { order: 3; flex: 1; } .push-prompt > .icon-btn { position: absolute; top: 8px; right: 8px; } .push-prompt { position: relative; padding-right: 40px; } }
+
+/* ── RTL: fields with icons or badges inside them ───── */
+[dir="rtl"] .pw-field .form-input { padding-right: 14px; padding-left: 44px; }
+[dir="rtl"] .pw-toggle { right: auto; left: 6px; }
+[dir="rtl"] .who-field .form-input { padding-right: 14px; padding-left: 84px; }
+[dir="rtl"] .who-kind { right: auto; left: 10px; }
+[dir="rtl"] .fab-action { padding: 6px 16px 6px 6px; }

@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -153,7 +154,7 @@ export default function ChatPage() {
     async function deleteMessage(id: string) {
         if (!supabase) return;
         const { error } = await supabase.from('chat_messages').update({ is_deleted: true }).eq('id', id);
-        if (error) toast.error("Couldn't delete that message.");
+        if (error) toast.error(tx('Couldn\'t delete that message.'));
         else setMessages(prev => prev.filter(m => m.id !== id));
     }
 
@@ -162,11 +163,11 @@ export default function ChatPage() {
         if (!ws || !adding.trim()) return;
         try {
             const r = await inviteMember(ws.id, adding.trim(), '', role);
-            if (r === 'not_found') toast.error('No Zaylo account matches that email, phone or Zaylo ID.');
-            else if (r === 'pending') { toast.success("They don't have Zaylo yet. They'll join this chat when they sign up with that email."); setAdding(''); }
-            else if (r === 'already_member') toast("They're already in this workspace.");
-            else if (r === 'self') toast("That's you.");
-            else { toast.success('Added and notified'); setAdding(''); }
+            if (r === 'not_found') toast.error(tx('No Zaylo account matches that email, phone or Zaylo ID.'));
+            else if (r === 'pending') { toast.success(tx('They don\'t have Zaylo yet. They\'ll join this chat when they sign up with that email.')); setAdding(''); }
+            else if (r === 'already_member') toast(tx('They\'re already in this workspace.'));
+            else if (r === 'self') toast(tx('That\'s you.'));
+            else { toast.success(tx('Added and notified')); setAdding(''); }
         } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed'); }
     }
 
@@ -181,40 +182,40 @@ export default function ChatPage() {
         return out;
     }, [messages]);
 
-    if (!ws) return <div className="page"><div className="empty-state"><div className="empty-title">No workspace yet</div></div></div>;
+    if (!ws) return <div className="page"><div className="empty-state"><div className="empty-title">{tx('No workspace yet')}</div></div></div>;
 
     return (
         <div className="page">
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{ws.name} chat</h1>
-                    <p className="page-subtitle">{ws.members.length} {ws.members.length === 1 ? 'member' : 'members'} · only people in this workspace can read it</p>
+                    <p className="page-subtitle">{ws.members.length} {ws.members.length === 1 ? tx('member') : tx('members')}{' '}{tx('· only people in this workspace can read it')}</p>
                 </div>
                 <div className="flex gap-2">
-                    <button className={`btn ${side === 'gallery' && showMembers ? 'btn-primary' : 'btn-secondary'} chat-gallery-toggle`} onClick={() => { setSide('gallery'); setShowMembers(v => side !== 'gallery' || !v); }} aria-pressed={side === 'gallery'}><Images size={16} /> Gallery</button>
-                    <button className="btn btn-secondary chat-members-toggle" onClick={() => { setSide('members'); setShowMembers(v => side !== 'members' || !v); }} style={{ display: 'inline-flex' }}><Users size={16} /> Members</button>
+                    <button className={`btn ${side === 'gallery' && showMembers ? 'btn-primary' : 'btn-secondary'} chat-gallery-toggle`} onClick={() => { setSide('gallery'); setShowMembers(v => side !== 'gallery' || !v); }} aria-pressed={side === 'gallery'}><Images size={16} />{' '}{tx('Gallery')}</button>
+                    <button className="btn btn-secondary chat-members-toggle" onClick={() => { setSide('members'); setShowMembers(v => side !== 'members' || !v); }} style={{ display: 'inline-flex' }}><Users size={16} />{' '}{tx('Members')}</button>
                 </div>
             </div>
 
             <div className={`chat-layout ${showMembers ? 'show-members' : ''}`}>
-                <section className={`card chat-panel ${dragging ? 'is-dragging' : ''}`} aria-label="Messages"
+                <section className={`card chat-panel ${dragging ? 'is-dragging' : ''}`} aria-label={tx('Messages')}
                     onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true); } }}
                     onDragLeave={e => { if (e.currentTarget === e.target) setDragging(false); }}
                     onDrop={e => { e.preventDefault(); setDragging(false); const f = Array.from(e.dataTransfer.files || []); if (f.length) addFiles(f); }}>
-                    {dragging && <div className="drop-hint">Drop to attach</div>}
+                    {dragging && <div className="drop-hint">{tx('Drop to attach')}</div>}
                     <div className="chat-scroll" ref={scrollRef} aria-live="polite">
                         {loading && <div className="skeleton" style={{ height: 40, width: '60%' }} />}
                         {!loading && messages.length === 0 && (
                             <div className="empty-state" style={{ margin: 'auto' }}>
-                                <div className="empty-title">Start the conversation</div>
-                                <div className="empty-desc">{ws.members.length > 1 ? 'Messages here are shared with everyone in this workspace.' : 'Add someone to this workspace to chat about shared spending.'}</div>
+                                <div className="empty-title">{tx('Start the conversation')}</div>
+                                <div className="empty-desc">{ws.members.length > 1 ? tx('Messages here are shared with everyone in this workspace.') : tx('Add someone to this workspace to chat about shared spending.')}</div>
                             </div>
                         )}
                         <AnimatePresence initial={false}>
                             {grouped.map(item => 'divider' in item ? (
                                 <div key={item.key} className="chat-day">{item.divider}</div>
                             ) : (
-                                <motion.div key={item.id} layout className={`bubble ${item.user_id === me ? 'mine' : ''}`}
+                                <motion.div key={item.id} layout translate="no" className={`bubble ${item.user_id === me ? 'mine' : ''}`}
                                     initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: item.pending ? 0.6 : 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}>
                                     <span className="who">{item.sender_name}</span>
                                     {item.attachments?.length ? <MessageAttachments items={toItems(item)} urls={urls} onOpen={setViewing} /> : null}
@@ -222,7 +223,7 @@ export default function ChatPage() {
                                     <time style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         {(item.user_id === me || canManage) && !item.pending && (
-                                            <button className="icon-btn" style={{ width: 20, height: 20, color: 'inherit', opacity: 0.7 }} aria-label="Delete message" onClick={() => deleteMessage(item.id)}><Trash2 size={12} /></button>
+                                            <button className="icon-btn" style={{ width: 20, height: 20, color: 'inherit', opacity: 0.7 }} aria-label={tx('Delete message')} onClick={() => deleteMessage(item.id)}><Trash2 size={12} /></button>
                                         )}
                                     </time>
                                 </motion.div>
@@ -232,19 +233,19 @@ export default function ChatPage() {
                     <PendingFiles files={files} progress={progress} onRemove={i => setFiles(f => f.filter((_, j) => j !== i))} />
                     <div className="chat-compose">
                         <FilePicker onAdd={addFiles} disabled={progress != null} />
-                        <textarea className="form-input" rows={1} placeholder={files.length ? 'Add a caption (optional)' : 'Write a message'} value={text} aria-label="Message"
+                        <textarea className="form-input" rows={1} placeholder={files.length ? tx('Add a caption (optional)') : tx('Write a message')} value={text} aria-label={tx('Message')}
                             onChange={e => setText(e.target.value)}
                             onPaste={e => { const f = Array.from(e.clipboardData.files || []); if (f.length) { e.preventDefault(); addFiles(f); } }}
                             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-                        <motion.button className="btn btn-primary btn-icon" style={{ width: 44, minHeight: 44 }} whileTap={{ scale: 0.9 }} onClick={send} disabled={(!text.trim() && !files.length) || progress != null} aria-label="Send"><Send size={18} /></motion.button>
+                        <motion.button className="btn btn-primary btn-icon" style={{ width: 44, minHeight: 44 }} whileTap={{ scale: 0.9 }} onClick={send} disabled={(!text.trim() && !files.length) || progress != null} aria-label={tx('Send')}><Send size={18} /></motion.button>
                     </div>
                 </section>
 
-                <aside className="card chat-members" aria-label={side === 'gallery' ? 'Gallery' : 'Members'}>
-                    <div className="seg side-tabs" role="tablist" aria-label="Side panel">
-                        <button role="tab" aria-selected={side === 'members'} className={side === 'members' ? 'active' : ''} onClick={() => setSide('members')}><Users size={14} /> Members</button>
-                        <button role="tab" aria-selected={side === 'gallery'} className={side === 'gallery' ? 'active' : ''} onClick={() => setSide('gallery')}><Images size={14} /> Gallery</button>
-                        {showMembers && <button className="icon-btn" onClick={() => setShowMembers(false)} aria-label="Hide panel"><X size={16} /></button>}
+                <aside className="card chat-members" aria-label={side === 'gallery' ? tx('Gallery') : tx('Members')}>
+                    <div className="seg side-tabs" role="tablist" aria-label={tx('Side panel')}>
+                        <button role="tab" aria-selected={side === tx('members')} className={side === tx('members') ? 'active' : ''} onClick={() => setSide('members')}><Users size={14} />{' '}{tx('Members')}</button>
+                        <button role="tab" aria-selected={side === 'gallery'} className={side === 'gallery' ? 'active' : ''} onClick={() => setSide('gallery')}><Images size={14} />{' '}{tx('Gallery')}</button>
+                        {showMembers && <button className="icon-btn" onClick={() => setShowMembers(false)} aria-label={tx('Hide panel')}><X size={16} /></button>}
                     </div>
                     {side === 'gallery' ? <ChatGallery items={gallery} urls={urls} loading={historyLoading} onOpen={setViewing} /> : <>
                     <div className="ledger">
@@ -252,7 +253,7 @@ export default function ChatPage() {
                             <div key={m.uid} className="ledger-row" style={{ gridTemplateColumns: '32px minmax(0,1fr) auto', padding: '8px 0' }}>
                                 <span className="user-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>{(m.name || '?')[0].toUpperCase()}</span>
                                 <div style={{ minWidth: 0 }}><div className="ledger-title" style={{ fontSize: 14 }}>{m.name}{m.uid === me ? ' (you)' : ''}</div><div className="ledger-sub">{m.role}</div></div>
-                                {canManage && m.role !== 'owner' && m.uid !== me ? (
+                                {canManage && m.role !== tx('owner') && m.uid !== me ? (
                                     <button className="icon-btn" aria-label={`Remove ${m.name}`} onClick={async () => {
                                         if (!confirm(`Remove ${m.name}? They lose access to this workspace and its chat.`)) return;
                                         try { await removeMember(ws.id, m.uid); toast.success(`${m.name} removed`); } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed'); }
@@ -263,11 +264,11 @@ export default function ChatPage() {
                     </div>
                     {canManage && (
                         <form onSubmit={addMember} className="mt-4">
-                            <label className="form-label" htmlFor="chat-add">Add someone by email, phone or Zaylo ID</label>
-                            <input id="chat-add" className="form-input mt-1" placeholder="Email, phone or ZY-XXXXXX" value={adding} onChange={e => setAdding(e.target.value)} />
+                            <label className="form-label" htmlFor="chat-add">{tx('Add someone by email, phone or Zaylo ID')}</label>
+                            <input id="chat-add" className="form-input mt-1" placeholder={tx('Email, phone or ZY-XXXXXX')} value={adding} onChange={e => setAdding(e.target.value)} />
                             <div className="flex gap-2 mt-2">
-                                <select className="form-select" value={role} onChange={e => setRole(e.target.value as WorkspaceRole)} aria-label="Role"><option value="member">Member</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select>
-                                <button className="btn btn-primary" disabled={!adding.trim()}><UserPlus size={16} /> Add</button>
+                                <select className="form-select" value={role} onChange={e => setRole(e.target.value as WorkspaceRole)} aria-label={tx('Role')}><option value="member">{tx('Member')}</option><option value="admin">{tx('Admin')}</option><option value="viewer">{tx('Viewer')}</option></select>
+                                <button className="btn btn-primary" disabled={!adding.trim()}><UserPlus size={16} />{' '}{tx('Add')}</button>
                             </div>
                         </form>
                     )}

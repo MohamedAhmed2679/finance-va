@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
 import { Briefcase, Plus, Trash2, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
@@ -85,35 +85,35 @@ export default function EarningsPage() {
             <div className="page animate-fadeIn">
                 <header className="page-header" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                        <h1 className="page-title">{t(lang, 'earnings') || 'Income & Earnings'}</h1>
+                        <h1 className="page-title">{t(lang, 'earnings') || tx('Income & Earnings')}</h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                             <span className="badge" style={{ background: 'var(--primary-light)', color: '#fff', display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <CalendarRange size={14} />
-                                Active Cycle: {format(new Date(cycleStart), 'MMM d')} - {format(new Date(cycleEnd), 'MMM d')}
+                                {tx('Active Cycle:')}{' '}{format(new Date(cycleStart), 'MMM d')} - {format(new Date(cycleEnd), 'MMM d')}
                             </span>
-                            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>(Starts on the {cycleStartDay}{cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{lang === 'ar' ? `(تبدأ يوم ${cycleStartDay} من كل شهر)` : `(Starts on the ${cycleStartDay}${cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})`}</span>
                         </div>
                     </div>
                     {!isViewer && (
                         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-                            <Plus size={16} /> Add Income
+                            <Plus size={16} />{' '}{tx('Add Income')}
                         </button>
                     )}
                 </header>
 
                 <div className="card-grid card-grid-3 mb-6">
                     <div className="card stat-card animate-fadeIn" style={{ background: 'var(--surface)' }}>
-                        <div className="stat-label">Total Income (This Cycle)</div>
+                        <div className="stat-label">{tx('Total Income (This Cycle)')}</div>
                         <div className="stat-value"><CurrencyDisplay amount={totalIncome} currency={cur} hideAmounts={hideAmounts} /></div>
                         <TrendingUp size={20} className="stat-icon" style={{ color: 'var(--gain)' }} />
                     </div>
                     <div className="card stat-card animate-fadeIn" style={{ animationDelay: '60ms' }}>
-                        <div className="stat-label">Total Spent</div>
+                        <div className="stat-label">{tx('Total Spent')}</div>
                         <div className="stat-value"><CurrencyDisplay amount={totalSpent} currency={cur} hideAmounts={hideAmounts} /></div>
                         <TrendingDown size={20} className="stat-icon" style={{ color: 'var(--danger)' }} />
                     </div>
                     <div className="card stat-card animate-fadeIn" style={{ animationDelay: '120ms', borderColor: leftover >= 0 ? 'var(--gain-soft)' : 'var(--cinnabar-soft)' }}>
-                        <div className="stat-label">Leftover (Expected Savings)</div>
+                        <div className="stat-label">{tx('Leftover (Expected Savings)')}</div>
                         <div className="stat-value" style={{ color: leftover >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                             <CurrencyDisplay amount={leftover} currency={cur} hideAmounts={hideAmounts} />
                         </div>
@@ -123,23 +123,23 @@ export default function EarningsPage() {
 
                 {showAdd && (
                     <div className="card mb-6 animate-fadeIn" style={{ borderLeft: '4px solid var(--primary)' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Add Income Source</h3>
+                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>{tx('Add Income Source')}</h3>
                         <form onSubmit={handleAddIncome} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <div className="form-group">
-                                <label className="form-label">Income Type</label>
+                                <label className="form-label">{tx('Income Type')}</label>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                    <button type="button" className={`btn ${incType === 'fixed' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('fixed')} style={{ flex: 1 }}>Fixed / Salary</button>
-                                    <button type="button" className={`btn ${incType === 'variable' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('variable')} style={{ flex: 1 }}>Variable / One-off</button>
+                                    <button type="button" className={`btn ${incType === 'fixed' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('fixed')} style={{ flex: 1 }}>{tx('Fixed / Salary')}</button>
+                                    <button type="button" className={`btn ${incType === 'variable' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('variable')} style={{ flex: 1 }}>{tx('Variable / One-off')}</button>
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Name (e.g. Salary, Freelance project)</label>
+                                <label className="form-label">{tx('Name (e.g. Salary, Freelance project)')}</label>
                                 <input type="text" className="form-input" value={incName} onChange={e => setIncName(e.target.value)} required autoFocus />
                             </div>
                             <div className="form-group">
-                                <label className="form-label" htmlFor="inc-amount">Amount</label>
+                                <label className="form-label" htmlFor="inc-amount">{tx('Amount')}</label>
                                 <div className="amount-currency">
-                                    <select className="form-select" aria-label="Currency" value={incCurrency} onChange={e => setIncCurrency(e.target.value)}>
+                                    <select className="form-select" aria-label={tx('Currency')} value={incCurrency} onChange={e => setIncCurrency(e.target.value)}>
                                         {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                                     </select>
                                     <input id="inc-amount" type="number" step="0.01" min="0" className="form-input" value={incAmount} onChange={e => setIncAmount(e.target.value)} required />
@@ -148,13 +148,13 @@ export default function EarningsPage() {
                             </div>
                             {incType === 'variable' && (
                                 <div className="form-group">
-                                    <label className="form-label">Date Received</label>
+                                    <label className="form-label">{tx('Date Received')}</label>
                                     <input type="date" className="form-input" value={incDate} onChange={e => setIncDate(e.target.value)} required />
                                 </div>
                             )}
                             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save Income</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>{tx('Cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{tx('Save Income')}</button>
                             </div>
                         </form>
                     </div>
@@ -162,13 +162,13 @@ export default function EarningsPage() {
 
                 <div className="card animate-fadeIn" style={{ animationDelay: '180ms' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                        <h2 style={{ fontSize: 16, fontWeight: 700 }}>Active Income Sources</h2>
+                        <h2 style={{ fontSize: 16, fontWeight: 700 }}>{tx('Active Income Sources')}</h2>
                     </div>
 
                     {activeIncomes.length === 0 ? (
                         <div className="empty-state">
-                            <div className="empty-title">No income sources found</div>
-                            <div className="empty-desc">Add your salary or freelance earnings to calculate leftovers.</div>
+                            <div className="empty-title">{tx('No income sources found')}</div>
+                            <div className="empty-desc">{tx('Add your salary or freelance earnings to calculate leftovers.')}</div>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -181,7 +181,7 @@ export default function EarningsPage() {
                                         <div>
                                             <div style={{ fontWeight: 600, fontSize: 15 }}>{inc.name}</div>
                                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                                {inc.type === 'fixed' ? 'Recurring per cycle' : `Received on ${format(new Date(inc.date), 'MMM d, yyyy')}`}
+                                                {inc.type === 'fixed' ? tx('Recurring per cycle') : `Received on ${format(new Date(inc.date), 'MMM d, yyyy')}`}
                                             </div>
                                         </div>
                                     </div>
@@ -190,7 +190,7 @@ export default function EarningsPage() {
                                             <CurrencyDisplay amount={inc.amount} currency={inc.currency} entry={inc} showOriginal hideAmounts={hideAmounts} />
                                         </span>
                                         {!isViewer && (
-                                            <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm('Delete income source?')) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>
+                                            <button className="btn btn-ghost btn-icon" onClick={() => { if (confirm(tx('Delete income source?'))) deleteIncome(inc.id) }} style={{ color: 'var(--danger)' }}>
                                                 <Trash2 size={18} />
                                             </button>
                                         )}

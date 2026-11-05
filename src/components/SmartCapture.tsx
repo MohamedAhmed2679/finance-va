@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Mic, Square, Camera, Upload, FileText, Sparkles, MessageSquareText, RotateCcw } from 'lucide-react';
@@ -58,11 +59,11 @@ export default function SmartCapture({ initialMode = 'voice', onClose, onResult 
 
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
-            <motion.div className="modal capture" role="dialog" aria-label="Add with Zaylo AI"
+            <motion.div className="modal capture" role="dialog" aria-label={tx('Add with Zaylo AI')}
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
                 <div className="modal-header">
-                    <h2 className="modal-title capture-title"><Sparkles size={18} /> Add with Zaylo AI</h2>
-                    <button className="modal-close" onClick={onClose} disabled={busy} aria-label="Close"><X size={20} /></button>
+                    <h2 className="modal-title capture-title"><Sparkles size={18} />{' '}{tx('Add with Zaylo AI')}</h2>
+                    <button className="modal-close" onClick={onClose} disabled={busy} aria-label={tx('Close')}><X size={20} /></button>
                 </div>
 
                 <div className="segmented mb-4" role="tablist">
@@ -85,12 +86,12 @@ export default function SmartCapture({ initialMode = 'voice', onClose, onResult 
 
                 {busy && (
                     <div className="capture-status" role="status">
-                        <span className="capture-spark" aria-hidden="true" /> Reading it with Zaylo AI…
+                        <span className="capture-spark" aria-hidden="true" />{' '}{tx('Reading it with Zaylo AI…')}
                     </div>
                 )}
                 {note && !busy && <div className="auth-msg" style={{ background: 'var(--amber-soft)', color: 'var(--amber)', marginTop: 14 }} role="status">{note}</div>}
                 {error && !busy && <div className="auth-msg error" style={{ marginTop: 14 }} role="alert">{error}</div>}
-                <p className="text-xs text-muted" style={{ marginTop: 14 }}>You'll review everything before it's saved.</p>
+                <p className="text-xs text-muted" style={{ marginTop: 14 }}>{tx('You\'ll review everything before it\'s saved.')}</p>
             </motion.div>
         </div>
     );
@@ -161,12 +162,12 @@ function VoicePane({ busy, onAudio, onError }: { busy: boolean; onAudio: (b: Blo
 
     return (
         <div className="capture-pane" style={{ textAlign: 'center' }}>
-            <p className="capture-hint">Say what you spent, in Arabic or English.<br /><span>“Lunch at Zooba 240 pounds and Uber 85 yesterday”</span></p>
+            <p className="capture-hint">{tx('Say what you spent, in Arabic or English.')}<br /><span>{tx('“Lunch at Zooba 240 pounds and Uber 85 yesterday”')}</span></p>
             <button type="button" className={`mic-btn ${recording ? 'on' : ''}`} onClick={recording ? stop : start} disabled={busy}
-                aria-label={recording ? 'Stop recording' : 'Start recording'} style={{ ['--level' as string]: Math.min(1, level).toFixed(2) }}>
+                aria-label={recording ? tx('Stop recording') : tx('Start recording')} style={{ ['--level' as string]: Math.min(1, level).toFixed(2) }}>
                 {recording ? <Square size={26} fill="currentColor" /> : <Mic size={30} />}
             </button>
-            <div className="capture-meta">{recording ? `Listening… ${seconds}s · tap to finish` : busy ? '' : 'Tap to start'}</div>
+            <div className="capture-meta">{recording ? `Listening… ${seconds}s · tap to finish` : busy ? '' : tx('Tap to start')}</div>
         </div>
     );
 }
@@ -192,21 +193,21 @@ function ScanPane({ busy, onFile }: { busy: boolean; onFile: (f: File, source: '
                 onDrop={e => { e.preventDefault(); setDrag(false); take(e.dataTransfer.files?.[0], 'upload'); }}>
                 {preview ? (
                     <div className="drop-preview">
-                        {preview.url ? <img src={preview.url} alt="Receipt to read" /> : <FileText size={40} />}
+                        {preview.url ? <img src={preview.url} alt={tx('Receipt to read')} /> : <FileText size={40} />}
                         <span>{preview.name}</span>
                     </div>
                 ) : (
                     <>
-                        <p className="capture-hint" style={{ marginBottom: 14 }}>Photograph a receipt, or upload a photo, screenshot or PDF invoice.</p>
+                        <p className="capture-hint" style={{ marginBottom: 14 }}>{tx('Photograph a receipt, or upload a photo, screenshot or PDF invoice.')}</p>
                         <div className="drop-actions">
-                            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => camera.current?.click()}><Camera size={17} /> Take a photo</button>
-                            <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => upload.current?.click()}><Upload size={17} /> Upload file</button>
+                            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => camera.current?.click()}><Camera size={17} />{' '}{tx('Take a photo')}</button>
+                            <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => upload.current?.click()}><Upload size={17} />{' '}{tx('Upload file')}</button>
                         </div>
-                        <p className="text-xs text-muted" style={{ marginTop: 12 }}>Or drop a file here · JPG, PNG, HEIC or PDF up to 3 MB</p>
+                        <p className="text-xs text-muted" style={{ marginTop: 12 }}>{tx('Or drop a file here · JPG, PNG, HEIC or PDF up to 3 MB')}</p>
                     </>
                 )}
             </div>
-            {preview && !busy && <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setPreview(null)}><RotateCcw size={14} /> Use another file</button>}
+            {preview && !busy && <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setPreview(null)}><RotateCcw size={14} />{' '}{tx('Use another file')}</button>}
             <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={e => { take(e.target.files?.[0], 'scan'); e.target.value = ''; }} />
             <input ref={upload} type="file" accept="image/*,application/pdf" hidden onChange={e => { take(e.target.files?.[0], 'upload'); e.target.value = ''; }} />
         </div>
@@ -218,10 +219,10 @@ function TextPane({ busy, onText }: { busy: boolean; onText: (t: string) => void
     const [text, setText] = useState('');
     return (
         <form className="capture-pane" onSubmit={e => { e.preventDefault(); if (text.trim()) onText(text.trim()); }}>
-            <label className="form-label" htmlFor="cap-text">Bank SMS, wallet notification or a quick note</label>
+            <label className="form-label" htmlFor="cap-text">{tx('Bank SMS, wallet notification or a quick note')}</label>
             <textarea id="cap-text" className="form-input" rows={5} value={text} onChange={e => setText(e.target.value)} disabled={busy}
                 placeholder={'Paste one or more messages, e.g.\nPurchase of EGP 450.00 at CARREFOUR MAADI on 04/11 using card **1234'} />
-            <button className="btn btn-primary w-full" style={{ marginTop: 12 }} disabled={busy || !text.trim()}><Sparkles size={16} /> Read it</button>
+            <button className="btn btn-primary w-full" style={{ marginTop: 12 }} disabled={busy || !text.trim()}><Sparkles size={16} />{' '}{tx('Read it')}</button>
         </form>
     );
 }

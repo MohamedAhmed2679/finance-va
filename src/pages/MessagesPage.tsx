@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -70,7 +71,7 @@ export default function MessagesPage() {
         const row: Record<string, unknown> = { id, user_id: me, body, sender_name: user?.name || '' };
         if (attachments.length) row.attachments = attachments;
         const { error } = await supabase.from('support_messages').insert(row);
-        if (error) { setMessages(prev => prev.filter(m => m.id !== id)); setText(body); if (sending.length) setFiles(sending); toast.error("Message didn't send. Try again."); }
+        if (error) { setMessages(prev => prev.filter(m => m.id !== id)); setText(body); if (sending.length) setFiles(sending); toast.error(tx('Message didn\'t send. Try again.')); }
         else setMessages(prev => prev.map(m => m.id === id ? { ...m, attachments: attachments.map((a, i) => ({ ...a, localUrl: local[i]?.localUrl })) } : m));
     }
 
@@ -78,8 +79,8 @@ export default function MessagesPage() {
         <div className="page">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Messages</h1>
-                    <p className="page-subtitle">A private conversation with the Zaylo team.</p>
+                    <h1 className="page-title">{tx('Messages')}</h1>
+                    <p className="page-subtitle">{tx('A private conversation with the Zaylo team.')}</p>
                 </div>
             </div>
             <section className="card chat-panel" style={{ maxWidth: 820 }}>
@@ -87,14 +88,14 @@ export default function MessagesPage() {
                     {loading && <div className="skeleton" style={{ height: 40, width: '50%' }} />}
                     {!loading && messages.length === 0 && (
                         <div className="empty-state" style={{ margin: 'auto' }}>
-                            <div className="empty-title">Ask us anything</div>
-                            <div className="empty-desc">Report a problem or suggest a feature. We reply here and you'll get a notification.</div>
+                            <div className="empty-title">{tx('Ask us anything')}</div>
+                            <div className="empty-desc">{tx('Report a problem or suggest a feature. We reply here and you\'ll get a notification.')}</div>
                         </div>
                     )}
                     <AnimatePresence initial={false}>
                         {messages.map(m => (
-                            <motion.div key={m.id} className={`bubble ${m.from_admin ? '' : 'mine'}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                                {m.from_admin && <span className="who">Zaylo team</span>}
+                            <motion.div key={m.id} translate="no" className={`bubble ${m.from_admin ? '' : 'mine'}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                                {m.from_admin && <span className="who">{tx('Zaylo team')}</span>}
                                 {m.attachments?.length ? <MessageAttachments items={toItems(m)} urls={urls} onOpen={setViewing} /> : null}
                                 {m.body && <div>{m.body}</div>}
                                 <time>{new Date(m.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time>
@@ -105,11 +106,11 @@ export default function MessagesPage() {
                 <PendingFiles files={files} progress={progress} onRemove={i => setFiles(f => f.filter((_, j) => j !== i))} />
                 <div className="chat-compose">
                     <FilePicker onAdd={addFiles} disabled={progress != null} />
-                    <textarea className="form-input" rows={1} placeholder="Write to the Zaylo team" value={text} aria-label="Message"
+                    <textarea className="form-input" rows={1} placeholder={tx('Write to the Zaylo team')} value={text} aria-label={tx('Message')}
                         onChange={e => setText(e.target.value)}
                         onPaste={e => { const f = Array.from(e.clipboardData.files || []); if (f.length) { e.preventDefault(); addFiles(f); } }}
                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-                    <button className="btn btn-primary btn-icon" style={{ width: 44, minHeight: 44 }} onClick={send} disabled={(!text.trim() && !files.length) || progress != null} aria-label="Send"><Send size={18} /></button>
+                    <button className="btn btn-primary btn-icon" style={{ width: 44, minHeight: 44 }} onClick={send} disabled={(!text.trim() && !files.length) || progress != null} aria-label={tx('Send')}><Send size={18} /></button>
                 </div>
             </section>
             <AnimatePresence>{viewing && <Lightbox items={items} start={viewing} urls={urls} onClose={() => setViewing(null)} />}</AnimatePresence>

@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Mic, MessageSquareText, PenLine, TrendingUp, ScanLine } from 'lucide-react';
@@ -21,11 +22,11 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onPas
     }, [open]);
 
     const actions = [
-        { label: 'Add income', icon: TrendingUp, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onAddIncome },
-        { label: 'Paste bank SMS', icon: MessageSquareText, tint: 'var(--sky)', bg: 'var(--sky-soft)', run: onPasteAdd },
-        { label: 'Scan or upload receipt', icon: ScanLine, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onScanAdd },
-        { label: 'Say an expense', icon: Mic, tint: 'var(--brass)', bg: 'var(--brass-soft)', run: onVoiceAdd },
-        { label: 'Add expense', icon: PenLine, tint: 'var(--note)', bg: 'var(--note-soft)', run: onManualAdd },
+        { label: tx('Add income'), icon: TrendingUp, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onAddIncome },
+        { label: tx('Paste bank SMS'), icon: MessageSquareText, tint: 'var(--sky)', bg: 'var(--sky-soft)', run: onPasteAdd },
+        { label: tx('Scan or upload receipt'), icon: ScanLine, tint: 'var(--gain)', bg: 'var(--gain-soft)', run: onScanAdd },
+        { label: tx('Say an expense'), icon: Mic, tint: 'var(--brass)', bg: 'var(--brass-soft)', run: onVoiceAdd },
+        { label: tx('Add expense'), icon: PenLine, tint: 'var(--note)', bg: 'var(--note-soft)', run: onManualAdd },
     ];
 
     return (
@@ -54,7 +55,7 @@ export default function QuickAddMenu({ onManualAdd, onVoiceAdd, onScanAdd, onPas
                     )}
                 </AnimatePresence>
                 <motion.button className="fab" onClick={() => setOpen(o => !o)}
-                    aria-label={open ? 'Close add menu' : 'Add'} aria-expanded={open}
+                    aria-label={open ? tx('Close add menu') : tx('Add')} aria-expanded={open}
                     whileTap={{ scale: 0.92 }} animate={{ rotate: open ? 45 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 24 }}>
                     <Plus size={26} strokeWidth={2.4} />
                 </motion.button>

@@ -98,6 +98,14 @@ export const translations: Record<string, Record<string, string>> = {
         dark_mode: 'ダークモード', light_mode: 'ライトモード', name: '表示名', finish: '始める', skip: 'スキップ', referral_id: '紹介ID',
     },
     ar: {
+        user: 'المستخدم', search_merchant: 'ابحث عن تاجر', filters: 'الفلاتر', date_range: 'الفترة', all_users: 'كل المستخدمين', referral_link: 'رابط الدعوة', copy: 'نسخ', copied: 'تم النسخ',
+        sign_in: 'تسجيل الدخول', sign_up: 'إنشاء حساب', email: 'البريد الإلكتروني', password: 'كلمة المرور', phone: 'الهاتف', verify_code: 'رمز التحقق', send_code: 'إرسال الرمز', verify: 'تحقق',
+        ai_analysis: 'تحليل بالذكاء الاصطناعي', new_workspace: 'مساحة عمل جديدة', create_workspace: 'إنشاء مساحة عمل', join_workspace: 'الانضمام لمساحة عمل', invite_member: 'دعوة عضو',
+        invite_by_email: 'دعوة بالبريد', invite_by_phone: 'دعوة بالهاتف', invite_link: 'رابط الدعوة',
+        spend_over_time: 'الإنفاق عبر الوقت', category_breakdown: 'توزيع الفئات', top_merchants: 'أكثر التجار', export_csv: 'تصدير CSV', export_pdf: 'تصدير PDF', insights: 'التحليلات',
+        theme: 'المظهر', personal: 'شخصي', shared: 'مشترك', owner: 'المالك', admin: 'مشرف', member: 'عضو', viewer: 'مشاهد', notes: 'ملاحظات', tags: 'الوسوم',
+        payment_method: 'طريقة الدفع', card: 'بطاقة', cash: 'نقدًا', wallet: 'محفظة رقمية', bank_transfer: 'تحويل بنكي', manual_entry: 'إدخال يدوي', scan_receipt: 'مسح إيصال', import_receipt: 'استيراد إيصال',
+        history: 'السجل', messages: 'الرسائل', chat: 'المحادثة',
         app_name: 'زايلو', ask_zaylo: 'اسأل زايلو', overview: 'نظرة عامة', expenses: 'المصروفات', savings: 'المدخرات', converter: 'محول العملات', settings: 'الإعدادات',
         today_spend: 'إنفاق اليوم', this_month: 'هذا الشهر', add_expense: 'إضافة مصروف', recent_expenses: 'أحدث المصروفات',
         merchant: 'التاجر', category: 'الفئة', date: 'التاريخ', amount: 'المبلغ',
@@ -271,6 +279,14 @@ export const translations: Record<string, Record<string, string>> = {
         bills_commitments: 'Rachunki i zobowiązania', due_this_month: 'Do zapłaty w tym miesiącu', mark_paid: 'Oznacz jako opłacone', paid: 'Opłacone', add_bill: 'Dodaj rachunek',
     }
 };
+
+import { AR } from './ar';
+
+let currentLang = 'en';
+/** Set by the app whenever the user's language changes. */
+export function setTxLanguage(lang: string) { currentLang = lang || 'en'; }
+/** UI text: returns the Arabic version of an English string when the app is in Arabic. */
+export function tx(s: string): string { return currentLang === 'ar' ? (AR[s] ?? AR[s.trim()] ?? s) : s; }
 
 export function t(lang: string, key: string): string {
     return translations[lang]?.[key] ?? translations['en'][key] ?? key;

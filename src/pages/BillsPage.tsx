@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, type MonthlyBill } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { CalendarSync, Plus, CheckCircle, Circle, Trash2, CalendarDays, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -103,7 +103,7 @@ export default function BillsPage() {
                         {cat && <span className="badge" style={{ background: `${cat.color}20`, color: cat.color }}>{cat.emoji} {cat.label}</span>}
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CalendarDays size={14} /> Due on the {bill.dueDate}{daySuffix(bill.dueDate)} of every month
+                        <CalendarDays size={14} />{' '}{tx('Due on the')}{' '}{bill.dueDate}{daySuffix(bill.dueDate)}{' '}{tx('of every month')}
                     </div>
                 </div>
 
@@ -124,7 +124,7 @@ export default function BillsPage() {
 
                         return (
                             <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>
-                                Next payment in {diffDays} days
+                                {tx('Next payment in')}{' '}{diffDays} days
                             </div>
                         );
                     })()}
@@ -135,7 +135,7 @@ export default function BillsPage() {
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); startEdit(bill); }}>
                             <Edit2 size={16} />
                         </button>
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('Delete this commitment?')) deleteBill(bill.id); }}>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm(tx('Delete this commitment?'))) deleteBill(bill.id); }}>
                             <Trash2 size={16} style={{ color: 'var(--danger)' }} />
                         </button>
                     </div>
@@ -150,40 +150,40 @@ export default function BillsPage() {
                 <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h1 className="page-title">{t(lang, 'bills_commitments')}</h1>
-                        <p className="page-subtitle">Track recurring payments and automatically log expenses</p>
+                        <p className="page-subtitle">{tx('Track recurring payments and automatically log expenses')}</p>
                     </div>
                     {!isViewer && (
-                        <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || 'Add Bill'}>
-                            <Plus size={16} /> Add Bill
+                        <button className="btn btn-primary" onClick={() => setShowAdd(true)} title={t(lang, 'add_bill') || tx('Add Bill')}>
+                            <Plus size={16} />{' '}{tx('Add Bill')}
                         </button>
                     )}
                 </header>
 
                 {showAdd && (
                     <div className="card mb-6 animate-fadeIn" style={{ borderLeft: '4px solid var(--accent)' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Add New Monthly Commitment</h3>
+                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>{tx('Add New Monthly Commitment')}</h3>
                         <form onSubmit={handleAddBill} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <div className="form-group">
-                                <label className="form-label">Bill Name (e.g. Rent, Netflix)</label>
-                                <input type="text" className="form-input" value={billName} onChange={e => setBillName(e.target.value)} required placeholder="Netflix" autoFocus />
+                                <label className="form-label">{tx('Bill Name (e.g. Rent, Netflix)')}</label>
+                                <input type="text" className="form-input" value={billName} onChange={e => setBillName(e.target.value)} required placeholder={tx('Netflix')} autoFocus />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Amount ({activeWorkspace?.currency})</label>
+                                <label className="form-label">{tx('Amount (')}{activeWorkspace?.currency})</label>
                                 <input type="number" step="0.01" className="form-input" value={billAmount} onChange={e => setBillAmount(e.target.value)} required placeholder="15.00" />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Category</label>
+                                <label className="form-label">{tx('Category')}</label>
                                 <select className="form-input form-select" value={billCategory} onChange={e => setBillCategory(e.target.value)}>
                                     {categories.map(c => <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Due Day (1-31)</label>
+                                <label className="form-label">{tx('Due Day (1-31)')}</label>
                                 <input type="number" min="1" max="31" className="form-input" value={billDueDay} onChange={e => setBillDueDay(parseInt(e.target.value))} required />
                             </div>
                             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save Commitment</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>{tx('Cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{tx('Save Commitment')}</button>
                             </div>
                         </form>
                     </div>
@@ -191,29 +191,29 @@ export default function BillsPage() {
 
                 {editingBillId && (
                     <div className="card mb-6 animate-fadeIn" style={{ borderLeft: '4px solid var(--accent)' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Edit Commitment</h3>
+                        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>{tx('Edit Commitment')}</h3>
                         <form onSubmit={handleEditBill} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <div className="form-group">
-                                <label className="form-label">Bill Name (e.g. Rent, Netflix)</label>
+                                <label className="form-label">{tx('Bill Name (e.g. Rent, Netflix)')}</label>
                                 <input type="text" className="form-input" value={editBillName} onChange={e => setEditBillName(e.target.value)} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Amount ({activeWorkspace?.currency})</label>
+                                <label className="form-label">{tx('Amount (')}{activeWorkspace?.currency})</label>
                                 <input type="number" step="0.01" className="form-input" value={editBillAmount} onChange={e => setEditBillAmount(e.target.value)} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Category</label>
+                                <label className="form-label">{tx('Category')}</label>
                                 <select className="form-input form-select" value={editBillCategory} onChange={e => setEditBillCategory(e.target.value)}>
                                     {categories.map(c => <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Due Day (1-31)</label>
+                                <label className="form-label">{tx('Due Day (1-31)')}</label>
                                 <input type="number" min="1" max="31" className="form-input" value={editBillDueDay} onChange={e => setEditBillDueDay(parseInt(e.target.value))} required />
                             </div>
                             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setEditingBillId(null)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save Changes</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setEditingBillId(null)}>{tx('Cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{tx('Save Changes')}</button>
                             </div>
                         </form>
                     </div>
@@ -227,7 +227,7 @@ export default function BillsPage() {
                         </h2>
                         {dueBills.length === 0 ? (
                             <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-                                No bills due! You're all caught up for {format(new Date(), 'MMMM')}.
+                                {tx('No bills due! You\'re all caught up for')}{' '}{format(new Date(), 'MMMM')}.
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -240,7 +240,7 @@ export default function BillsPage() {
                         <div>
                             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
                                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                                {t(lang, 'pending_next_month') || 'Pending for next month'} ({paidBills.length})
+                                {t(lang, 'pending_next_month') || tx('Pending for next month')} ({paidBills.length})
                             </h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                 {paidBills.map(b => renderBillCard(b, true))}

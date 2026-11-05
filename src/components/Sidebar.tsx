@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, LogOut, Moon, Sun, Plus, Check, ShieldCheck } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { ZayloLogo } from './brand/Brand';
 import { navFor, ADMIN_CONSOLE_URL } from './nav';
 
@@ -73,7 +73,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const nav = navFor(user?.isAdmin);
 
     return (
-        <aside className="sidebar" aria-label="Main navigation">
+        <aside className="sidebar" aria-label={tx('Main navigation')}>
             <div className="sidebar-logo">
                 <ZayloLogo size={28} onDark />
             </div>
@@ -91,7 +91,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                             onClick={() => onNavigate(item.key)}>
                             {isActive && <motion.span layoutId="nav-pill" className="nav-pill" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
                             <item.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
-                            <span>{item.label && t(lang, item.labelKey) === item.labelKey ? item.label : t(lang, item.labelKey)}</span>
+                            <span>{item.label && t(lang, item.labelKey) === item.labelKey ? tx(item.label) : t(lang, item.labelKey)}</span>
                         </button>
                     );
                 })}
@@ -100,7 +100,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             <div className="sidebar-footer">
                 {user?.isAdmin && (
                     <a className="nav-item" href={ADMIN_CONSOLE_URL} target="_blank" rel="noreferrer">
-                        <ShieldCheck size={18} /><span>Admin console</span>
+                        <ShieldCheck size={18} /><span>{tx('Admin console')}</span>
                     </a>
                 )}
                 <button className="nav-item" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -112,7 +112,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         {user?.avatar ? <img src={user.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : (user?.name?.[0]?.toUpperCase() ?? 'U')}
                     </div>
                     <div className="user-info">
-                        <div className="user-name">{user?.name ?? 'Guest'}</div>
+                        <div className="user-name">{user?.name ?? tx('Guest')}</div>
                         <div className="user-email">{user?.email || user?.phone || ''}</div>
                     </div>
                     <button className="icon-btn" title={t(lang, 'sign_out')} aria-label={t(lang, 'sign_out')} onClick={(e) => { e.stopPropagation(); logout(); }}>

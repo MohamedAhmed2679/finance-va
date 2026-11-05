@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { CheckCircle, Bell, Clock, UserPlus, Shield, Receipt, Archive, Edit, Trash2, DollarSign, PiggyBank, Briefcase } from 'lucide-react';
 
 interface TimelineItem {
@@ -112,7 +112,7 @@ export default function ActivityPage() {
             <header className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'activity')}</h1>
-                    <p className="page-subtitle">Workspace activity, requests, and log history</p>
+                    <p className="page-subtitle">{tx('Workspace activity, requests, and log history')}</p>
                 </div>
                 <div className="badge" style={{ background: 'var(--primary-soft)', color: 'var(--primary-light)' }}>
                     {timeline.length} events
@@ -136,11 +136,11 @@ export default function ActivityPage() {
                                     <button className="btn btn-secondary w-full" onClick={() => {
                                         if (n.type === 'invite') declineInvite(n.workspaceId!, n.targetUid!, n.id);
                                         else declineJoinRequest(n.id);
-                                    }}>Decline</button>
+                                    }}>{tx('Decline')}</button>
                                     <button className="btn btn-primary w-full" onClick={() => {
                                         if (n.type === 'invite') acceptInvite(n.workspaceId!, n.targetUid!, n.id);
                                         else acceptJoinRequest(n.id);
-                                    }}>Accept</button>
+                                    }}>{tx('Accept')}</button>
                                 </div>
                             </div>
                         ))}
@@ -158,8 +158,8 @@ export default function ActivityPage() {
                 {logHistory.length === 0 ? (
                     <div className="card empty-state" style={{ textAlign: 'center', padding: 40 }}>
                         <Bell size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
-                        <div className="empty-title">No recent activity</div>
-                        <div className="empty-desc">Actions like adding expenses, editing entries, and managing income will appear here.</div>
+                        <div className="empty-title">{tx('No recent activity')}</div>
+                        <div className="empty-desc">{tx('Actions like adding expenses, editing entries, and managing income will appear here.')}</div>
                     </div>
                 ) : (
                     <div className="card activity-timeline-card">
@@ -181,7 +181,7 @@ export default function ActivityPage() {
                                     </div>
                                 </div>
                                 {!log.actioned && !log.isInvite && (
-                                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => markNotificationActioned(log.id)} title="Mark as read">
+                                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => markNotificationActioned(log.id)} title={tx('Mark as read')}>
                                         <CheckCircle size={16} style={{ color: 'var(--accent)' }} />
                                     </button>
                                 )}

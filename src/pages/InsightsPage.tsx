@@ -1,7 +1,7 @@
 import { toBase } from '../utils/money';
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getPaymentMethodInfo } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import CurrencyDisplay from '../components/CurrencyDisplay';
@@ -49,7 +49,7 @@ export default function InsightsPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'insights')}</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Spending analytics for your workspace</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{tx('Spending analytics for your workspace')}</p>
                 </div>
             </div>
 
@@ -58,9 +58,9 @@ export default function InsightsPage() {
             {/* Summary stats */}
             <div className="card-grid card-grid-3 mb-6">
                 {[
-                    { label: 'Total Spent', value: <CurrencyDisplay amount={total} currency={cur} hideAmounts={hideAmounts} /> },
-                    { label: 'Avg Transaction', value: <CurrencyDisplay amount={avg} currency={cur} hideAmounts={hideAmounts} /> },
-                    { label: 'Largest Expense', value: maxExpense ? <CurrencyDisplay amount={toBase(maxExpense, cur)} currency={cur} hideAmounts={hideAmounts} /> : '-' },
+                    { label: tx('Total Spent'), value: <CurrencyDisplay amount={total} currency={cur} hideAmounts={hideAmounts} /> },
+                    { label: tx('Avg Transaction'), value: <CurrencyDisplay amount={avg} currency={cur} hideAmounts={hideAmounts} /> },
+                    { label: tx('Largest Expense'), value: maxExpense ? <CurrencyDisplay amount={toBase(maxExpense, cur)} currency={cur} hideAmounts={hideAmounts} /> : '-' },
                 ].map((stat, i) => (
                     <div key={i} className="card stat-card animate-fadeIn" style={{ animationDelay: `${i * 60}ms` }}>
                         <div className="stat-label">{stat.label}</div>
@@ -71,7 +71,7 @@ export default function InsightsPage() {
 
             {/* Monthly trend */}
             <div className="card mb-6 animate-fadeIn" style={{ animationDelay: '180ms' }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Monthly Spending Trend</div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>{tx('Monthly Spending Trend')}</div>
                 <div style={{ height: 200 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={monthlyData} barSize={32}>
@@ -122,7 +122,7 @@ export default function InsightsPage() {
 
                 {/* Payment method */}
                 <div className="card animate-fadeIn" style={{ animationDelay: '300ms' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Payment Methods</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>{tx('Payment Methods')}</div>
                     <div style={{ height: 160 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>

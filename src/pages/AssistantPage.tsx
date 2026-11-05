@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, Sparkles, RotateCcw } from 'lucide-react';
@@ -70,10 +71,10 @@ export default function AssistantPage() {
         <div className="page">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Ask Zaylo</h1>
-                    <p className="page-subtitle">Questions about your money, help with the app, budgets and plans. It only sees totals from this workspace.</p>
+                    <h1 className="page-title">{tx('Ask Zaylo')}</h1>
+                    <p className="page-subtitle">{tx('Questions about your money, help with the app, budgets and plans. It only sees totals from this workspace.')}</p>
                 </div>
-                {messages.length > 0 && <button className="btn btn-secondary btn-sm" onClick={() => { setMessages([]); setError(''); }}><RotateCcw size={14} /> New conversation</button>}
+                {messages.length > 0 && <button className="btn btn-secondary btn-sm" onClick={() => { setMessages([]); setError(''); }}><RotateCcw size={14} />{' '}{tx('New conversation')}</button>}
             </div>
 
             <div className="assistant-layout">
@@ -82,8 +83,8 @@ export default function AssistantPage() {
                         {messages.length === 0 && (
                             <div className="assistant-empty">
                                 <ZayloMark size={44} />
-                                <h2>How can I help?</h2>
-                                <p>Ask in English or Arabic. Try one of these:</p>
+                                <h2>{tx('How can I help?')}</h2>
+                                <p>{tx('Ask in English or Arabic. Try one of these:')}</p>
                                 <div className="assistant-suggest">
                                     {suggestions.map(s => <button key={s} className="chip" onClick={() => send(s)}>{s}</button>)}
                                 </div>
@@ -91,24 +92,24 @@ export default function AssistantPage() {
                         )}
                         <AnimatePresence initial={false}>
                             {messages.map((m, i) => (
-                                <motion.div key={i} className={`bubble ${m.role === 'user' ? 'mine' : 'ai'}`}
+                                <motion.div key={i} translate="no" className={`bubble ${m.role === 'user' ? 'mine' : 'ai'}`}
                                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                                     {m.role === 'assistant' ? <Rich text={m.text} /> : m.text}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
-                        {busy && <div className="bubble ai typing" aria-label="Zaylo is thinking"><span /><span /><span /></div>}
+                        {busy && <div className="bubble ai typing" aria-label={tx('Zaylo is thinking')}><span /><span /><span /></div>}
                         {error && <div className="auth-msg error" role="alert">{error}</div>}
                     </div>
                     <form className="chat-compose" onSubmit={e => { e.preventDefault(); send(); }}>
-                        <textarea ref={input} className="form-input" rows={1} value={text} placeholder="Ask about your spending, bills or the app…" aria-label="Ask Zaylo"
+                        <textarea ref={input} className="form-input" rows={1} value={text} placeholder={tx('Ask about your spending, bills or the app…')} aria-label={tx('Ask Zaylo')}
                             onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-                        <button className="btn btn-primary" disabled={busy || !text.trim()} aria-label="Send"><Send size={17} /></button>
+                        <button className="btn btn-primary" disabled={busy || !text.trim()} aria-label={tx('Send')}><Send size={17} /></button>
                     </form>
                 </div>
                 <aside className="assistant-side">
                     <HealthCard compact />
-                    <p className="text-xs text-muted" style={{ padding: '0 4px' }}><Sparkles size={12} style={{ verticalAlign: -1 }} /> Answers come from Google Gemini using a summary of this workspace. Zaylo can't move money and isn't a licensed financial adviser.</p>
+                    <p className="text-xs text-muted" style={{ padding: '0 4px' }}><Sparkles size={12} style={{ verticalAlign: -1 }} />{' '}{tx('Answers come from Google Gemini using a summary of this workspace. Zaylo can\'t move money and isn\'t a licensed financial adviser.')}</p>
                 </aside>
             </div>
         </div>

@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Users, X } from 'lucide-react';
@@ -62,26 +63,26 @@ export default function JoinInvite() {
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) close(); }}>
             <div className="modal join-card animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="join-title">
-                <button className="modal-close join-close" onClick={close} aria-label="Close"><X size={20} /></button>
+                <button className="modal-close join-close" onClick={close} aria-label={tx('Close')}><X size={20} /></button>
                 {!info && !error && <div className="skeleton" style={{ height: 140 }} />}
                 {info && !bad && (
                     <>
                         <div className="join-icon" style={{ background: `${info.color || '#2563FF'}22`, color: info.color || '#2563FF' }}>{info.icon || <Users size={26} />}</div>
-                        <h2 className="modal-title" id="join-title">Join {info.workspace}?</h2>
-                        <p className="text-muted">{info.inviter ? `${info.inviter} invited you` : 'You were invited'} as a {info.role}. {info.members} {info.members === 1 ? 'person is' : 'people are'} in it.</p>
-                        <p className="text-sm text-muted mt-2">Members see this workspace's expenses, income, bills and chat.</p>
+                        <h2 className="modal-title" id="join-title">{tx('Join')}{' '}{info.workspace}?</h2>
+                        <p className="text-muted">{info.inviter ? `${info.inviter} invited you` : tx('You were invited')}{' '}{tx('as a')}{' '}{info.role}. {info.members} {info.members === 1 ? tx('person is') : tx('people are')}{' '}{tx('in it.')}</p>
+                        <p className="text-sm text-muted mt-2">{tx('Members see this workspace\'s expenses, income, bills and chat.')}</p>
                         {error && <div className="auth-msg error mt-2" role="alert">{error}</div>}
                         <div className="join-actions">
-                            <button className="btn btn-secondary" onClick={close}>Not now</button>
-                            <button className="btn btn-primary" onClick={join} disabled={busy}>{busy ? 'Joining…' : info.already_member ? 'Open workspace' : `Join ${info.workspace}`}</button>
+                            <button className="btn btn-secondary" onClick={close}>{tx('Not now')}</button>
+                            <button className="btn btn-primary" onClick={join} disabled={busy}>{busy ? tx('Joining…') : info.already_member ? tx('Open workspace') : `Join ${info.workspace}`}</button>
                         </div>
                     </>
                 )}
                 {(bad || (error && !info)) && (
                     <>
-                        <h2 className="modal-title" id="join-title">Can't use this invite</h2>
+                        <h2 className="modal-title" id="join-title">{tx('Can\'t use this invite')}</h2>
                         <p className="text-muted">{error || MESSAGES[info!.status]}</p>
-                        <div className="join-actions"><button className="btn btn-primary" onClick={close}>OK, got it</button></div>
+                        <div className="join-actions"><button className="btn btn-primary" onClick={close}>{tx('OK, got it')}</button></div>
                     </>
                 )}
             </div>

@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, RefreshCw, AlertTriangle, MessageCircleQuestion } from 'lucide-react';
@@ -36,8 +37,8 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
     return (
         <div className="card health-card">
             <div className="card-head">
-                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={17} style={{ color: 'var(--brass)' }} /> Money health</div>
-                {report && <button onClick={run} disabled={loading} className="btn btn-ghost btn-sm btn-icon" aria-label="Refresh summary"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></button>}
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={17} style={{ color: 'var(--brass)' }} />{' '}{tx('Money health')}</div>
+                {report && <button onClick={run} disabled={loading} className="btn btn-ghost btn-sm btn-icon" aria-label={tx('Refresh summary')}><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></button>}
             </div>
 
             {loading && !report ? (
@@ -67,19 +68,19 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
                         <ol className="health-tips">
                             {report.tips.map((t, i) => (
                                 <motion.li key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}>
-                                    <div className="health-tip-title">{t.title}{t.saving ? <span className="health-saving">save ~{formatCurrency(t.saving, cur)}/mo</span> : null}</div>
+                                    <div className="health-tip-title">{t.title}{t.saving ? <span className="health-saving">{tx('save ~')}{formatCurrency(t.saving, cur)}/mo</span> : null}</div>
                                     <div className="health-tip-detail">{t.detail}</div>
                                 </motion.li>
                             ))}
                         </ol>
                     )}
-                    {onAsk && <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={onAsk}><MessageCircleQuestion size={15} /> Ask Zaylo a question</button>}
+                    {onAsk && <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={onAsk}><MessageCircleQuestion size={15} />{' '}{tx('Ask Zaylo a question')}</button>}
                 </motion.div>
             ) : (
                 <div>
-                    <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 14 }}>Get a score for this cycle, a two-line read-out and three tips built from your own spending.</p>
-                    <button className="btn btn-primary btn-sm" onClick={run} disabled={!hasData || loading}><Sparkles size={15} /> {loading ? 'Reading your month…' : 'Check my money health'}</button>
-                    {!hasData && <p className="text-xs text-muted mt-2">Add a few expenses first.</p>}
+                    <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 14 }}>{tx('Get a score for this cycle, a two-line read-out and three tips built from your own spending.')}</p>
+                    <button className="btn btn-primary btn-sm" onClick={run} disabled={!hasData || loading}><Sparkles size={15} /> {loading ? tx('Reading your month…') : tx('Check my money health')}</button>
+                    {!hasData && <p className="text-xs text-muted mt-2">{tx('Add a few expenses first.')}</p>}
                 </div>
             )}
             {error && <div className="auth-msg error" style={{ marginTop: 12, marginBottom: 0 }} role="alert">{error}</div>}

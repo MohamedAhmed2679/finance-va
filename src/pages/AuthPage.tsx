@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { hasPendingJoin } from '../components/JoinInvite';
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -43,18 +44,18 @@ function PasswordField({ id, value, onChange, autoComplete, meter }: { id: strin
     const score = PW_RULES.filter(([re]) => re.test(value)).length;
     return (
         <div className="form-group">
-            <label className="form-label" htmlFor={id}>Password</label>
+            <label className="form-label" htmlFor={id}>{tx('Password')}</label>
             <div className="pw-field">
                 <input id={id} className="form-input" type={show ? 'text' : 'password'} value={value} required
                     autoComplete={autoComplete} onChange={e => onChange(e.target.value)} />
-                <button type="button" className="pw-toggle" onClick={() => setShow(s => !s)} aria-label={show ? 'Hide password' : 'Show password'}>
+                <button type="button" className="pw-toggle" onClick={() => setShow(s => !s)} aria-label={show ? tx('Hide password') : tx('Show password')}>
                     {show ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
             </div>
             {meter && (
                 <>
                     <div className="pw-meter" aria-hidden="true">{PW_RULES.map((_, i) => <span key={i} className={i < score ? 'on' : ''} />)}</div>
-                    <div className="pw-hint">{value ? (passwordProblem(value) ?? 'Strong password.') : 'Use 8+ characters with upper and lower case, a number and a symbol.'}</div>
+                    <div className="pw-hint">{value ? (passwordProblem(value) ?? tx('Strong password.')) : tx('Use 8+ characters with upper and lower case, a number and a symbol.')}</div>
                 </>
             )}
         </div>
@@ -170,7 +171,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         let e164: string | undefined;
         if (phone.trim()) {
             const p = toE164(phone);
-            if (!p) { setError('Enter the phone number with its country code, for example +20 100 123 4567.'); return; }
+            if (!p) { setError(tx('Enter the phone number with its country code, for example +20 100 123 4567.')); return; }
             e164 = p;
         }
         setLoading('email'); setError('');
@@ -187,7 +188,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
     async function sendCode() {
         const e164 = toE164(phone);
-        if (!e164) { setError('Enter the phone number with its country code, for example +20 100 123 4567.'); return; }
+        if (!e164) { setError(tx('Enter the phone number with its country code, for example +20 100 123 4567.')); return; }
         setPhone(e164);
         setLoading('phone'); setError(''); setNotice('');
         const result = await sendPhoneOtp(e164);
@@ -201,7 +202,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     async function onPhone(e: React.FormEvent) {
         e.preventDefault();
         if (!codeSent) return sendCode();
-        if (!/^\d{6}$/.test(code)) { setError('Enter the 6-digit code from the text message.'); return; }
+        if (!/^\d{6}$/.test(code)) { setError(tx('Enter the 6-digit code from the text message.')); return; }
         setLoading('phone'); setError('');
         const result = await verifyPhoneOtp(phone, code);
         setLoading(null);
@@ -255,12 +256,12 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                     </button>
                 ))}
             </div>
-            <div className="auth-or">or with email</div>
+            <div className="auth-or">{tx('or with email')}</div>
         </>
     );
 
     const serverDown = avail && !avail.reachable && (
-        <div className="auth-msg error" role="alert">Zaylo can't reach its server right now, so signing in and creating accounts won't work. Please try again shortly.</div>
+        <div className="auth-msg error" role="alert">{tx('Zaylo can\'t reach its server right now, so signing in and creating accounts won\'t work. Please try again shortly.')}</div>
     );
 
     const submit = (label: string, busyLabel: string) => (
@@ -277,33 +278,33 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                 <div className="auth-brand"><ZayloLogo size={34} onDark /></div>
                 <div>
                     <motion.h1 className="auth-headline" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-                        Your money. Your move.
+                        {tx('Your money. Your move.')}
                     </motion.h1>
                     <motion.p className="auth-lede" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}>
-                        Track spending, bills and savings in any currency. Share a workspace with the people you plan with, and see where every pound, dollar and riyal went.
+                        {tx('Track spending, bills and savings in any currency. Share a workspace with the people you plan with, and see where every pound, dollar and riyal went.')}
                     </motion.p>
                 </div>
                 <div className="auth-points">
-                    <span>50+ currencies</span><span>Shared family workspaces</span><span>Add by voice or bank SMS</span><span>Arabic and English</span>
+                    <span>{tx('50+ currencies')}</span><span>{tx('Shared family workspaces')}</span><span>{tx('Add by voice or bank SMS')}</span><span>{tx('Arabic and English')}</span>
                 </div>
             </section>
 
             <section className="auth-panel">
                 <div className="auth-form-wrap">
-                    {hasPendingJoin() && <div className="auth-msg ok" role="status" style={{ marginBottom: 18 }}>You've been invited to a shared workspace. Sign in or create an account to join it.</div>}
+                    {hasPendingJoin() && <div className="auth-msg ok" role="status" style={{ marginBottom: 18 }}>{tx('You\'ve been invited to a shared workspace. Sign in or create an account to join it.')}</div>}
                     {(mode === 'signin' || mode === 'signup') && (
                         <div className="segmented" role="tablist" style={{ marginBottom: 26 }}>
                             {(['signin', 'signup'] as const).map(m => (
                                 <button key={m} type="button" role="tab" aria-pressed={mode === m} aria-selected={mode === m} onClick={() => switchMode(m)}>
                                     {mode === m && <motion.span layoutId="auth-seg" className="seg-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-                                    <span>{m === 'signin' ? 'Sign in' : 'Create account'}</span>
+                                    <span>{m === 'signin' ? tx('Sign in') : tx('Create account')}</span>
                                 </button>
                             ))}
                         </div>
                     )}
-                    {(mode === 'phone' || mode === 'forgot') && (
+                    {(mode === tx('phone') || mode === 'forgot') && (
                         <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 18, marginLeft: -10 }} onClick={() => { switchMode('signin'); setCodeSent(false); setCode(''); }}>
-                            <ArrowLeft size={16} /> Back to sign in
+                            <ArrowLeft size={16} />{' '}{tx('Back to sign in')}
                         </button>
                     )}
 
@@ -323,13 +324,13 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                     {social}
                                     <form onSubmit={onSignIn} noValidate={false}>
                                         <div className="form-group">
-                                            <label className="form-label" htmlFor="si-email">Email</label>
+                                            <label className="form-label" htmlFor="si-email">{tx('Email')}</label>
                                             <input id="si-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
                                         </div>
                                         <PasswordField id="si-pw" value={password} onChange={setPassword} autoComplete="current-password" />
                                         <div className="auth-row">
-                                            {(!avail || avail.phone) ? <button type="button" className="auth-link" onClick={() => switchMode('phone')}><Smartphone size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />Use phone instead</button> : <span />}
-                                            <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>Forgot password?</button>
+                                            {(!avail || avail.phone) ? <button type="button" className="auth-link" onClick={() => switchMode('phone')}><Smartphone size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />{tx('Use phone instead')}</button> : <span />}
+                                            <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>{tx('Forgot password?')}</button>
                                         </div>
                                         {submit('Sign in', 'Signing in…')}
                                     </form>
@@ -342,22 +343,22 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                     {social}
                                     <form onSubmit={onSignUp}>
                                         <div className="form-group">
-                                            <label className="form-label" htmlFor="su-name">Full name</label>
+                                            <label className="form-label" htmlFor="su-name">{tx('Full name')}</label>
                                             <input id="su-name" className="form-input" autoComplete="name" required value={name} onChange={e => setName(e.target.value)} />
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label" htmlFor="su-email">Email</label>
+                                            <label className="form-label" htmlFor="su-email">{tx('Email')}</label>
                                             <input id="su-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
                                         </div>
                                         <div className="flex gap-3">
                                             <div className="form-group flex-1">
-                                                <label className="form-label" htmlFor="su-phone">Phone (optional)</label>
+                                                <label className="form-label" htmlFor="su-phone">{tx('Phone (optional)')}</label>
                                                 <input id="su-phone" className="form-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="+20…" value={phone} onChange={e => setPhone(e.target.value)} />
                                             </div>
                                             <div className="form-group flex-1">
-                                                <label className="form-label" htmlFor="su-country">Country</label>
+                                                <label className="form-label" htmlFor="su-country">{tx('Country')}</label>
                                                 <select id="su-country" className="form-select" value={country} onChange={e => setCountry(e.target.value)}>
-                                                    <option value="">Choose…</option>
+                                                    <option value="">{tx('Choose…')}</option>
                                                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
                                             </div>
@@ -367,43 +368,43 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                     </form>
                                     {(!avail || avail.phone) && (
                                         <button type="button" className="btn btn-secondary w-full mt-4" onClick={() => switchMode('phone')}>
-                                            <Smartphone size={16} /> Sign up with a phone number instead
+                                            <Smartphone size={16} />{' '}{tx('Sign up with a phone number instead')}
                                         </button>
                                     )}
                                 </>
                             )}
 
-                            {mode === 'phone' && (
+                            {mode === tx('phone') && (
                                 <form onSubmit={onPhone}>
                                     <div className="form-group">
-                                        <label className="form-label" htmlFor="ph">Phone number with country code</label>
+                                        <label className="form-label" htmlFor="ph">{tx('Phone number with country code')}</label>
                                         <input id="ph" className="form-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="+20 100 123 4567" required
                                             disabled={codeSent} value={phone} onChange={e => setPhone(e.target.value)} />
                                     </div>
                                     <AnimatePresence>
                                         {codeSent && (
                                             <motion.div className="form-group" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-                                                <label className="form-label" htmlFor="otp">6-digit code</label>
+                                                <label className="form-label" htmlFor="otp">{tx('6-digit code')}</label>
                                                 <input id="otp" className="form-input form-input-lg" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6}
                                                     style={{ letterSpacing: '0.4em', textAlign: 'center' }}
                                                     value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                                                 <div className="auth-row" style={{ margin: '8px 0 0' }}>
-                                                    <button type="button" className="auth-link" onClick={() => { setCodeSent(false); setCode(''); setNotice(''); }}>Change number</button>
+                                                    <button type="button" className="auth-link" onClick={() => { setCodeSent(false); setCode(''); setNotice(''); }}>{tx('Change number')}</button>
                                                     <button type="button" className="auth-link" disabled={resendIn > 0 || busy} style={{ opacity: resendIn > 0 ? 0.5 : 1 }} onClick={sendCode}>
-                                                        {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
+                                                        {resendIn > 0 ? `Resend in ${resendIn}s` : tx('Resend code')}
                                                     </button>
                                                 </div>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
-                                    <div style={{ marginTop: 8 }}>{submit(codeSent ? 'Verify and sign in' : 'Text me a code', codeSent ? 'Verifying…' : 'Sending…')}</div>
+                                    <div style={{ marginTop: 8 }}>{submit(codeSent ? tx('Verify and sign in') : tx('Text me a code'), codeSent ? tx('Verifying…') : tx('Sending…'))}</div>
                                 </form>
                             )}
 
                             {mode === 'forgot' && (
                                 <form onSubmit={onForgot}>
                                     <div className="form-group">
-                                        <label className="form-label" htmlFor="fp-email">Email</label>
+                                        <label className="form-label" htmlFor="fp-email">{tx('Email')}</label>
                                         <input id="fp-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
                                     </div>
                                     {submit('Send reset link', 'Sending…')}
@@ -419,7 +420,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         </motion.div>
                     </AnimatePresence>
 
-                    <p className="auth-foot">By continuing you agree to the Terms and Privacy Policy.</p>
+                    <p className="auth-foot">{tx('By continuing you agree to the Terms and Privacy Policy.')}</p>
                 </div>
             </section>
         </div>

@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore';
 import { hashPin } from '../utils/pin';
 import BiometricToggle from '../components/BiometricToggle';
 import toast from 'react-hot-toast';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
 import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2 } from 'lucide-react';
 import { exportToPDF } from '../utils/pdfExport';
@@ -91,12 +91,12 @@ export default function SettingsPage() {
 
     const menuSections = [
         { id: 'profile', label: t(lang, 'profile'), icon: User },
-        { id: 'workspace', label: 'Workspace', icon: Briefcase },
+        { id: 'workspace', label: tx('Workspace'), icon: Briefcase },
         { id: 'language', label: t(lang, 'language_region'), icon: Globe },
         { id: 'security', label: t(lang, 'security_privacy'), icon: Lock },
         { id: 'categories', label: t(lang, 'categories_methods'), icon: Tags },
-        { id: 'integrations', label: 'AI Integrations', icon: Wand2 },
-        { id: 'referral', label: 'Zaylo ID', icon: Copy },
+        { id: 'integrations', label: tx('AI Integrations'), icon: Wand2 },
+        { id: 'referral', label: tx('Zaylo ID'), icon: Copy },
         { id: 'export', label: t(lang, 'export_data'), icon: Download },
         { id: 'cloud', label: t(lang, 'cloud_backup'), icon: Cloud },
         { id: 'desktop', label: t(lang, 'desktop_app'), icon: Monitor },
@@ -132,7 +132,7 @@ export default function SettingsPage() {
                 <div>
                     {activeSection === 'profile' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>Profile</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>{tx('Profile')}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '16px', background: 'var(--bg-input)', borderRadius: 12 }}>
                                 <div className="user-avatar" style={{ width: 56, height: 56, fontSize: 22 }}>{user?.name?.[0] ?? 'A'}</div>
                                 <div>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                             </div>
                             <div style={{ marginBottom: 20 }}><ZayloIdCard /></div>
                             <div className="form-group">
-                                <label className="form-label">Display Name</label>
+                                <label className="form-label">{tx('Display Name')}</label>
                                 <input className="form-input" value={displayName} onChange={e => setDisplayName(e.target.value)} />
                             </div>
                             <div className="form-group">
@@ -153,32 +153,32 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Theme</label>
+                                <label className="form-label">{tx('Theme')}</label>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                    <div className={`category-chip ${theme === 'dark' ? 'selected' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setTheme('dark')}>🌙 Dark</div>
-                                    <div className={`category-chip ${theme === 'light' ? 'selected' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setTheme('light')}>☀️ Light</div>
+                                    <div className={`category-chip ${theme === 'dark' ? 'selected' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setTheme('dark')}>{tx('🌙 Dark')}</div>
+                                    <div className={`category-chip ${theme === 'light' ? 'selected' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setTheme('light')}>{tx('☀️ Light')}</div>
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Hide Amounts</label>
+                                <label className="form-label">{tx('Hide Amounts')}</label>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
                                     <div onClick={() => updateUser({ hideAmounts: !user?.hideAmounts })} style={{ width: 44, height: 24, borderRadius: 99, background: user?.hideAmounts ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', flexShrink: 0 }}>
                                         <div style={{ position: 'absolute', left: user?.hideAmounts ? 'calc(100% - 22px)' : 2, top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
                                     </div>
-                                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Privacy mode – hide all amounts</span>
+                                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{tx('Privacy mode – hide all amounts')}</span>
                                 </label>
                             </div>
-                            <button className="btn btn-primary" onClick={() => updateUser({ name: displayName })}>Save Profile</button>
+                            <button className="btn btn-primary" onClick={() => updateUser({ name: displayName })}>{tx('Save Profile')}</button>
                         </div>
                     )}
 
                     {activeSection === 'integrations' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>AI Integrations</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Configure your personal API keys for AI functionalities.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('AI Integrations')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Configure your personal API keys for AI functionalities.')}</div>
 
                             <div className="form-group">
-                                <label className="form-label">Gemini API Key</label>
+                                <label className="form-label">{tx('Gemini API Key')}</label>
                                 <input 
                                     type="password" 
                                     className="form-input" 
@@ -187,7 +187,7 @@ export default function SettingsPage() {
                                     placeholder="AIzaSy..." 
                                 />
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                                    Your personal Gemini API Key from Google AI Studio. Stored securely on your device. Used for AI Health Summary and Expense Parsing.
+                                    {tx('Your personal Gemini API Key from Google AI Studio. Stored securely on your device. Used for AI Health Summary and Expense Parsing.')}
                                 </div>
                             </div>
                         </div>
@@ -195,11 +195,11 @@ export default function SettingsPage() {
 
                     {activeSection === 'workspace' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Workspace Settings</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Configure settings specific to the active workspace.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Workspace Settings')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Configure settings specific to the active workspace.')}</div>
 
                             <div className="form-group">
-                                <label className="form-label">Billing Cycle Start Day</label>
+                                <label className="form-label">{tx('Billing Cycle Start Day')}</label>
                                 <select
                                     className="form-input form-select"
                                     value={activeWorkspace?.cycleStartDay || 1}
@@ -207,12 +207,12 @@ export default function SettingsPage() {
                                 >
                                     {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                                         <option key={day} value={day}>
-                                            {day}{day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th'} of the month
+                                            {day}{day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th'}{' '}{tx('of the month')}
                                         </option>
                                     ))}
                                 </select>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                                    This dictates when your financial month begins and ends. Leftover earnings will roll over to savings on this day.
+                                    {tx('This dictates when your financial month begins and ends. Leftover earnings will roll over to savings on this day.')}
                                 </div>
                             </div>
                         </div>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
                     {activeSection === 'language' && (
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{t(lang, 'language_region')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Choose your language and currency. Click Save to apply changes.</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Choose your language and currency. Click Save to apply changes.')}</div>
 
                             <div className="form-group">
                                 <label className="form-label">{t(lang, 'language')}</label>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
 
                             {saveSuccess && (
                                 <div className="animate-fadeIn flex-row items-center gap-2 mb-3" style={{ background: 'var(--accent-soft)', border: '1px solid rgba(6,214,160,0.3)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--accent)' }}>
-                                    <Check size={14} /> Language and currency updated!
+                                    <Check size={14} />{' '}{tx('Language and currency updated!')}
                                 </div>
                             )}
                             <button className="btn btn-primary btn-lg w-full" onClick={handleSaveLangCurrency}>{t(lang, 'save')}</button>
@@ -259,11 +259,11 @@ export default function SettingsPage() {
 
                     {activeSection === 'security' && (
                         <div className="card animate-fadeIn">
-                            <div className="font-bold mb-5" style={{ fontSize: 16 }}>Security & Privacy</div>
+                            <div className="font-bold mb-5" style={{ fontSize: 16 }}>{tx('Security & Privacy')}</div>
                             <div className="flex-col gap-4">
                                 <BiometricToggle compact />
                                 {[
-                                    { label: t(lang, 'store_ocr'), desc: 'Keep extracted receipt text for debugging', key: 'storeOcr' },
+                                    { label: t(lang, 'store_ocr'), desc: tx('Keep extracted receipt text for debugging'), key: 'storeOcr' },
                                 ].map(item => (
                                     <div key={item.key} className="flex-row items-center gap-4 rounded-xl" style={{ padding: '14px 16px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
                                         <Shield size={20} style={{ color: 'var(--primary-light)', flexShrink: 0 }} />
@@ -280,10 +280,10 @@ export default function SettingsPage() {
                                 ))}
 
                                 <div style={{ marginTop: 8, padding: '14px 16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Auto-Lock Setup</div>
+                                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>{tx('Auto-Lock Setup')}</div>
                                     
                                     <div className="form-group">
-                                        <label className="form-label">App PIN (4 digits)</label>
+                                        <label className="form-label">{tx('App PIN (4 digits)')}</label>
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <input
                                                 type="password"
@@ -291,29 +291,29 @@ export default function SettingsPage() {
                                                 autoComplete="new-password"
                                                 maxLength={4}
                                                 className="form-input"
-                                                placeholder={user?.pin ? 'PIN is set — enter a new one to change it' : 'Enter 4-digit PIN'}
+                                                placeholder={user?.pin ? tx('PIN is set — enter a new one to change it') : tx('Enter 4-digit PIN')}
                                                 value={pinDraft}
                                                 onChange={e => setPinDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
                                             />
                                             <button type="button" className="btn btn-secondary" disabled={pinDraft.length !== 4}
-                                                onClick={async () => { updateUser({ pin: await hashPin(pinDraft, user?.id || 'fv') }); setPinDraft(''); toast.success('PIN saved'); }}>
-                                                Save PIN
+                                                onClick={async () => { updateUser({ pin: await hashPin(pinDraft, user?.id || 'fv') }); setPinDraft(''); toast.success(tx('PIN saved')); }}>
+                                                {tx('Save PIN')}
                                             </button>
                                         </div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>A backup for biometric unlock, or use it on its own. Stored as a one-way hash.</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{tx('A backup for biometric unlock, or use it on its own. Stored as a one-way hash.')}</div>
                                     </div>
 
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label">Auto-Lock Timeout (minutes)</label>
+                                        <label className="form-label">{tx('Auto-Lock Timeout (minutes)')}</label>
                                         <select 
                                             className="form-input form-select" 
                                             value={user?.lockTimeout || 5} 
                                             onChange={e => updateUser({ lockTimeout: parseInt(e.target.value) })}
                                         >
-                                            <option value={1}>1 Minute</option>
-                                            <option value={5}>5 Minutes</option>
-                                            <option value={15}>15 Minutes</option>
-                                            <option value={30}>30 Minutes</option>
+                                            <option value={1}>{tx('1 Minute')}</option>
+                                            <option value={5}>{tx('5 Minutes')}</option>
+                                            <option value={15}>{tx('15 Minutes')}</option>
+                                            <option value={30}>{tx('30 Minutes')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -328,8 +328,8 @@ export default function SettingsPage() {
 
                     {activeSection === 'categories' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Categories</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Customize your expense categories.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Categories')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Customize your expense categories.')}</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
                                 {categories.map(cat => (
@@ -344,16 +344,16 @@ export default function SettingsPage() {
                             </div>
 
                             <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignItems: 'center' }}>
-                                <input className="form-input" style={{ width: 60 }} value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} placeholder="Emoji" maxLength={2} />
-                                <input className="form-input" style={{ flex: 1 }} value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="New category name" />
+                                <input className="form-input" style={{ width: 60 }} value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} placeholder={tx('Emoji')} maxLength={2} />
+                                <input className="form-input" style={{ flex: 1 }} value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder={tx('New category name')} />
                                 <input type="color" className="form-input" style={{ width: 44, padding: 4 }} value={newCatColor} onChange={e => setNewCatColor(e.target.value)} />
                                 <button className="btn btn-primary" onClick={() => { if (newCatName) { addCategory({ key: newCatName.toLowerCase().replace(/\s+/g, '_'), label: newCatName, emoji: newCatEmoji, color: newCatColor }); setNewCatName(''); } }}>
-                                    <Plus size={16} /> Add
+                                    <Plus size={16} />{' '}{tx('Add')}
                                 </button>
                             </div>
 
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, marginTop: 16 }}>Payment Methods</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Manage your payment sources.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, marginTop: 16 }}>{tx('Payment Methods')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Manage your payment sources.')}</div>
 
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
                                 {paymentMethods.map(pm => (
@@ -365,10 +365,10 @@ export default function SettingsPage() {
                             </div>
 
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <input className="form-input" style={{ width: 60 }} value={newPmEmoji} onChange={e => setNewPmEmoji(e.target.value)} placeholder="Emoji" maxLength={2} />
-                                <input className="form-input" style={{ flex: 1 }} value={newPmName} onChange={e => setNewPmName(e.target.value)} placeholder="New payment method name" />
+                                <input className="form-input" style={{ width: 60 }} value={newPmEmoji} onChange={e => setNewPmEmoji(e.target.value)} placeholder={tx('Emoji')} maxLength={2} />
+                                <input className="form-input" style={{ flex: 1 }} value={newPmName} onChange={e => setNewPmName(e.target.value)} placeholder={tx('New payment method name')} />
                                 <button className="btn btn-primary" onClick={() => { if (newPmName) { addPaymentMethod({ key: newPmName.toLowerCase().replace(/\s+/g, '_'), label: newPmName, emoji: newPmEmoji }); setNewPmName(''); } }}>
-                                    <Plus size={16} /> Add
+                                    <Plus size={16} />{' '}{tx('Add')}
                                 </button>
                             </div>
                         </div>
@@ -376,22 +376,22 @@ export default function SettingsPage() {
 
                     {activeSection === 'referral' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Zaylo ID</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>Your unique ID. Anyone who manages a workspace can add you with it, and you can add others with theirs.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Zaylo ID')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>{tx('Your unique ID. Anyone who manages a workspace can add you with it, and you can add others with theirs.')}</div>
                             <ZayloIdCard />
                         </div>
                     )}
 
                     {activeSection === 'export' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Export Your Data</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Download all your financial data in various formats</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Export Your Data')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Download all your financial data in various formats')}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <button className="btn btn-secondary" onClick={handleExportCSV} style={{ justifyContent: 'flex-start', gap: 12, padding: '16px' }}>
-                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_csv')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>Spreadsheet-compatible format</div></div>
+                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_csv')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{tx('Spreadsheet-compatible format')}</div></div>
                                 </button>
                                 <button className="btn btn-ghost" onClick={handleExportPDF} style={{ justifyContent: 'flex-start', gap: 12, padding: '16px', border: '1px solid var(--border)' }}>
-                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_pdf')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>Premium formatted report</div></div>
+                                    <Download size={20} /><div style={{ textAlign: 'left' }}><div style={{ fontWeight: 700 }}>{t(lang, 'export_pdf')}</div><div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{tx('Premium formatted report')}</div></div>
                                 </button>
                             </div>
                         </div>
@@ -399,10 +399,10 @@ export default function SettingsPage() {
 
                     {activeSection === 'notifications' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Notifications</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{tx('Notifications')}</div>
                             <PushSettings />
-                            <div style={{ fontWeight: 600, fontSize: 14, margin: '20px 0 10px' }}>Also remind me about</div>
-                            {[{ label: 'Daily Reminder', desc: 'Get reminded to log your expenses each day', key: 'notifyDaily' }, { label: 'Monthly Summary', desc: 'Receive a monthly spending report', key: 'notifyMonthly' }, { label: 'Budget Alerts', desc: 'Get notified when you approach budget limits', key: 'notifyBudget' }].map(n => (
+                            <div style={{ fontWeight: 600, fontSize: 14, margin: '20px 0 10px' }}>{tx('Also remind me about')}</div>
+                            {[{ label: tx('Daily Reminder'), desc: tx('Get reminded to log your expenses each day'), key: 'notifyDaily' }, { label: tx('Monthly Summary'), desc: tx('Receive a monthly spending report'), key: 'notifyMonthly' }, { label: tx('Budget Alerts'), desc: tx('Get notified when you approach budget limits'), key: 'notifyBudget' }].map(n => (
                                 <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 10, marginBottom: 8, border: '1px solid var(--border)' }}>
                                     <Bell size={18} style={{ color: 'var(--primary-light)' }} />
                                     <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{n.label}</div><div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{n.desc}</div></div>
@@ -416,47 +416,47 @@ export default function SettingsPage() {
 
                     {activeSection === 'cloud' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Cloud Backup & Sync</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Automatically back up your Zaylo data to your personal cloud.</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Cloud Backup & Sync')}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Automatically back up your Zaylo data to your personal cloud.')}</div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                     <svg viewBox="0 0 24 24" width="24" height="24"><path fill="#FFC107" d="M12.7,11.5l3.8,6.8H8.9L12.7,11.5z"></path><path fill="#03A9F4" d="M20.2,18H12.7l-3.8-6.5l3.8-6.5l7.5,13z"></path><path fill="#4CAF50" d="M16.4,5L12.7,11.5L5.1,11.5l3.8-6.5L16.4,5z"></path></svg>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>Google Drive</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Status: {user?.connectedClouds?.includes('google') ? 'Connected' : 'Not Connected'}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Google Drive')}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('google') ? tx('Connected') : tx('Not Connected')}</div>
                                     </div>
                                     <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('google', 'cloud')} disabled={user?.connectedClouds?.includes('google')}>
-                                        {user?.connectedClouds?.includes('google') ? 'Connected' : 'Connect'}
+                                        {user?.connectedClouds?.includes('google') ? tx('Connected') : tx('Connect')}
                                     </button>
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                     <svg viewBox="0 0 24 24" width="24" height="24" fill="#0078D4"><path d="M19.5,8c-0.1,0-0.3,0-0.4,0c-0.4-3.3-3.2-5.9-6.6-5.9c-2.3,0-4.3,1.2-5.4,3c-0.3-0.1-0.7-0.1-1.1-0.1c-2.5,0-4.5,2-4.5,4.5 C1.5,12,3.5,14,6,14h13.5c2.5,0,4.5-2,4.5-4.5S22,8,19.5,8z" /></svg>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>Microsoft OneDrive</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Status: {user?.connectedClouds?.includes('microsoft') ? 'Connected' : 'Not Connected'}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Microsoft OneDrive')}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('microsoft') ? tx('Connected') : tx('Not Connected')}</div>
                                     </div>
                                     <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('microsoft', 'cloud')} disabled={user?.connectedClouds?.includes('microsoft')}>
-                                        {user?.connectedClouds?.includes('microsoft') ? 'Connected' : 'Connect'}
+                                        {user?.connectedClouds?.includes('microsoft') ? tx('Connected') : tx('Connect')}
                                     </button>
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                     <Cloud size={24} style={{ color: '#0070c9' }} />
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>Apple iCloud</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Status: {user?.connectedClouds?.includes('apple') ? 'Connected' : 'Not Connected'}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14 }}>{tx('Apple iCloud')}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tx('Status:')}{' '}{user?.connectedClouds?.includes('apple') ? tx('Connected') : tx('Not Connected')}</div>
                                     </div>
                                     <button className="btn btn-secondary btn-sm" onClick={() => handleOauthConnect('apple', 'cloud')} disabled={user?.connectedClouds?.includes('apple')}>
-                                        {user?.connectedClouds?.includes('apple') ? 'Connected' : 'Connect'}
+                                        {user?.connectedClouds?.includes('apple') ? tx('Connected') : tx('Connect')}
                                     </button>
                                 </div>
                             </div>
 
                             {user?.connectedClouds?.length ? (
                                 <div style={{ marginTop: 24 }}>
-                                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Backup Frequency</div>
+                                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{tx('Backup Frequency')}</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                                         {['daily', 'weekly', 'monthly', 'manual'].map(interval => (
                                             <div key={interval} onClick={() => updateUser({ backupInterval: interval as any })} style={{ padding: '10px', textAlign: 'center', background: user?.backupInterval === interval ? 'var(--primary-light)' : 'var(--bg-input)', color: user?.backupInterval === interval ? '#fff' : 'inherit', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)' }}>
@@ -464,7 +464,7 @@ export default function SettingsPage() {
                                             </div>
                                         ))}
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Backups are uploaded automatically on background thread.</div>
+                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{tx('Backups are uploaded automatically on background thread.')}</div>
                                 </div>
                             ) : null}
                         </div>
@@ -472,8 +472,8 @@ export default function SettingsPage() {
 
                     {activeSection === 'desktop' && (
                         <div className="card animate-fadeIn">
-                            <div className="card-title" style={{ marginBottom: 4 }}>Zaylo on your devices</div>
-                            <div style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 20 }}>Test builds of the apps. They open this same account, so everything stays in sync.</div>
+                            <div className="card-title" style={{ marginBottom: 4 }}>{tx('Zaylo on your devices')}</div>
+                            <div style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 20 }}>{tx('Test builds of the apps. They open this same account, so everything stays in sync.')}</div>
                             <div className="card-grid card-grid-2">
                                 {[
                                     { name: 'Android', file: 'Zaylo-android.apk', note: 'Android 7 or later. Allow installs from your browser when asked.' },
@@ -486,7 +486,7 @@ export default function SettingsPage() {
                                         <div style={{ fontSize: 13, color: 'var(--ink-3)', flex: 1 }}>{p.note}</div>
                                         <a className="btn btn-secondary btn-sm" style={{ marginTop: 8, textDecoration: 'none' }}
                                             href={`https://github.com/MohamedAhmed2679/finance-va/releases/download/test-build/${p.file}`}>
-                                            <Download size={15} /> Download for {p.name}
+                                            <Download size={15} />{' '}{tx('Download for')}{' '}{p.name}
                                         </a>
                                     </div>
                                 ))}
@@ -500,24 +500,24 @@ export default function SettingsPage() {
             {showEmailModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
                     <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Change Email</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Change Email')}</h2>
                         <div className="form-group">
-                            <label className="form-label">New Email Address</label>
+                            <label className="form-label">{tx('New Email Address')}</label>
                             <input type="email" className="form-input" value={emailInput} onChange={e => setEmailInput(e.target.value)} autoFocus />
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>To apply these changes, you must re-authenticate with a provider.</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{tx('To apply these changes, you must re-authenticate with a provider.')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('google', 'email')} disabled={!emailInput}>
-                                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg> Verify with Google
+                                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>{' '}{tx('Verify with Google')}
                             </button>
                             <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('microsoft', 'email')} disabled={!emailInput}>
-                                <svg width="16" height="16" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg> Verify with Microsoft
+                                <svg width="16" height="16" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>{' '}{tx('Verify with Microsoft')}
                             </button>
                             <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('apple', 'email')} disabled={!emailInput}>
-                                <Cloud size={16} /> Verify with Apple
+                                <Cloud size={16} />{' '}{tx('Verify with Apple')}
                             </button>
                         </div>
-                        <button className="btn btn-ghost w-full" style={{ marginTop: 12 }} onClick={() => setShowEmailModal(false)}>Cancel</button>
+                        <button className="btn btn-ghost w-full" style={{ marginTop: 12 }} onClick={() => setShowEmailModal(false)}>{tx('Cancel')}</button>
                     </div>
                 </div>
             )}
@@ -529,14 +529,14 @@ export default function SettingsPage() {
                         <div style={{ fontSize: 48, marginBottom: 16 }}>
                             {oauthProvider === 'google' ? 'G' : oauthProvider === 'apple' ? '' : 'M'}
                         </div>
-                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Sign in with {oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1)}</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Zaylo wants to access your {oauthProvider} account to verify your identity and manage backups.</p>
+                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{tx('Sign in with')}{' '}{oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1)}</h2>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Zaylo wants to access your')}{' '}{oauthProvider}{' '}{tx('account to verify your identity and manage backups.')}</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <button className="btn btn-primary w-full" onClick={processOauth} disabled={oauthConnecting}>
-                                {oauthConnecting ? 'Validating...' : 'Allow Access'}
+                                {oauthConnecting ? tx('Validating...') : tx('Allow Access')}
                             </button>
-                            <button className="btn btn-ghost w-full" onClick={() => { setOauthProvider(null); setOauthMode(null); }} disabled={oauthConnecting}>Cancel</button>
+                            <button className="btn btn-ghost w-full" onClick={() => { setOauthProvider(null); setOauthMode(null); }} disabled={oauthConnecting}>{tx('Cancel')}</button>
                         </div>
                     </div>
                 </div>
@@ -546,11 +546,11 @@ export default function SettingsPage() {
             {showDeleteModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
                     <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--danger)', marginBottom: 8 }}>Are you sure you want to delete?</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>This action can't be undone. All your expenses, goals, and settings will be permanently removed.</p>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--danger)', marginBottom: 8 }}>{tx('Are you sure you want to delete?')}</h2>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('This action can\'t be undone. All your expenses, goals, and settings will be permanently removed.')}</p>
                         <div style={{ display: 'flex', gap: 12 }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>Cancel</button>
-                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { deleteAllData(); setShowDeleteModal(false); }}>Yes, Delete All Data</button>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>{tx('Cancel')}</button>
+                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { deleteAllData(); setShowDeleteModal(false); }}>{tx('Yes, Delete All Data')}</button>
                         </div>
                     </div>
                 </div>

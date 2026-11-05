@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -23,10 +24,10 @@ export function ImpersonationBar() {
     return (
         <div className="impersonation-bar" role="status">
             <UserCheck size={16} />
-            <span>Admin view: you're signed in as {info.name}{info.email ? ` (${info.email})` : ''}. Changes you make are real and logged.</span>
+            <span>{tx('Admin view: you\'re signed in as')}{' '}{info.name}{info.email ? ` (${info.email})` : ''}{tx('. Changes you make are real and logged.')}</span>
             <button className="btn btn-sm" style={{ background: '#1b1405', color: '#fff' }} disabled={busy}
                 onClick={async () => { setBusy(true); await endImpersonation(); }}>
-                End and close
+                {tx('End and close')}
             </button>
         </div>
     );
@@ -60,7 +61,7 @@ export function AnnouncementBanner() {
                     initial={{ opacity: 0, height: 0, marginBottom: 0 }} animate={{ opacity: 1, height: 'auto', marginBottom: 18 }} exit={{ opacity: 0, height: 0, marginBottom: 0 }}>
                     <Megaphone size={18} style={{ flexShrink: 0, marginTop: 2 }} />
                     <div style={{ flex: 1 }}><strong>{a.title}</strong>{a.body && <span style={{ color: 'var(--ink-2)' }}>{a.body}</span>}</div>
-                    <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label="Dismiss announcement" onClick={() => dismiss(a.id)}><X size={15} /></button>
+                    <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label={tx('Dismiss announcement')} onClick={() => dismiss(a.id)}><X size={15} /></button>
                 </motion.div>
             ))}
         </AnimatePresence>

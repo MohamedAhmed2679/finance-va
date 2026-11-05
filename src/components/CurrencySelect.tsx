@@ -1,3 +1,4 @@
+import { tx } from '../i18n/translations';
 import { useState, useRef, useEffect } from 'react';
 import { CURRENCIES } from '../constants';
 import { Search, ChevronDown } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function CurrencySelect({ value, onChange, label, disabled }: Cur
                             <Search size={14} style={{ color: 'var(--text-muted)' }} />
                             <input 
                                 type="text" autoFocus 
-                                placeholder="Search currency..." 
+                                placeholder={tx('Search currency...')} 
                                 value={search} onChange={e => setSearch(e.target.value)}
                                 style={{ border: 'none', background: 'transparent', outline: 'none', color: 'var(--text-primary)', padding: '8px', width: '100%', fontSize: 13 }}
                             />
@@ -73,7 +74,7 @@ export default function CurrencySelect({ value, onChange, label, disabled }: Cur
                     </div>
                     <div style={{ overflowY: 'auto', flex: 1 }}>
                         {filtered.length === 0 ? (
-                            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No currencies found</div>
+                            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{tx('No currencies found')}</div>
                         ) : (
                             filtered.map(c => (
                                 <div 

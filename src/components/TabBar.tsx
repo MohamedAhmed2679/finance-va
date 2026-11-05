@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MoreHorizontal, Moon, Sun, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { NAV, TAB_KEYS, navFor } from './nav';
 import { WorkspaceSwitcher } from './Sidebar';
 
@@ -15,7 +15,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
     const [moreOpen, setMoreOpen] = useState(false);
     const tabs = NAV.filter(n => TAB_KEYS.includes(n.key));
     const extra = navFor(user?.isAdmin).filter(n => !TAB_KEYS.includes(n.key));
-    const label = (n: typeof NAV[number]) => (n.label && t(lang, n.labelKey) === n.labelKey ? n.label : t(lang, n.labelKey));
+    const label = (n: typeof NAV[number]) => (n.label && t(lang, n.labelKey) === n.labelKey ? tx(n.label) : t(lang, n.labelKey));
     const moreActive = !TAB_KEYS.includes(active);
 
     const go = (key: string) => { setMoreOpen(false); onNavigate(key); };
@@ -34,7 +34,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
 
     return (
         <>
-            <nav className="tabbar" aria-label="Main navigation">
+            <nav className="tabbar" aria-label={tx('Main navigation')}>
                 {renderTab(tabs[0])}
                 {renderTab(tabs[1])}
                 <span aria-hidden="true" />
@@ -42,7 +42,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
                 <button className={`tab ${moreActive ? 'active' : ''}`} onClick={() => setMoreOpen(true)} aria-haspopup="dialog">
                     {moreActive && <motion.span layoutId="tab-dot" className="tab-dot" />}
                     <MoreHorizontal size={21} />
-                    <span>More</span>
+                    <span>{tx('More')}</span>
                 </button>
             </nav>
 
@@ -51,7 +51,7 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
                     <>
                         <motion.div className="sheet-overlay" style={{ animation: 'none' }} onClick={() => setMoreOpen(false)}
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-                        <motion.div className="sheet" role="dialog" aria-label="More"
+                        <motion.div className="sheet" role="dialog" aria-label={tx('More')}
                             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                             transition={{ type: 'spring', stiffness: 380, damping: 38 }}
                             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}

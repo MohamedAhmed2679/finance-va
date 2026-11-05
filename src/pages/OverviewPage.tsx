@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ZayloWave, ZPattern, ZayloMark, useCountUp } from '../components/brand/Brand';
 import { useStore, type Expense } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { formatCurrency, getCategoryInfo, getActiveCycleDates } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, CalendarClock, Plus } from 'lucide-react';
@@ -94,7 +94,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{greeting}{firstName ? `, ${firstName}` : ''}</h1>
-                    <p className="page-subtitle">{todayDate.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · {ws?.name ?? 'Personal'}</p>
+                    <p className="page-subtitle">{todayDate.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · {ws?.name ?? tx('Personal')}</p>
                 </div>
                 {!isViewer && <button className="btn btn-primary" onClick={onAddExpense}><Plus size={17} /> {t(lang, 'add_expense')}</button>}
             </div>
@@ -102,29 +102,29 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
             <PushPrompt />
 
             {/* The Zaylo card — signature hero */}
-            <motion.section className="note mb-6" aria-label="Spending this cycle"
+            <motion.section className="note mb-6" aria-label={tx('Spending this cycle')}
                 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
                 <ZPattern opacity={0.08} />
                 <ZayloWave intensity={0.85} />
                 <div className="note-top">
-                    <span className="note-label">Spent this cycle</span>
+                    <span className="note-label">{tx('Spent this cycle')}</span>
                     <span className="note-serial">{fmtDay(cycleStart)} – {fmtDay(cycleEnd)}</span>
                 </div>
                 <div className="note-amount">
                     {hideAmounts ? '••••' : loading ? <span className="skeleton" style={{ display: 'inline-block', width: 220, height: 52, opacity: 0.25 }} /> : formatCurrency(spentShown, currency)}
                 </div>
                 <dl className="note-meta">
-                    <div><dt>Today</dt><dd>{hideAmounts ? '••••' : formatCurrency(toDisplay(todayTotal), currency)}</dd></div>
+                    <div><dt>{tx('Today')}</dt><dd>{hideAmounts ? '••••' : formatCurrency(toDisplay(todayTotal), currency)}</dd></div>
                     <div>
-                        <dt>Vs last cycle</dt>
+                        <dt>{tx('Vs last cycle')}</dt>
                         <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {lastMonthTotal ? <>{monthChange <= 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}{Math.abs(monthChange).toFixed(0)}% {monthChange <= 0 ? 'less' : 'more'}</> : 'No data yet'}
+                            {lastMonthTotal ? <>{monthChange <= 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}{Math.abs(monthChange).toFixed(0)}% {monthChange <= 0 ? 'less' : 'more'}</> : tx('No data yet')}
                         </dd>
                     </div>
-                    {budget > 0 && <div><dt>Left in budget</dt><dd>{hideAmounts ? '••••' : formatCurrency(Math.max(0, budget - toDisplay(monthTotal)), currency)}</dd></div>}
+                    {budget > 0 && <div><dt>{tx('Left in budget')}</dt><dd>{hideAmounts ? '••••' : formatCurrency(Math.max(0, budget - toDisplay(monthTotal)), currency)}</dd></div>}
                 </dl>
                 {budget > 0 && (
-                    <div className="note-budget" data-over={toDisplay(monthTotal) > budget} role="progressbar" aria-valuenow={Math.round(budgetPct)} aria-valuemin={0} aria-valuemax={100} aria-label="Budget used">
+                    <div className="note-budget" data-over={toDisplay(monthTotal) > budget} role="progressbar" aria-valuenow={Math.round(budgetPct)} aria-valuemin={0} aria-valuemax={100} aria-label={tx('Budget used')}>
                         <motion.span initial={{ width: 0 }} animate={{ width: `${budgetPct}%` }} transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
                     </div>
                 )}
@@ -136,9 +136,9 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 <div className="card mb-6 animate-fadeIn">
                     <div className="card-head">
                         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CalendarClock size={18} style={{ color: 'var(--amber)' }} /> Bills due soon
+                            <CalendarClock size={18} style={{ color: 'var(--amber)' }} />{' '}{tx('Bills due soon')}
                         </div>
-                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('bills')}>Manage bills</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('bills')}>{tx('Manage bills')}</button>
                     </div>
                     <div className="ledger">
                         {upcomingBills.map(b => {
@@ -154,7 +154,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                     </div>
                                     <div className="ledger-side">
                                         <span className="ledger-amount"><CurrencyDisplay amount={b.amount} currency={b.currency} hideAmounts={hideAmounts} /></span>
-                                        {!isViewer && <button className="btn btn-secondary btn-sm" onClick={() => markBillPaid(b.id, monthStr)}>Mark paid</button>}
+                                        {!isViewer && <button className="btn btn-secondary btn-sm" onClick={() => markBillPaid(b.id, monthStr)}>{tx('Mark paid')}</button>}
                                     </div>
                                 </div>
                             );
@@ -169,7 +169,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                     <div className="card-head"><div className="card-title">{t(lang, 'spend_over_time')}</div></div>
                     <div className="chart-container" style={{ height: 180 }}>
                         {spendData.length === 0 ? (
-                            <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">Your daily spending will chart here once you add expenses this cycle.</div></div>
+                            <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">{tx('Your daily spending will chart here once you add expenses this cycle.')}</div></div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={spendData} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
@@ -186,7 +186,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 <div className="card animate-fadeIn" style={{ animationDelay: '140ms' }}>
                     <div className="card-head"><div className="card-title">{t(lang, 'category_breakdown')}</div></div>
                     {catData.length === 0 ? (
-                        <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">Categories appear here after your first expense.</div></div>
+                        <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">{tx('Categories appear here after your first expense.')}</div></div>
                     ) : (
                         <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
                             <div style={{ width: 150, height: 150, flexShrink: 0 }}>
@@ -218,15 +218,15 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                 <div className="card animate-fadeIn" style={{ animationDelay: '200ms' }}>
                     <div className="card-head">
                         <div className="card-title">{t(lang, 'recent_expenses')}</div>
-                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('expenses')}>See all</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('expenses')}>{tx('See all')}</button>
                     </div>
                     {loading ? (
                         <div className="ledger">{[0, 1, 2].map(i => <div key={i} className="ledger-row"><div className="skeleton" style={{ width: 40, height: 40, borderRadius: 12 }} /><div><div className="skeleton" style={{ height: 13, width: '60%', marginBottom: 6 }} /><div className="skeleton" style={{ height: 11, width: '40%' }} /></div><div className="skeleton" style={{ height: 14, width: 64 }} /></div>)}</div>
                     ) : recentExp.length === 0 ? (
                         <div className="empty-state">
-                            <div className="empty-title">Nothing spent yet</div>
-                            <div className="empty-desc">Add an expense by typing it, saying it out loud, or pasting a bank SMS.</div>
-                            {!isViewer && <button className="btn btn-primary btn-sm mt-2" onClick={onAddExpense}><Plus size={15} /> Add expense</button>}
+                            <div className="empty-title">{tx('Nothing spent yet')}</div>
+                            <div className="empty-desc">{tx('Add an expense by typing it, saying it out loud, or pasting a bank SMS.')}</div>
+                            {!isViewer && <button className="btn btn-primary btn-sm mt-2" onClick={onAddExpense}><Plus size={15} />{' '}{tx('Add expense')}</button>}
                         </div>
                     ) : (
                         <div className="ledger">
@@ -236,7 +236,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                     <motion.div key={e.id} className="ledger-row" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.05 }}>
                                         <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
                                         <div style={{ minWidth: 0 }}>
-                                            <div className="ledger-title">{e.merchant || catInfo.label}</div>
+                                            <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>
                                             <div className="ledger-sub">{catInfo.label} · {new Date(e.purchaseAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' })}</div>
                                         </div>
                                         <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} entry={e} showOriginal hideAmounts={hideAmounts} /></div>

@@ -1,7 +1,7 @@
 import { toBase } from '../utils/money';
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { t } from '../i18n/translations';
+import { t, tx } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
 import { Plus, Trash2, DollarSign, PiggyBank } from 'lucide-react';
 import CurrencyDisplay from '../components/CurrencyDisplay';
@@ -87,7 +87,7 @@ export default function SavingsPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{t(lang, 'savings_goals')}</h1>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length} active goals · <CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} /> saved of <CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /></p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{wsGoals.length}{' '}{tx('active goals ·')}{' '}<CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} />{' '}{tx('saved of')}{' '}<CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /></p>
                 </div>
             </div>
 
@@ -96,18 +96,18 @@ export default function SavingsPage() {
                 <div className="card mb-6 animate-fadeIn" style={{ background: 'var(--surface-2)', borderColor: 'var(--line)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>Total Progress</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>{tx('Total Progress')}</div>
                             <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}><CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} /></div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of <CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /> target</div>
                             {rolloverSavings > 0 && (
                                 <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PiggyBank size={12} /> <CurrencyDisplay amount={rolloverSavings} currency={cur} hideAmounts={hideAmounts} /> from past cycle rollovers
+                                    <PiggyBank size={12} /> <CurrencyDisplay amount={rolloverSavings} currency={cur} hideAmounts={hideAmounts} />{' '}{tx('from past cycle rollovers')}
                                 </div>
                             )}
                         </div>
                         <div style={{ flex: 2 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                                <span>Overall Progress</span>
+                                <span>{tx('Overall Progress')}</span>
                                 <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{totalTarget > 0 ? Math.round(totalSaved / totalTarget * 100) : 0}%</span>
                             </div>
                             <div className="progress" style={{ height: 10 }}>
@@ -123,15 +123,15 @@ export default function SavingsPage() {
                 {!isViewer && (
                     <div className="card animate-fadeIn" style={{ animationDelay: '60ms' }}>
                         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t(lang, 'add_goal')}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>What are you saving for?</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{tx('What are you saving for?')}</div>
                         <form onSubmit={handleAdd}>
                             <div className="form-group">
                                 <label className="form-label">{t(lang, 'dream_goal')}</label>
-                                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. New Car" required />
+                                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder={tx('e.g. New Car')} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Reason / Story</label>
-                                <textarea className="form-input" value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this important to you?" rows={2} style={{ resize: 'none' }} />
+                                <label className="form-label">{tx('Reason / Story')}</label>
+                                <textarea className="form-input" value={reason} onChange={e => setReason(e.target.value)} placeholder={tx('Why is this important to you?')} rows={2} style={{ resize: 'none' }} />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">{t(lang, 'target_amount')}</label>
@@ -150,8 +150,8 @@ export default function SavingsPage() {
                     {wsGoals.length === 0 ? (
                         <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>No savings goals yet</div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Create your first goal to start tracking your dreams</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{tx('No savings goals yet')}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{tx('Create your first goal to start tracking your dreams')}</div>
                         </div>
                     ) : wsGoals.map((goal, i) => {
                         const pct = Math.round(goal.savedAmount / goal.targetAmount * 100);
@@ -173,21 +173,21 @@ export default function SavingsPage() {
                                 <div className="progress" style={{ height: 8, marginBottom: 12 }}>
                                     <div className="progress-bar" style={{ width: `${Math.min(pct, 100)}%`, background: goal.color }} />
                                 </div>
-                                {remaining > 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, display: 'flex', gap: 4 }}>💡 <CurrencyDisplay amount={remaining} currency={goal.currency} hideAmounts={hideAmounts} /> more to reach your goal</div>}
+                                {remaining > 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, display: 'flex', gap: 4 }}>💡 <CurrencyDisplay amount={remaining} currency={goal.currency} hideAmounts={hideAmounts} />{' '}{tx('more to reach your goal')}</div>}
 
                                 {fundsId === goal.id ? (
                                     <form onSubmit={handleAddFunds} style={{ display: 'flex', gap: 8 }} className="animate-fadeIn">
                                         <div className="input-with-icon" style={{ flex: 1 }}>
                                             <DollarSign size={14} className="input-icon" />
-                                            <input type="number" className="form-input" value={fundsAmt} onChange={e => setFundsAmt(e.target.value)} placeholder="Amount to add" step="0.01" min="0.01" autoFocus required />
+                                            <input type="number" className="form-input" value={fundsAmt} onChange={e => setFundsAmt(e.target.value)} placeholder={tx('Amount to add')} step="0.01" min="0.01" autoFocus required />
                                         </div>
-                                        <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                                        <button type="submit" className="btn btn-primary btn-sm">{tx('Add')}</button>
                                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFundsId(null)}>✕</button>
                                     </form>
                                 ) : (
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         {!isViewer && <button className="btn btn-secondary btn-sm" onClick={() => { setFundsId(goal.id); setFundsAmt(''); }}><Plus size={14} />{t(lang, 'add_funds')}</button>}
-                                        {!isViewer && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm('Delete this goal?')) deleteSavingsGoal(goal.id); }}><Trash2 size={14} />{t(lang, 'delete')}</button>}
+                                        {!isViewer && <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm(tx('Delete this goal?'))) deleteSavingsGoal(goal.id); }}><Trash2 size={14} />{t(lang, 'delete')}</button>}
                                     </div>
                                 )}
                             </div>
