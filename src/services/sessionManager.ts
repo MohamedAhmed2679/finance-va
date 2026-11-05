@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore';
+import { appLockEnabled } from '../utils/biometric';
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let backgroundTime: number | null = null;
@@ -27,7 +28,7 @@ export const initSessionManager = () => {
                 const timeoutMs = (store.user?.lockTimeout || 5) * 60 * 1000;
                 const timeAway = Date.now() - backgroundTime;
                 
-                if (store.user?.biometricEnabled && store.user?.pin && timeAway > timeoutMs) {
+                if (appLockEnabled(store.user) && timeAway > timeoutMs) {
                     store.setLocked(true);
                 }
                 backgroundTime = null;
@@ -62,12 +63,12 @@ export const resetInactivityTimer = () => {
     const store = useStore.getState();
     const timeoutMin = store.user?.lockTimeout || 5;
     
-    // Only set timer if biometric/PIN is enabled and a PIN exists
-    if (!store.user?.biometricEnabled || !store.user?.pin) return;
+    // Only set the timer when a PIN or biometric unlock is set up
+    if (!appLockEnabled(store.user)) return;
 
     inactivityTimer = setTimeout(() => {
         const currentStore = useStore.getState();
-        if (currentStore.user?.biometricEnabled && currentStore.user?.pin) {
+        if (appLockEnabled(currentStore.user)) {
             currentStore.setLocked(true);
         }
     }, timeoutMin * 60 * 1000);

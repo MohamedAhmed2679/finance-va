@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
 import { ChevronRight, Check } from 'lucide-react';
+import BiometricToggle from '../components/BiometricToggle';
 
 export default function OnboardingPage() {
     const { user, updateUser, completeOnboarding } = useStore();
@@ -11,7 +12,6 @@ export default function OnboardingPage() {
     const [name, setName] = useState(user?.name ?? '');
     const [currency, setCurrency] = useState(user?.defaultCurrency ?? 'USD');
     const [language, setLanguage] = useState(user?.language ?? 'en');
-    const [biometric, setBiometric] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [smsEnabled, setSmsEnabled] = useState(true);
 
@@ -21,7 +21,7 @@ export default function OnboardingPage() {
             setStep(step + 1);
         } else {
             // Finish
-            updateUser({ name, defaultCurrency: currency, language, biometricEnabled: biometric, voiceEnabled, smsEnabled });
+            updateUser({ name, defaultCurrency: currency, language, voiceEnabled, smsEnabled });
             completeOnboarding();
         }
     }
@@ -78,22 +78,11 @@ export default function OnboardingPage() {
                 {step === 3 && (
                     <div className="animate-fadeIn">
                         <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Security</div>
-                        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Protect your financial data with biometric authentication.</div>
+                        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Lock the app with your face or fingerprint, and choose how you add expenses.</div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15 }}>Enable Face/Touch ID</div>
-                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Quick and secure access.</div>
-                                </div>
-                                <div onClick={() => setBiometric(!biometric)} style={{ width: 50, height: 28, borderRadius: 99, background: biometric ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 200ms', cursor: 'pointer', flexShrink: 0 }}>
-                                    <div style={{ position: 'absolute', left: biometric ? 'calc(100% - 24px)' : 2, top: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left 200ms', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
-                                </div>
-                            </div>
-                            
+                            <BiometricToggle />
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--info-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>

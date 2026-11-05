@@ -43,6 +43,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Finance VA uses Face ID to unlock the app.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Finance VA uses the camera to photograph receipts you want to add as expenses.</string>
 	<key>NSMicrophoneUsageDescription</key>

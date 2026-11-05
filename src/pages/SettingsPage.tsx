@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { hashPin } from '../utils/pin';
+import BiometricToggle from '../components/BiometricToggle';
 import toast from 'react-hot-toast';
 import { t } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
@@ -263,8 +264,8 @@ export default function SettingsPage() {
                         <div className="card animate-fadeIn">
                             <div className="font-bold mb-5" style={{ fontSize: 16 }}>Security & Privacy</div>
                             <div className="flex-col gap-4">
+                                <BiometricToggle compact />
                                 {[
-                                    { label: t(lang, 'biometric_lock'), desc: 'Use Face ID or fingerprint to unlock the app', key: 'biometricEnabled' },
                                     { label: t(lang, 'store_ocr'), desc: 'Keep extracted receipt text for debugging', key: 'storeOcr' },
                                 ].map(item => (
                                     <div key={item.key} className="flex-row items-center gap-4 rounded-xl" style={{ padding: '14px 16px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
@@ -302,7 +303,7 @@ export default function SettingsPage() {
                                                 Save PIN
                                             </button>
                                         </div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Needed for auto-lock. Stored as a one-way hash on this device.</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>A backup for biometric unlock, or use it on its own. Stored as a one-way hash.</div>
                                     </div>
 
                                     <div className="form-group" style={{ marginBottom: 0 }}>

@@ -1288,3 +1288,15 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .banner-slot + div .page { padding-top: 12px; }
 @media (min-width: 861px) { .chat-members-toggle { display: none !important; } }
 @media (max-width: 860px) { .banner-slot { padding: 16px 16px 0; } }
+
+/* Biometric unlock row + switch */
+.bio-row { display: flex; align-items: center; gap: 14px; background: var(--bg-input); border: 1px solid var(--line); border-radius: 14px; }
+.bio-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--note-soft); color: var(--note); flex-shrink: 0; }
+.switch { position: relative; width: 48px; height: 28px; border-radius: 99px; border: 0; padding: 0; cursor: pointer; flex-shrink: 0; background: var(--line-strong); transition: background 0.2s; }
+.switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform 0.22s var(--ease-out, ease); }
+.switch[data-on="true"] { background: var(--note); }
+.switch[data-on="true"] > span { transform: translateX(20px); }
+.switch:disabled { cursor: not-allowed; opacity: 0.6; }
+.switch:focus-visible { outline: 2px solid var(--focus, var(--note)); outline-offset: 2px; }
+[dir="rtl"] .switch[data-on="true"] > span { transform: translateX(-20px); }
+[dir="rtl"] .switch > span { left: auto; right: 3px; }
