@@ -77,6 +77,8 @@ export function useLiveNotifications() {
                 const n = mapNotification(p.new as Record<string, unknown>);
                 useStore.setState(s => s.notifications.some(x => x.id === n.id) ? s : { notifications: [n, ...s.notifications] });
                 toast(n.message, { icon: '🔔', duration: 6000 });
+                // Added to (or joined) a workspace: load it right away so it shows in the switcher.
+                if (n.type === 'member_added' || n.type === 'member_joined') useStore.getState().hydrateStore();
             })
             .subscribe();
         return () => { supabase?.removeChannel(ch); };

@@ -1,3 +1,4 @@
+import { hasPendingJoin } from '../components/JoinInvite';
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
@@ -289,6 +290,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
             <section className="auth-panel">
                 <div className="auth-form-wrap">
+                    {hasPendingJoin() && <div className="auth-msg ok" role="status" style={{ marginBottom: 18 }}>You've been invited to a shared workspace. Sign in or create an account to join it.</div>}
                     {(mode === 'signin' || mode === 'signup') && (
                         <div className="segmented" role="tablist" style={{ marginBottom: 26 }}>
                             {(['signin', 'signup'] as const).map(m => (

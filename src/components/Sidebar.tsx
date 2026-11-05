@@ -57,7 +57,7 @@ export function WorkspaceSwitcher({ onNavigate }: { onNavigate: (page: string) =
                         ))}
                         <div className="dropdown-divider" />
                         <button role="menuitem" className="dropdown-item w-full" style={{ border: 'none', background: 'none' }}
-                            onClick={() => { onNavigate('workspaces'); setOpen(false); }}>
+                            onClick={() => { try { sessionStorage.setItem('zaylo_new_ws', '1'); } catch { /* ignore */ } window.dispatchEvent(new Event('zaylo:new-workspace')); onNavigate('workspaces'); setOpen(false); }}>
                             <Plus size={16} /> {t(lang, 'new_workspace')}
                         </button>
                     </motion.div>

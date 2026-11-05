@@ -24,12 +24,16 @@ import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
 import { AnnouncementBanner, ImpersonationBar, useLiveNotifications } from './components/LiveLayer';
-import { ZayloLogo } from './components/brand/Brand';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
 import HistoryPage from './pages/HistoryPage';
+import MobileTopBar from './components/MobileTopBar';
+import JoinInvite, { captureJoinLink } from './components/JoinInvite';
+
+// zaylo.cc/join/<token>: remember the invite before routing or sign-in take over the URL
+captureJoinLink();
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
@@ -126,7 +130,7 @@ function Shell() {
             <Sidebar active={active} onNavigate={go} />
             <main className="main-content">
                 <ImpersonationBar />
-                <div className="mobile-brand"><ZayloLogo size={24} /></div>
+                <MobileTopBar onNavigate={go} />
                 <div className="banner-slot"><AnnouncementBanner /></div>
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
@@ -139,6 +143,7 @@ function Shell() {
                 </AnimatePresence>
             </main>
             <TabBar active={active} onNavigate={go} />
+            <JoinInvite />
 
             {!['chat', 'messages', 'assistant'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}

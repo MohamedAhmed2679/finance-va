@@ -1,3 +1,4 @@
+import ZayloIdCard from '../components/ZayloIdCard';
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { hashPin } from '../utils/pin';
@@ -15,7 +16,6 @@ export default function SettingsPage() {
     const [pinDraft, setPinDraft] = useState('');
     const [langDraft, setLangDraft] = useState(language);
     const [curDraft, setCurDraft] = useState(currency);
-    const [copied, setCopied] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name ?? '');
     const [activeSection, setActiveSection] = useState<string | null>('profile');
@@ -54,11 +54,6 @@ export default function SettingsPage() {
         setTimeout(() => setSaveSuccess(false), 3000);
     }
 
-    const handleCopyReferral = () => {
-        navigator.clipboard.writeText(user?.referralCode ?? '');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     const handleOauthConnect = (provider: 'google' | 'apple' | 'microsoft', mode: 'email' | 'cloud') => {
         setOauthProvider(provider);
@@ -100,7 +95,7 @@ export default function SettingsPage() {
         { id: 'security', label: t(lang, 'security_privacy'), icon: Lock },
         { id: 'categories', label: t(lang, 'categories_methods'), icon: Tags },
         { id: 'integrations', label: 'AI Integrations', icon: Wand2 },
-        { id: 'referral', label: t(lang, 'referral_id'), icon: Copy },
+        { id: 'referral', label: 'Zaylo ID', icon: Copy },
         { id: 'export', label: t(lang, 'export_data'), icon: Download },
         { id: 'cloud', label: t(lang, 'cloud_backup'), icon: Cloud },
         { id: 'desktop', label: t(lang, 'desktop_app'), icon: Monitor },
@@ -144,6 +139,7 @@ export default function SettingsPage() {
                                     <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{user?.email}</div>
                                 </div>
                             </div>
+                            <div style={{ marginBottom: 20 }}><ZayloIdCard /></div>
                             <div className="form-group">
                                 <label className="form-label">Display Name</label>
                                 <input className="form-input" value={displayName} onChange={e => setDisplayName(e.target.value)} />
@@ -379,19 +375,9 @@ export default function SettingsPage() {
 
                     {activeSection === 'referral' && (
                         <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{t(lang, 'referral_id')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Share your unique code to invite friends to Zaylo</div>
-                            <div style={{ textAlign: 'center', padding: '32px 24px', background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--line)', marginBottom: 24 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Your Referral Code</div>
-                                <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: 4, color: 'var(--primary-light)', marginBottom: 16 }}>{user?.referralCode}</div>
-                                <button className="btn btn-primary" onClick={handleCopyReferral}>
-                                    {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> {t(lang, 'copy')}</>}
-                                </button>
-                            </div>
-                            <div style={{ background: 'var(--bg-input)', borderRadius: 12, padding: '16px', border: '1px solid var(--border)' }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .8 }}>User ID</div>
-                                <div style={{ fontFamily: 'monospace', fontSize: 14, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{user?.id}</div>
-                            </div>
+                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Zaylo ID</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>Your unique ID. Anyone who manages a workspace can add you with it, and you can add others with theirs.</div>
+                            <ZayloIdCard />
                         </div>
                     )}
 

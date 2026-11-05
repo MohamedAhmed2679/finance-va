@@ -8,7 +8,7 @@ import {
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
     fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud,
-    fetchWorkspaceMemberList, addWorkspaceMemberRemote, removeWorkspaceMemberRemote, setWorkspaceMemberRoleRemote, ensureProfile, markNotificationRead
+    fetchWorkspaceMemberList, addWorkspaceMemberRemote, claimPendingInvites, type AddMemberResult, removeWorkspaceMemberRemote, setWorkspaceMemberRoleRemote, ensureProfile, markNotificationRead
 } from '../services/supabaseSync';
 import { mapExpense, mapIncome, mapBill, mapGoal, mapWorkspace, mapMember, mapNotification } from '../services/mappers';
 import { signOut as supabaseSignOut } from '../services/authProvider';
@@ -39,7 +39,7 @@ function reportSyncError(err: unknown) {
 export type CategoryKey = string;
 export type PaymentMethod = string;
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
-export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added' | 'member_added' | 'admin_notice' | 'admin_message';
+export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added' | 'member_added' | 'member_joined' | 'admin_notice' | 'admin_message';
 
 export interface CategoryDef {
     key: string;
@@ -267,10 +267,10 @@ interface AppState {
     completeOnboarding: () => void;
     setActiveWorkspace: (id: string) => void;
     loadWorkspaceData: (wsId: string) => Promise<void>;
-    addWorkspace: (ws: Omit<Workspace, 'id' | 'activityLog' | 'inviteLink'>) => void;
+    addWorkspace: (ws: Omit<Workspace, 'id' | 'activityLog' | 'inviteLink'>) => string;
     updateWorkspace: (id: string, data: Partial<Workspace>) => void;
     deleteWorkspace: (id: string) => void;
-    inviteMember: (workspaceId: string, identifier: string, name: string, role: WorkspaceRole) => Promise<'added' | 'not_found'>;
+    inviteMember: (workspaceId: string, identifier: string, name: string, role: WorkspaceRole) => Promise<AddMemberResult>;
     removeMember: (workspaceId: string, uid: string) => Promise<void>;
     updateMemberRole: (workspaceId: string, uid: string, role: WorkspaceRole) => Promise<void>;
     refreshMembers: (workspaceId: string) => Promise<void>;
@@ -814,6 +814,7 @@ export const useStore = create<AppState>()(
                             isAdmin: Boolean(profile.is_admin),
                             name: profile.name || state.user.name,
                             phone: profile.phone || state.user.phone,
+                            referralCode: profile.referral_code || state.user.referralCode,
                         } : null }));
                     } else if (!userId) {
                         set({ syncStatus: 'error' });
@@ -827,6 +828,11 @@ export const useStore = create<AppState>()(
                 await flushOutbox().catch(() => {});
 
                 try {
+                    // Join any workspaces this email was invited to before the account existed.
+                    if (isSupabaseReady()) {
+                        const joined = await claimPendingInvites();
+                        if (joined > 0) toast.success(joined === 1 ? 'You were added to a shared workspace.' : `You were added to ${joined} shared workspaces.`);
+                    }
                     let ws = await fetchAccessibleWorkspaces(userId);
                     
                     // AGGRESSIVE MIGRATION: Check for orphaned workspaces by email,

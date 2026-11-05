@@ -160,8 +160,11 @@ export default function ChatPage() {
         if (!ws || !adding.trim()) return;
         try {
             const r = await inviteMember(ws.id, adding.trim(), '', role);
-            if (r === 'not_found') toast.error('No Zaylo account uses that email or phone.');
-            else { toast.success('Added to the workspace and chat'); setAdding(''); }
+            if (r === 'not_found') toast.error('No Zaylo account matches that email, phone or Zaylo ID.');
+            else if (r === 'pending') { toast.success("They don't have Zaylo yet. They'll join this chat when they sign up with that email."); setAdding(''); }
+            else if (r === 'already_member') toast("They're already in this workspace.");
+            else if (r === 'self') toast("That's you.");
+            else { toast.success('Added and notified'); setAdding(''); }
         } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed'); }
     }
 
@@ -258,8 +261,8 @@ export default function ChatPage() {
                     </div>
                     {canManage && (
                         <form onSubmit={addMember} className="mt-4">
-                            <label className="form-label" htmlFor="chat-add">Add someone by email or phone</label>
-                            <input id="chat-add" className="form-input mt-1" placeholder="name@example.com" value={adding} onChange={e => setAdding(e.target.value)} />
+                            <label className="form-label" htmlFor="chat-add">Add someone by email, phone or Zaylo ID</label>
+                            <input id="chat-add" className="form-input mt-1" placeholder="Email, phone or ZY-XXXXXX" value={adding} onChange={e => setAdding(e.target.value)} />
                             <div className="flex gap-2 mt-2">
                                 <select className="form-select" value={role} onChange={e => setRole(e.target.value as WorkspaceRole)} aria-label="Role"><option value="member">Member</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select>
                                 <button className="btn btn-primary" disabled={!adding.trim()}><UserPlus size={16} /> Add</button>

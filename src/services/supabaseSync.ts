@@ -437,11 +437,56 @@ export async function fetchWorkspaceMemberList(workspaceId: string): Promise<Mem
     return data as MemberRow[];
 }
 
-export async function addWorkspaceMemberRemote(workspaceId: string, identifier: string, role: string): Promise<'added' | 'not_found'> {
+export type AddMemberResult = 'added' | 'not_found' | 'pending' | 'already_member' | 'self';
+
+export async function addWorkspaceMemberRemote(workspaceId: string, identifier: string, role: string): Promise<AddMemberResult> {
     if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
     const { data, error } = await supabase.rpc('add_workspace_member', { p_workspace_id: workspaceId, p_identifier: identifier, p_role: role });
     if (error) throw new Error(error.message);
-    return data as 'added' | 'not_found';
+    return data as AddMemberResult;
+}
+
+// ─── Invite links ────────────────────────────────────────────────
+export interface InviteRow { id: string; token: string; role: string; email: string | null; created_at: string; expires_at: string; uses: number; max_uses: number | null; revoked: boolean }
+export interface InvitePreview { status: 'valid' | 'not_found' | 'revoked' | 'expired' | 'used'; workspace?: string; icon?: string; color?: string; role?: string; inviter?: string; members?: number; already_member?: boolean; workspace_id?: string }
+
+export const inviteUrl = (token: string) => `https://zaylo.cc/join/${token}`;
+
+const friendly = (m: string) => /function .* does not exist|schema cache/i.test(m) ? 'Invites need the latest database update.' : m.replace(/^.*?:\s*(?=[A-Z])/, '');
+
+export async function createInviteLink(workspaceId: string, role: string, days = 14): Promise<string> {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { data, error } = await supabase.rpc('create_workspace_invite', { p_workspace_id: workspaceId, p_role: role, p_days: days });
+    if (error) throw new Error(friendly(error.message));
+    return data as string;
+}
+export async function listInvites(workspaceId: string): Promise<InviteRow[]> {
+    if (!isSupabaseReady() || !supabase) return [];
+    const { data } = await supabase.from('workspace_invites').select('*').eq('workspace_id', workspaceId).eq('revoked', false)
+        .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(20);
+    return (data as InviteRow[]) || [];
+}
+export async function revokeInvite(id: string) {
+    if (!isSupabaseReady() || !supabase) return;
+    const { error } = await supabase.rpc('revoke_workspace_invite', { p_invite_id: id });
+    if (error) throw new Error(friendly(error.message));
+}
+export async function previewInvite(token: string): Promise<InvitePreview> {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { data, error } = await supabase.rpc('get_workspace_invite', { p_token: token });
+    if (error) throw new Error(friendly(error.message));
+    return data as InvitePreview;
+}
+export async function acceptInvite(token: string): Promise<{ status: string; workspace_id: string; workspace: string }> {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { data, error } = await supabase.rpc('accept_workspace_invite', { p_token: token });
+    if (error) throw new Error(friendly(error.message));
+    return data;
+}
+export async function claimPendingInvites(): Promise<number> {
+    if (!isSupabaseReady() || !supabase) return 0;
+    const { data, error } = await supabase.rpc('claim_pending_invites');
+    return error ? 0 : Number(data) || 0;
 }
 
 export async function removeWorkspaceMemberRemote(workspaceId: string, userId: string) {
