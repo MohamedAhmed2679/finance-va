@@ -12,7 +12,9 @@
  * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, default gemini-3.8-flash),
  *      VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (already set, used to verify the caller).
  */
-export const config = { runtime: 'edge' };
+// Node runtime: AI answers can take longer than the 25 s edge limit.
+export const config = { maxDuration: 60 };
+const TIME_BUDGET_MS = 52_000;
 
 const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -57,24 +59,43 @@ async function gemini(parts: Part[], opts: { system: string; schema?: object; te
     };
 
     let lastError = 'AI is unavailable right now.';
+    const started = Date.now();
     for (const model of models) {
+        const left = TIME_BUDGET_MS - (Date.now() - started);
+        if (left < 4000) break;
+        // Gemini 3 models think before answering; keep that short so replies arrive quickly.
+        const withThinking = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: { thinkingLevel: 'low' } } };
+        let attempt = await callModel(model, withThinking, key, left);
+        if (attempt.status === 400 && /thinking/i.test(attempt.error || '')) attempt = await callModel(model, body, key, TIME_BUDGET_MS - (Date.now() - started));
+        if (attempt.text) return { text: attempt.text, model };
+        lastError = attempt.error || lastError;
+        // Busy, slow, rate-limited or retired model: try the next one; anything else is final.
+        const retired = /no longer available|not found|not supported|deprecated/i.test(lastError);
+        if (!retired && ![0, 404, 408, 429, 500, 503, 504].includes(attempt.status)) break;
+    }
+    throw Object.assign(new Error(/quota|rate/i.test(lastError) ? 'Zaylo AI is busy. Try again in a minute.' : /took too long/i.test(lastError) ? 'Zaylo took too long to answer. Try a shorter question.' : lastError), { status: 502 });
+}
+
+async function callModel(model: string, body: object, key: string, timeoutMs: number): Promise<{ status: number; text?: string; error?: string }> {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), Math.max(1000, Math.min(timeoutMs, 40_000)));
+    try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
             body: JSON.stringify(body),
+            signal: ctrl.signal,
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-            const text = (data.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || '').join('');
-            if (!text) { lastError = data.candidates?.[0]?.finishReason === 'SAFETY' ? 'That request was blocked.' : 'The AI returned an empty answer.'; continue; }
-            return { text, model };
-        }
-        lastError = data.error?.message || `AI error ${res.status}`;
-        // Busy, rate-limited or model unavailable: try the lighter model; anything else is final.
-        const retired = /no longer available|not found|not supported|deprecated/i.test(lastError);
-        if (!retired && ![404, 429, 500, 503].includes(res.status)) break;
-    }
-    throw Object.assign(new Error(/quota|rate/i.test(lastError) ? 'Zaylo AI is busy. Try again in a minute.' : lastError), { status: 502 });
+        if (!res.ok) return { status: res.status, error: data.error?.message || `AI error ${res.status}` };
+        const cand = data.candidates?.[0];
+        const text = (cand?.content?.parts || []).filter((p: { thought?: boolean }) => !p.thought).map((p: { text?: string }) => p.text || '').join('');
+        if (!text) return { status: 500, error: cand?.finishReason === 'SAFETY' ? 'That request was blocked.' : 'The AI returned an empty answer.' };
+        return { status: 200, text };
+    } catch (e) {
+        const aborted = (e as Error).name === 'AbortError';
+        return { status: aborted ? 504 : 0, error: aborted ? `${model} took too long to answer.` : (e as Error).message };
+    } finally { clearTimeout(timer); }
 }
 
 function parseJson<T>(text: string): T {
@@ -228,7 +249,7 @@ ${JSON.stringify(b.snapshot || {}).slice(0, 12000)}`;
 }
 
 // ───────────────────────── Handler ─────────────────────────
-export default async function handler(req: Request) {
+async function handler(req: Request): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
     try {
@@ -246,4 +267,24 @@ export default async function handler(req: Request) {
         const err = e as Error & { status?: number };
         return json({ error: err.message || 'Something went wrong' }, err.status || 500);
     }
+}
+
+// A tiny unauthenticated check that the AI answers (one short call, throttled per instance).
+let lastCheck = { at: 0, result: null as null | object };
+async function healthCheck(): Promise<Response> {
+    if (Date.now() - lastCheck.at < 30_000 && lastCheck.result) return json({ ...lastCheck.result, cached: true });
+    const t = Date.now();
+    try {
+        const { text, model } = await gemini([{ text: 'Reply with the single word OK.' }], { system: 'You are a health check. Reply OK.' });
+        lastCheck = { at: Date.now(), result: { ok: /ok/i.test(text), model, ms: Date.now() - t } };
+    } catch (e) {
+        lastCheck = { at: Date.now(), result: { ok: false, error: (e as Error).message, ms: Date.now() - t } };
+    }
+    return json(lastCheck.result);
+}
+
+export function OPTIONS() { return new Response(null, { status: 204, headers: CORS }); }
+export function POST(req: Request) { return handler(req); }
+export function GET(req: Request) {
+    return new URL(req.url).searchParams.has('check') ? healthCheck() : json({ error: 'Method not allowed' }, 405);
 }
