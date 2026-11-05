@@ -23,7 +23,7 @@ export const navFor = (isAdmin?: boolean) => NAV.filter(n => !n.adminOnly || isA
 export const PAGE_KEYS = NAV.map(n => n.key);
 
 /** The admin console is a separate app, served at /console (and its own domain when configured). */
-export const ADMIN_CONSOLE_URL = import.meta.env.VITE_ADMIN_CONSOLE_URL || '/console/';
+export const ADMIN_CONSOLE_URL = import.meta.env.VITE_ADMIN_CONSOLE_URL || '/console';
 
 /** Tabs shown directly in the mobile bar; the rest live under "More". */
 export const TAB_KEYS = ['overview', 'expenses', 'chat'];

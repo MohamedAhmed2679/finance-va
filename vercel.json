@@ -6,12 +6,11 @@
       "has": [{ "type": "host", "value": "finance-va-admin.vercel.app" }],
       "destination": "/admin.html"
     },
-    { "source": "/console", "destination": "/admin.html" },
-    { "source": "/console/:path*", "destination": "/admin.html" },
+    { "source": "/console(/.*)?", "destination": "/admin.html" },
     { "source": "/((?!api/|assets/|console|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
   ],
   "redirects": [
-    { "source": "/admin", "destination": "/console/", "permanent": false }
+    { "source": "/admin", "destination": "/console", "permanent": false }
   ],
   "headers": [
     {

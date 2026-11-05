@@ -74,14 +74,14 @@ function SignIn({ message, onDone }: { message?: string; onDone: () => void }) {
     async function microsoft() {
         if (!sb) return;
         setError('');
-        const { error } = await sb.auth.signInWithOAuth({ provider: 'azure', options: { scopes: 'email openid profile', redirectTo: `${window.location.origin}${CONSOLE_BASE}/` } });
+        const { error } = await sb.auth.signInWithOAuth({ provider: 'azure', options: { scopes: 'email openid profile', redirectTo: `${window.location.origin}${CONSOLE_BASE || '/'}` } });
         if (error) setError(error.message);
     }
     async function forgot() {
         if (!sb) return;
         if (!email.trim()) { setError('Enter your email first, then choose "Set or reset password".'); return; }
         setBusy(true); setError('');
-        const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}${CONSOLE_BASE}/` });
+        const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}${CONSOLE_BASE || '/'}` });
         setBusy(false);
         if (error) setError(error.message); else setInfo(`We sent a link to ${email.trim()}. Open it on this device to choose a password.`);
     }
