@@ -9,7 +9,7 @@
  * - chat:     "Ask Zaylo" — help using the app and questions about the user's own numbers
  *
  * Only signed-in Zaylo users can call it. The client sends aggregates, never raw account data.
- * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, default gemini-2.5-flash),
+ * Env: GEMINI_API_KEY (required), GEMINI_MODEL (optional, default gemini-3.8-flash),
  *      VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (already set, used to verify the caller).
  */
 export const config = { runtime: 'edge' };
@@ -28,11 +28,15 @@ const MAX_INLINE_BYTES = 3_500_000; // keep requests under Vercel's body limit
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
 
 // ───────────────────────── Gemini ─────────────────────────
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+
 async function gemini(parts: Part[], opts: { system: string; schema?: object; temperature?: number; history?: { role: 'user' | 'model'; text: string }[] }) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) throw Object.assign(new Error('AI is not set up yet. Add GEMINI_API_KEY in Vercel.'), { status: 503 });
-    const primary = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const models = [primary, 'gemini-2.5-flash-lite'].filter((m, i, a) => a.indexOf(m) === i);
+    const primary = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+    // Newest first; Google retires older models for new keys, so keep a few fallbacks.
+    const models = [primary, ...FALLBACK_MODELS].filter((m, i, a) => a.indexOf(m) === i);
 
     const contents = [
         ...(opts.history || []).map(h => ({ role: h.role, parts: [{ text: h.text }] })),
@@ -43,7 +47,7 @@ async function gemini(parts: Part[], opts: { system: string; schema?: object; te
         contents,
         generationConfig: {
             temperature: opts.temperature ?? 0.2,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
             ...(opts.schema ? { responseMimeType: 'application/json', responseSchema: opts.schema } : {}),
         },
         safetySettings: [
@@ -67,7 +71,8 @@ async function gemini(parts: Part[], opts: { system: string; schema?: object; te
         }
         lastError = data.error?.message || `AI error ${res.status}`;
         // Busy, rate-limited or model unavailable: try the lighter model; anything else is final.
-        if (![404, 429, 500, 503].includes(res.status)) break;
+        const retired = /no longer available|not found|not supported|deprecated/i.test(lastError);
+        if (!retired && ![404, 429, 500, 503].includes(res.status)) break;
     }
     throw Object.assign(new Error(/quota|rate/i.test(lastError) ? 'Zaylo AI is busy. Try again in a minute.' : lastError), { status: 502 });
 }
@@ -231,7 +236,7 @@ export default async function handler(req: Request) {
         if (!userId) return json({ error: 'Sign in to use Zaylo AI.' }, 401);
         const body = await req.json().catch(() => ({}));
         switch (body.action) {
-            case 'status': return json({ ready: Boolean(process.env.GEMINI_API_KEY), model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+            case 'status': return json({ ready: Boolean(process.env.GEMINI_API_KEY), model: process.env.GEMINI_MODEL || DEFAULT_MODEL });
             case 'extract': return json(await extract(body));
             case 'insights': return json(await insights(body));
             case 'chat': return json(await chat(body));
