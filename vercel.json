@@ -18,6 +18,12 @@
       "destination": "https://zaylo.cc/:path",
       "permanent": false
     },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "admin.zaylo.cc" }],
+      "destination": "/console",
+      "permanent": false
+    },
     { "source": "/admin", "destination": "/console", "permanent": false }
   ],
   "headers": [
