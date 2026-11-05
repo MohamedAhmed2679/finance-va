@@ -60,19 +60,23 @@ async function gemini(parts: Part[], opts: { system: string; schema?: object; te
 
     let lastError = 'AI is unavailable right now.';
     const started = Date.now();
+    const tried: { model: string; status: number; ms: number; error?: string }[] = [];
     for (const model of models) {
         const left = TIME_BUDGET_MS - (Date.now() - started);
         if (left < 4000) break;
         // Gemini 3 models think before answering; keep that short so replies arrive quickly.
         const withThinking = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: { thinkingLevel: 'low' } } };
+        const t0 = Date.now();
         let attempt = await callModel(model, withThinking, key, left);
         if (attempt.status === 400 && /thinking/i.test(attempt.error || '')) attempt = await callModel(model, body, key, TIME_BUDGET_MS - (Date.now() - started));
-        if (attempt.text) return { text: attempt.text, model };
+        tried.push({ model, status: attempt.status, ms: Date.now() - t0, error: attempt.error?.slice(0, 160) });
+        if (attempt.text) { if (tried.length > 1) console.warn('[zaylo-ai] fallbacks', JSON.stringify(tried)); return { text: attempt.text, model, tried }; }
         lastError = attempt.error || lastError;
         // Busy, slow, rate-limited or retired model: try the next one; anything else is final.
         const retired = /no longer available|not found|not supported|deprecated/i.test(lastError);
         if (!retired && ![0, 404, 408, 429, 500, 503, 504].includes(attempt.status)) break;
     }
+    console.error('[zaylo-ai] all models failed', JSON.stringify(tried));
     throw Object.assign(new Error(/quota|rate/i.test(lastError) ? 'Zaylo AI is busy. Try again in a minute.' : /took too long/i.test(lastError) ? 'Zaylo took too long to answer. Try a shorter question.' : lastError), { status: 502 });
 }
 
@@ -275,8 +279,8 @@ async function healthCheck(): Promise<Response> {
     if (Date.now() - lastCheck.at < 30_000 && lastCheck.result) return json({ ...lastCheck.result, cached: true });
     const t = Date.now();
     try {
-        const { text, model } = await gemini([{ text: 'Reply with the single word OK.' }], { system: 'You are a health check. Reply OK.' });
-        lastCheck = { at: Date.now(), result: { ok: /ok/i.test(text), model, ms: Date.now() - t } };
+        const { text, model, tried } = await gemini([{ text: 'Reply with the single word OK.' }], { system: 'You are a health check. Reply OK.' });
+        lastCheck = { at: Date.now(), result: { ok: /ok/i.test(text), model, ms: Date.now() - t, tried: tried.map(x => ({ model: x.model, status: x.status, ms: x.ms, error: x.error })) } };
     } catch (e) {
         lastCheck = { at: Date.now(), result: { ok: false, error: (e as Error).message, ms: Date.now() - t } };
     }
