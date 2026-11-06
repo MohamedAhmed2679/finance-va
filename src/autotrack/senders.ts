@@ -51,4 +51,4 @@ export function lookupSender(senderId: string | null | undefined, extra: SenderI
     return null;
 }
 
-export const knownSenders = () => KNOWN.map(k => ({ id: k.id, name: k.name, kind: k.kind }));
+export const knownSenders = () => KNOWN.map(k => ({ id: k.id, name: k.name, kind: k.kind, match: k.match }));

@@ -60,6 +60,7 @@ export function mapIncome(r: Row): Income {
         type: r.type === 'variable' ? 'variable' : 'fixed',
         date: str(r.income_date ?? r.date ?? r.created_at, new Date().toISOString()),
         createdAt: str(r.created_at ?? r.createdAt, new Date().toISOString()),
+        ...(r.source ? { source: String(r.source) } : {}),
         ...fx(r),
     };
 }

@@ -1,4 +1,4 @@
-import { Sparkles, LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy, History, ShoppingCart } from 'lucide-react';
+import { Sparkles, LayoutDashboard, Receipt, Target, ArrowLeftRight, Settings, CalendarDays, TrendingUp, FolderOpen, PieChart, Bell, MessagesSquare, LifeBuoy, History, ShoppingCart, MessageSquareText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavEntry { key: string; labelKey: string; label?: string; icon: LucideIcon; group: 'money' | 'plan' | 'people' | 'account' | 'admin'; adminOnly?: boolean }
@@ -8,6 +8,7 @@ export const NAV: NavEntry[] = [
     { key: 'assistant', labelKey: 'ask_zaylo', label: 'Ask Zaylo', icon: Sparkles, group: 'money' },
     { key: 'expenses', labelKey: 'expenses', icon: Receipt, group: 'money' },
     { key: 'smart-cart', labelKey: 'smart_cart', label: 'Smart Cart', icon: ShoppingCart, group: 'money' },
+    { key: 'autotrack', labelKey: 'autotrack', label: 'AutoTrack', icon: MessageSquareText, group: 'money' },
     { key: 'earnings', labelKey: 'earnings', icon: TrendingUp, group: 'money' },
     { key: 'bills', labelKey: 'bills_commitments', icon: CalendarDays, group: 'money' },
     { key: 'savings', labelKey: 'savings', icon: Target, group: 'plan' },

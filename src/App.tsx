@@ -41,6 +41,8 @@ import JoinInvite, { captureJoinLink } from './components/JoinInvite';
 captureJoinLink();
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
+import AutoTrackPage from './pages/AutoTrackPage';
+import { useAutoTrackDevice } from './autotrack/useAutoTrackDevice';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
 import type { ParsedExpense } from './services/aiExpenseParser';
 
@@ -116,6 +118,7 @@ function Shell() {
         overview: <OverviewPage onNavigate={go} onAddExpense={() => setShowAdd(true)} />,
         expenses: <ExpensesPage />,
         'smart-cart': <SmartCartPage />,
+        autotrack: <AutoTrackPage onOpenSettings={() => navigate('/settings?section=autotrack')} />,
         earnings: <EarningsPage />,
         bills: <BillsPage />,
         savings: <SavingsPage />,
@@ -131,6 +134,7 @@ function Shell() {
     };
     useLiveNotifications();
     useLiveChatAlerts(active);
+    useAutoTrackDevice(navigate);
 
     // Device notifications: tapping one opens the right page
     useEffect(() => { initPush(path => navigate(path)); }, [navigate]);
@@ -171,7 +175,7 @@ function Shell() {
             <TabBar active={active} onNavigate={go} />
             <JoinInvite />
 
-            {!['chat', 'messages', 'assistant', 'smart-cart'].includes(active) && <QuickAddMenu
+            {!['chat', 'messages', 'assistant', 'smart-cart', 'autotrack'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setCapture('voice')}
                 onScanAdd={() => setCapture('scan')}

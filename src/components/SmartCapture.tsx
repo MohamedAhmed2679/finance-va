@@ -37,6 +37,21 @@ export default function SmartCapture({ initialMode = 'voice', onClose, onResult 
 
     async function run(source: CaptureSource, input: { text?: string; file?: Blob }) {
         setBusy(true); setError(''); setNote('');
+        // A bank or wallet alert goes through AutoTrack, which tells income, spending and transfers apart
+        if (input.text) {
+            const { parseMessage } = await import('../autotrack/parse');
+            const kind = parseMessage(input.text, null).kind;
+            if (kind === 'otp') { setNote(tx('That looks like a security code. Zaylo never reads or keeps codes.')); setBusy(false); return; }
+            if (kind === 'transaction' || kind === 'balance') {
+                try {
+                    const { processMessage } = await import('../autotrack/service');
+                    const r = await processMessage({ text: input.text, sender: null, ingestion: 'paste' });
+                    setNote(`${tx(r.message)}${r.outcome === 'stored' || r.outcome === 'auto_added' ? ` ${tx('Open AutoTrack to review it.')}` : ''}`);
+                } catch (e) { setError((e as Error).message || tx('Couldn\'t process that message.')); }
+                finally { setBusy(false); }
+                return;
+            }
+        }
         try {
             const r = await extractExpenses({ source, ...input });
             if (r.expenses.length) { onResult(r.expenses, source); return; }

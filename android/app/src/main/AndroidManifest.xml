@@ -30,7 +30,32 @@
                 <data android:scheme="@string/custom_url_scheme" android:host="auth-callback" />
             </intent-filter>
 
+            <!-- AutoTrack: com.financeva.app://autotrack (from the AutoTrack reminder) -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/custom_url_scheme" android:host="autotrack" />
+            </intent-filter>
+
+            <!-- AutoTrack: "Share → Zaylo" for a bank or wallet message -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
         </activity>
+
+        <!-- AutoTrack: new SMS only, and only kept when the sender is a bank or wallet; off until the user turns it on -->
+        <receiver
+            android:name=".autotrack.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -46,6 +71,11 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- AutoTrack (asked only after the user agrees in Zaylo; Google Play requires an approved
+         "SMS-based money management" declaration for these) -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />

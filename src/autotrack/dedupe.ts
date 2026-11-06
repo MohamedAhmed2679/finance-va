@@ -8,7 +8,7 @@
  */
 import type { ParsedMessage } from './parse';
 
-export interface KnownTx { id: string; fingerprint?: string; source: 'autotrack' | 'manual'; amountMinor: number; currency: string; direction: 'debit' | 'credit'; occurredAt: string; senderId?: string; label?: string }
+export interface KnownTx { id: string; kind?: 'expense' | 'income' | 'transfer'; fingerprint?: string; source: 'autotrack' | 'manual'; amountMinor: number; currency: string; direction: 'debit' | 'credit'; occurredAt: string; senderId?: string; label?: string }
 export type DuplicateMatch = { kind: 'exact' | 'echo' | 'manual'; match: KnownTx } | null;
 
 /** Stable, privacy-preserving key for a message (no text is kept in it). */

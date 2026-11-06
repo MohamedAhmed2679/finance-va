@@ -195,6 +195,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                         ) : <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>}
                                                         <div className="ledger-sub">
                                                             {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
+                                                            {e.source === 'autotrack' && <span className="at-ledger-badge">{tx('Added by AutoTrack')}</span>}
                                                         </div>
                                                     </div>
                                                     <div className="ledger-amount"><CurrencyDisplay amount={e.amount} currency={e.currency} entry={e} showOriginal hideAmounts={hideAmounts} /></div>
