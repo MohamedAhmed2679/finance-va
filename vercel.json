@@ -129,6 +129,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/push?cron=evening",
+      "schedule": "0 18 * * *"
+    },
+    {
       "path": "/api/backup?cron=monthly",
       "schedule": "15 4 * * *"
     }

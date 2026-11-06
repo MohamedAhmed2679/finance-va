@@ -1,5 +1,6 @@
 import { withBase } from '../utils/money';
-import { enqueue, flushOutbox, pendingChanges, setOutboxOwner } from '../services/outbox';
+import { enqueue, flushOutbox, pendingChanges, pendingFor, setOutboxOwner } from '../services/outbox';
+import { clearLocalUserData, within } from '../services/deviceData';
 import { dispatchPush } from '../services/push';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -394,23 +395,22 @@ export const useStore = create<AppState>()(
                 get().hydrateStore();
             },
             logout: () => {
-                // Unsent changes stay in the outbox and are sent the next time this user signs in.
-                flushOutbox().catch(() => {}).finally(() => setOutboxOwner(''));
-                supabaseSignOut().catch(() => {});
-                set({ 
-                isAuthenticated: false, 
-                user: null, 
-                workspaces: [], 
-                expenses: [], 
-                incomes: [], 
-                bills: [], 
-                savingsGoals: [], 
-                notifications: [],
-                activeWorkspaceId: ''
-            });
+                // The screen signs out at once; then unsent changes get a last chance to reach the cloud,
+                // the session ends and everything else this account left on the device is removed.
+                set({
+                    isAuthenticated: false, user: null, workspaces: [], expenses: [], incomes: [], bills: [], savingsGoals: [], notifications: [],
+                    activeWorkspaceId: '', categories: [...CATEGORIES], paymentMethods: [...PAYMENT_METHODS], showOnboarding: false,
+                });
+                within(flushOutbox().catch(() => {}), 8000).finally(() => {
+                    const left = pendingFor().length;
+                    setOutboxOwner('');
+                    supabaseSignOut().catch(() => {});
+                    clearLocalUserData();
+                    if (left) toast(`${left} change${left === 1 ? '' : 's'} couldn't be saved yet. ${left === 1 ? 'It' : 'They'}'ll be sent when you sign in again on this device.`, { id: 'signout-pending', duration: 8000 });
+                });
             },
             setLocked: (locked) => set({ isLocked: locked }),
-            deleteAllData: () => set({ expenses: [], savingsGoals: [], incomes: [], bills: [], notifications: [] }),
+            deleteAllData: () => { set({ expenses: [], savingsGoals: [], incomes: [], bills: [], notifications: [] }); clearLocalUserData(); },
             completeOnboarding: () => {
                 const s = get();
                 if (!s.user) return;
@@ -826,6 +826,10 @@ export const useStore = create<AppState>()(
                 if (updates.hideAmounts !== undefined) dbUpdates.hide_amounts = updates.hideAmounts;
                 if (updates.showOnboarding !== undefined) dbUpdates.show_onboarding = updates.showOnboarding;
                 if (updates.backupInterval !== undefined) dbUpdates.backup_interval = updates.backupInterval;
+                if (updates.monthlyBudget !== undefined) dbUpdates.monthly_budget = updates.monthlyBudget || null;
+                if (updates.notifyDaily !== undefined) dbUpdates.notify_daily = updates.notifyDaily;
+                if (updates.notifyMonthly !== undefined) dbUpdates.notify_monthly = updates.notifyMonthly;
+                if (updates.notifyBudget !== undefined) dbUpdates.notify_budget = updates.notifyBudget;
 
                 if (Object.keys(dbUpdates).length > 0) {
                     await updateUserProfile(user.id, dbUpdates);
@@ -850,7 +854,17 @@ export const useStore = create<AppState>()(
                             name: profile.name || state.user.name,
                             phone: profile.phone || state.user.phone,
                             referralCode: profile.referral_code || state.user.referralCode,
+                            // Saved choices win; before they were ever saved, keep what was picked on this device.
+                            ...(profile.notify_prefs_saved_at ? {
+                                notifyDaily: Boolean(profile.notify_daily), notifyMonthly: Boolean(profile.notify_monthly), notifyBudget: Boolean(profile.notify_budget),
+                            } : {}),
+                            ...(profile.monthly_budget != null ? { monthlyBudget: Number(profile.monthly_budget) } : {}),
                         } : null }));
+                        const u0 = get().user;
+                        if (u0 && !profile.notify_prefs_saved_at && (u0.notifyDaily || u0.notifyMonthly || u0.notifyBudget)) {
+                            updateUserProfile(u0.id, { notify_daily: Boolean(u0.notifyDaily), notify_monthly: Boolean(u0.notifyMonthly), notify_budget: Boolean(u0.notifyBudget) }).catch(() => {});
+                        }
+                        if (u0 && profile.monthly_budget == null && u0.monthlyBudget) updateUserProfile(u0.id, { monthly_budget: u0.monthlyBudget }).catch(() => {});
                     } else if (!userId) {
                         set({ syncStatus: 'error' });
                         toast.error("Couldn't load your profile. Check your connection and reload.", { id: 'profile-error' });

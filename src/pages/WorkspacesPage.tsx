@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useStore, type Workspace, type WorkspaceRole } from '../store/useStore';
@@ -11,6 +12,7 @@ export default function WorkspacesPage() {
     useEffect(() => { workspaces.forEach(w => { refreshMembers(w.id).catch(() => {}); }); }, [workspaces.length]); // eslint-disable-line react-hooks/exhaustive-deps
     const lang = user?.language ?? 'en';
     const [showCreate, setShowCreate] = useState(false);
+    const createRef = useDialog<HTMLDivElement>(() => setShowCreate(false), showCreate);
     const [inviteFor, setInviteFor] = useState<string | null>(null);
     const [wsName, setWsName] = useState('');
     const [wsType, setWsType] = useState<'personal' | 'shared'>('shared');
@@ -121,7 +123,7 @@ export default function WorkspacesPage() {
 
             {showCreate && (
                 <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCreate(false); }}>
-                    <div className="modal animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="new-ws-title">
+                    <div className="modal animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="new-ws-title" ref={createRef}>
                         <div className="sheet-grip" aria-hidden />
                         <div className="modal-header">
                             <h2 className="modal-title" id="new-ws-title">{tx('New workspace')}</h2>

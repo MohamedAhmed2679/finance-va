@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { tx } from '../i18n/translations';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -51,15 +52,11 @@ export default function SmartCapture({ initialMode = 'voice', onClose, onResult 
         } finally { setBusy(false); }
     }
 
-    useEffect(() => {
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
-        document.addEventListener('keydown', esc);
-        return () => document.removeEventListener('keydown', esc);
-    }, [busy, onClose]);
 
+    const dlgRef = useDialog<HTMLDivElement>(() => { if (!busy) onClose(); });
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
-            <motion.div className="modal capture" role="dialog" aria-label={tx('Add with Zaylo AI')}
+            <motion.div className="modal capture" ref={dlgRef} role="dialog" aria-label={tx('Add with Zaylo AI')}
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}>
                 <div className="modal-header">
                     <h2 className="modal-title capture-title"><Sparkles size={18} />{' '}{tx('Add with Zaylo AI')}</h2>

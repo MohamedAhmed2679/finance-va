@@ -1330,8 +1330,6 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .switch[data-on="true"] > span { transform: translateX(20px); }
 .switch:disabled { cursor: not-allowed; opacity: 0.6; }
 .switch:focus-visible { outline: 2px solid var(--focus, var(--note)); outline-offset: 2px; }
-[dir="rtl"] .switch[data-on="true"] > span { transform: translateX(-20px); }
-[dir="rtl"] .switch > span { left: auto; right: 3px; }
 
 /* ---------- Zaylo AI: capture sheet ---------- */
 .capture { max-width: 520px; }
@@ -1869,3 +1867,14 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .sc-page .animate-spin { animation-duration: 1.5s; } }
 .sc-undo-toast .btn { color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; background: rgba(255, 255, 255, 0.14); min-height: 36px; }
 .sc-undo-toast .btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Settings → Notifications reminder rows */
+.notify-row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--bg-input); border-radius: 10px; margin-bottom: 8px; border: 1px solid var(--border); }
+[dir="rtl"] .switch[data-on="true"] > span { transform: translateX(-20px); }
+[dir="rtl"] .switch > span { left: auto; right: 3px; }
+
+/* zaylo.cc/app-signin (phone app Google sign-in in the system browser) */
+.app-signin { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 16px; text-align: center; background: var(--paper, #0B0F1A); color: var(--ink, #F4F6FA); }
+.app-signin h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.app-signin p { max-width: 360px; color: var(--ink-3, #9aa3b5); margin: 0; line-height: 1.5; }
+.app-signin-btn { min-height: 44px; }

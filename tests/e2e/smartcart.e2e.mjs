@@ -42,6 +42,8 @@ function backend() {
     async function handle(route) {
         const req = route.request(); const url = new URL(req.url()); const m = req.method();
         const body = req.postData() ? JSON.parse(req.postData()) : null;
+        db.requests = db.requests || [];
+        db.requests.push({ method: m, path: url.pathname, body });
         if (url.pathname.endsWith('/api/ai/zaylo')) {
             const next = db.extraction.shift();
             if (db.extractionStatus !== 200) return json(route, { error: 'AI is unavailable right now.' }, db.extractionStatus);
@@ -77,6 +79,7 @@ function backend() {
             return json(route, { expenseId: id, alreadyConfirmed: false });
         }
         if (url.pathname === '/rest/v1/rpc/discard_smart_cart') { db.discardCalls++; const c = db.carts.get(body.p_cart_id); if (c) c.status = 'discarded'; return json(route, { discarded: true, imagePaths: [] }); }
+        if (url.pathname === '/auth/v1/user' && m === 'PUT') return json(route, { id: 'auth1', aud: 'authenticated', email: 'shopper@example.test', new_email: body?.email, app_metadata: {}, user_metadata: {} });
         if (url.pathname.startsWith('/auth/v1/')) return json(route, {}, 401);
         return json(route, []);
     }
@@ -87,7 +90,19 @@ function backend() {
 const results = [];
 async function scenario(name, fn, opts = {}) {
     const browser = await chromium.launch();
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, permissions: [] });
+    const ctx = await browser.newContext(opts.desktop
+        ? { viewport: { width: 1280, height: 840 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Zaylo/1.0 Chrome/130.0.0.0 Electron/33.0.0 Safari/537.36', permissions: ['notifications'] }
+        : { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, permissions: [] });
+    if (opts.desktop) await ctx.addInitScript(() => {
+        // The desktop app (Electron) reports notification permission as granted; headless Chromium doesn't
+        class FakeNotification { constructor() {} static permission = 'granted'; static requestPermission() { return Promise.resolve('granted'); } }
+        window.Notification = FakeNotification;
+    });
+    if (opts.session) await ctx.addInitScript(() => {
+        const exp = Math.floor(Date.now() / 1000) + 3600;
+        localStorage.setItem('sb-ultugpyjbktlsubludds-auth-token', JSON.stringify({ access_token: 'test-access', refresh_token: 'test-refresh', token_type: 'bearer', expires_in: 3600, expires_at: exp,
+            user: { id: 'auth1', aud: 'authenticated', role: 'authenticated', email: 'shopper@example.test', app_metadata: {}, user_metadata: {} } }));
+    });
     await ctx.addInitScript(([s, denyCam]) => {
         if (!sessionStorage.getItem('seeded')) { localStorage.setItem('financeva-store', s); sessionStorage.setItem('seeded', '1'); }
         if (denyCam && navigator.permissions) {
@@ -101,7 +116,7 @@ async function scenario(name, fn, opts = {}) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     try {
-        await page.goto(`${BASE}/smart-cart`);
+        await page.goto(`${BASE}${opts.path || '/smart-cart'}`);
         await fn(page, be.db, be);
         if (errors.length) throw new Error('page errors: ' + errors.join(' | '));
         results.push([true, name]);
@@ -343,6 +358,102 @@ await scenario('Arabic, right-to-left, no horizontal overflow', async page => {
     expect(overflow <= 0, `no sideways scroll (${overflow}px)`);
     await shot(page, '12-arabic');
 }, { lang: 'ar' });
+
+
+// ------------------------------------------------------------------ settings, dialogs, sign-out, phone sign-in page
+async function openSettings(page, section) {
+    await page.getByRole('heading', { name: 'Settings' }).first().waitFor();
+    await page.locator('.nav-item').filter({ hasText: new RegExp(`^${section}$`) }).last().click();
+}
+
+await scenario('desktop app: notifications turn off and on again, one message at a time', async page => {
+    await openSettings(page, 'Notifications');
+    await page.getByRole('button', { name: 'Turn off' }).waitFor();
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Turn off|Turn on/ }).first().click({ trial: false }).catch(() => {});
+    // three quick clicks: off → on → off, never a pile of identical messages
+    await page.waitForTimeout(800);
+    const toasts = await page.locator('[role=status]').count();
+    expect(toasts <= 1, `at most one notification message, saw ${toasts}`);
+    const state = await page.locator('.push-panel p').first().innerText();
+    const btn = await page.locator('.push-panel button').first().innerText();
+    expect((state === 'Off' && btn === 'Turn on') || (state.startsWith('On.') && btn === 'Turn off'), `state and button agree (${state} / ${btn})`);
+    if (btn === 'Turn off') await page.getByRole('button', { name: 'Turn off' }).click();
+    await page.getByRole('button', { name: 'Turn on' }).waitFor();
+    expect((await page.locator('.push-panel p').first().innerText()) === 'Off', 'turning off sticks');
+    await page.reload();
+    await openSettings(page, 'Notifications');
+    await page.getByRole('button', { name: 'Turn on' }).waitFor();
+    await page.getByRole('button', { name: 'Turn on' }).click();
+    await page.getByRole('button', { name: 'Turn off' }).waitFor();
+    expect((await page.locator('.push-panel p').first().innerText()).includes('while Zaylo is open'), 'desktop wording is accurate');
+    await shot(page, '13-desktop-notifications');
+}, { desktop: true, path: '/settings' });
+
+await scenario('reminder switches are real switches and are saved to the account', async (page, db) => {
+    await openSettings(page, 'Notifications');
+    const sw = page.getByRole('switch', { name: 'Daily Reminder' });
+    expect((await sw.getAttribute('aria-checked')) === 'false', 'starts off');
+    await sw.focus();
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(400);
+    expect((await sw.getAttribute('aria-checked')) === 'true', 'keyboard turns it on');
+    const saved = db.requests.filter(r => r.method === 'PATCH' && r.path === '/rest/v1/users').map(r => r.body);
+    expect(saved.some(b => b && b.notify_daily === true), `saved to the account: ${JSON.stringify(saved)}`);
+    await page.getByRole('switch', { name: 'Budget Alerts' }).click();
+    await page.waitForTimeout(600);
+    expect(db.requests.some(r => r.method === 'PATCH' && r.path === '/rest/v1/users' && r.body?.notify_budget === true), 'budget alerts saved');
+}, { desktop: true, path: '/settings' });
+
+await scenario('dialogs: focus moves in, Tab stays inside, Escape closes and focus returns', async (page, db) => {
+    await openSettings(page, 'Profile');
+    const opener = page.getByRole('button', { name: 'Change', exact: true });
+    await opener.click();
+    const dlg = page.getByRole('dialog', { name: 'Change Email' });
+    await dlg.waitFor();
+    expect(await page.evaluate(() => document.activeElement?.id === 'new-email'), 'focus starts in the email field');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role=dialog]'))), 'Tab stays inside the dialog');
+    await page.keyboard.press('Shift+Tab');
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role=dialog]'))), 'Shift+Tab stays inside the dialog');
+    await page.keyboard.press('Escape');
+    await dlg.waitFor({ state: 'detached' });
+    expect(await page.evaluate(() => document.activeElement?.textContent?.trim() === 'Change'), 'focus returns to the button that opened it');
+    // The real email change goes to Supabase (no pretend "verify with Google" step any more)
+    await opener.click();
+    await page.fill('#new-email', 'new-address@example.test');
+    await page.getByRole('button', { name: 'Send confirmation' }).click();
+    // Without a real session Supabase refuses: the error is shown and nothing pretends the email changed
+    await page.getByText('Auth session missing!').waitFor();
+    expect(await dlg.isVisible(), 'dialog stays open after a refusal');
+    expect(!(await page.getByText('Allow Access').count()) && !(await page.getByText('Validating').count()), 'no simulated sign-in window');
+    expect((await page.locator('input[type=email][disabled], input[value="shopper@example.test"]').first().inputValue().catch(() => 'shopper@example.test')) === 'shopper@example.test', 'shown email unchanged');
+}, { desktop: true, path: '/settings' });
+
+await scenario('signing out removes this account\'s data from the device', async page => {
+    await page.evaluate(() => {
+        localStorage.setItem('zaylo_smart_cart_v1_auth1', '{"id":"fixture"}');
+        localStorage.setItem('zaylo_health_w1', '{}');
+        sessionStorage.setItem('zaylo_chat_w1', '[]');
+        localStorage.setItem('zaylo_join_token', 'keep-me');
+    });
+    await page.getByRole('heading', { name: 'Settings' }).first().waitFor();
+    await page.getByText('Sign Out', { exact: true }).first().click();
+    await page.waitForTimeout(9000); // gives unsent changes their last chance (up to 8 s), then cleans up
+    const left = await page.evaluate(() => ({
+        cart: localStorage.getItem('zaylo_smart_cart_v1_auth1'), health: localStorage.getItem('zaylo_health_w1'),
+        chat: sessionStorage.getItem('zaylo_chat_w1'), join: localStorage.getItem('zaylo_join_token'),
+        store: JSON.parse(localStorage.getItem('financeva-store') || '{}').state,
+    }));
+    expect(left.cart === null && left.health === null && left.chat === null, `user data removed: ${JSON.stringify(left).slice(0, 200)}`);
+    expect(left.join === 'keep-me', 'an invite link being opened is kept');
+    expect(left.store && left.store.user === null && !left.store.isAuthenticated && left.store.workspaces.length === 0 && left.store.expenses.length === 0, 'stored app data cleared');
+}, { desktop: true, path: '/settings' });
+
+await scenario('phone sign-in page on zaylo.cc refuses links it did not make', async page => {
+    await page.getByText('Sign in to the Zaylo app').waitFor();
+    await page.getByText("This sign-in link isn't valid any more").waitFor();
+    expect(!(await page.locator('.app-signin-btn').count()), 'no Google button for a bad link');
+}, { path: '/app-signin?nonce=abc&state=x' });
 
 // ------------------------------------------------------------------ report
 let failed = 0;

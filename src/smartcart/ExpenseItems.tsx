@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { useEffect, useState } from 'react';
 import { X, ShoppingCart, ImageOff, Edit2 } from 'lucide-react';
 import { tx } from '../i18n/translations';
@@ -13,17 +14,13 @@ export default function ExpenseItems({ expense, onClose, onEdit }: { expense: Ex
         const paths = d.items.flatMap(i => i.imagePaths || []);
         if (paths.length) signedUrls(paths).then(setUrls).catch(() => {});
     }, [d.items]);
-    useEffect(() => {
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', esc);
-        return () => window.removeEventListener('keydown', esc);
-    }, [onClose]);
     const m = (v: number | null) => (v == null ? '—' : `${formatMinor(v)} ${d.currency}`);
     const mode = d.vatMode === 'none' ? tx('No VAT added') : d.vatMode === 'add' ? `${tx('VAT added')} (${d.vatRateBp / 100}%)` : `${tx('VAT included')} (${d.vatRateBp / 100}%)`;
 
+    const dlgRef = useDialog<HTMLDivElement>(onClose);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="modal sc-sheet animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="sc-exp-title">
+            <div className="modal sc-sheet animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-labelledby="sc-exp-title">
                 <div className="sheet-grip" aria-hidden />
                 <div className="modal-header">
                     <div>

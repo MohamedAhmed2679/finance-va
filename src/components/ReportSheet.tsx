@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useDialog } from '../hooks/useDialog';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { FileSpreadsheet, FileText, X, Receipt, CalendarClock, Wallet, Check } from 'lucide-react';
 import { tx } from '../i18n/translations';
@@ -29,11 +30,6 @@ export default function ReportSheet({ initial, onClose }: { initial?: ReportSect
     const [to, setTo] = useState('');
     const [busy, setBusy] = useState<'' | 'xlsx' | 'pdf'>('');
 
-    useEffect(() => {
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', esc);
-        return () => window.removeEventListener('keydown', esc);
-    }, [onClose]);
 
     const toggle = (k: ReportSection) => setSections(s => (s.includes(k) ? s.filter(x => x !== k) : [...s, k]));
     const range = periodRange(period, lang, { from, to });
@@ -54,9 +50,10 @@ export default function ReportSheet({ initial, onClose }: { initial?: ReportSect
         } finally { setBusy(''); }
     }
 
+    const dlgRef = useDialog<HTMLDivElement>(onClose);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="modal report-sheet animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="report-title">
+            <div className="modal report-sheet animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-labelledby="report-title">
                 <div className="sheet-grip" aria-hidden />
                 <div className="modal-header">
                     <div>

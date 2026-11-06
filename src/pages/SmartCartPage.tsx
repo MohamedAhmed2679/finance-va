@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -629,14 +630,7 @@ function SummaryView({ cart, totals, categories, paymentMethods, wsCurrency, onB
 }
 
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const prev = document.activeElement as HTMLElement | null;
-        ref.current?.querySelector<HTMLElement>('button')?.focus();
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', esc);
-        return () => { window.removeEventListener('keydown', esc); prev?.focus?.(); };
-    }, [onClose]);
+    const ref = useDialog<HTMLDivElement>(onClose);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="modal sc-dialog" role="alertdialog" aria-modal="true" aria-labelledby="sc-dialog-title" ref={ref}>

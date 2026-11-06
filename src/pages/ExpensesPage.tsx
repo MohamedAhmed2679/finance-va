@@ -1,3 +1,4 @@
+import Dialog from '../components/Dialog';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore, type Expense } from '../store/useStore';
@@ -219,21 +220,21 @@ export default function ExpensesPage({ }: ExpensesProps) {
                 onEdit={isViewer ? undefined : () => { setEditId(viewing.id); setViewId(null); setShowAdd(true); }} />}
 
             {showBudget && (
-                <div className="modal-overlay">
-                    <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420, padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowBudget(false); }}>
+                    <Dialog labelledBy="dlg-budget" onClose={() => setShowBudget(false)} style={{ maxWidth: 420, padding: 24 }}>
+                        <h2 id="dlg-budget" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Receive alerts when you approach or exceed this budget.')}</p>
 
                         <div className="form-group">
-                            <label className="form-label">{tx('Monthly Budget (')}{currency})</label>
-                            <input type="number" className="form-input" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="0.00" autoFocus />
+                            <label className="form-label" htmlFor="budget-amount">{tx('Monthly Budget (')}{currency})</label>
+                            <input id="budget-amount" type="number" inputMode="decimal" min="0" className="form-input" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="0.00" data-autofocus />
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { updateUser({ monthlyBudget: parseFloat(budgetInput) || 0, notifyBudget: true }); setShowBudget(false); }}>{tx('Save Budget')}</button>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowBudget(false)}>{tx('Cancel')}</button>
                         </div>
-                    </div>
+                    </Dialog>
                 </div>
             )}
 
@@ -241,10 +242,10 @@ export default function ExpensesPage({ }: ExpensesProps) {
             {deleteConfirmId && (() => {
                 const expToDelete = expenses.find(ex => ex.id === deleteConfirmId);
                 return (
-                    <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
-                        <div className="modal" onClick={ev => ev.stopPropagation()} style={{ maxWidth: 400, textAlign: 'center' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
-                            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Delete Expense?')}</h3>
+                    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null); }}>
+                        <Dialog labelledBy="dlg-del-exp" onClose={() => setDeleteConfirmId(null)} style={{ maxWidth: 400, textAlign: 'center' }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden>🗑️</div>
+                            <h3 id="dlg-del-exp" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Delete Expense?')}</h3>
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
                                 {tx('Are you sure you want to delete')}{' '}<strong>{expToDelete?.merchant ?? tx('this expense')}</strong>{tx('? This action cannot be undone.')}
                             </p>
@@ -252,7 +253,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                 <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>{tx('Cancel')}</button>
                                 <button className="btn btn-danger" onClick={() => { deleteExpense(deleteConfirmId); setDeleteConfirmId(null); }}>{tx('Delete')}</button>
                             </div>
-                        </div>
+                        </Dialog>
                     </div>
                 );
             })()}

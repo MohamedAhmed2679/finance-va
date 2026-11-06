@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Camera, ImagePlus, Minus, Plus, AlertTriangle, Loader2, RotateCcw, Package } from 'lucide-react';
 import { tx } from '../i18n/translations';
@@ -81,11 +82,6 @@ export default function ItemSheet({ cartCurrency, cartVatLabel, source, busy, on
     }
     function choose(n: number) { setPick(n); fillFrom(candidates[n]); }
     useEffect(() => { firstField.current?.focus(); }, [pick]);
-    useEffect(() => {
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
-        window.addEventListener('keydown', esc);
-        return () => window.removeEventListener('keydown', esc);
-    }, [onCancel]);
 
     function choosePrice(key: string) {
         setPriceChoice(key);
@@ -146,9 +142,10 @@ export default function ItemSheet({ cartCurrency, cartVatLabel, source, busy, on
     const title = it ? tx('Edit item') : source.scan ? tx('Check the scanned item') : tx('Add an item');
     const multi = useMemo(() => candidates.length > 1, [candidates.length]);
 
+    const dlgRef = useDialog<HTMLDivElement>(onCancel);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
-            <div className="modal sc-sheet animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="sc-item-title">
+            <div className="modal sc-sheet animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-labelledby="sc-item-title">
                 <div className="sheet-grip" aria-hidden />
                 <div className="modal-header">
                     <h2 className="modal-title" id="sc-item-title">{title}</h2>
