@@ -20,7 +20,8 @@ function dayLabel(day: string) {
 }
 import { t, tx } from '../i18n/translations';
 import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
-import { Search, Filter, X, Trash2, Plus, Edit2, Target, FileDown } from 'lucide-react';
+import { Search, Filter, X, Trash2, Plus, Edit2, Target, FileDown, ShoppingCart } from 'lucide-react';
+import ExpenseItems from '../smartcart/ExpenseItems';
 import ReportSheet from '../components/ReportSheet';
 import AddExpenseModal from '../components/AddExpenseModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
@@ -52,6 +53,9 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const [showBudget, setShowBudget] = useState(false);
     const [budgetInput, setBudgetInput] = useState((user?.monthlyBudget ?? 0).toString());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    // Smart Cart purchases open their itemized view (also from /expenses?view=<id>)
+    const [viewId, setViewId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('view'));
+    const viewing = viewId ? expenses.find(e => e.id === viewId && e.details) : undefined;
     const hideAmounts = user?.hideAmounts ?? false;
 
     const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
@@ -183,7 +187,11 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                     style={{ gridTemplateColumns: isViewer ? '40px minmax(0,1fr) auto' : '40px minmax(0,1fr) auto auto' }}>
                                                     <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>
+                                                        {e.details ? (
+                                                            <button type="button" className="ledger-title sc-ledger-link" onClick={() => setViewId(e.id)} aria-label={`${tx('View items')}: ${e.merchant}`}>
+                                                                <ShoppingCart size={13} aria-hidden /> <span translate="no">{e.merchant}</span> <span className="sc-badge">{e.details.itemCount} {tx('items')}</span>
+                                                            </button>
+                                                        ) : <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>}
                                                         <div className="ledger-sub">
                                                             {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
                                                         </div>
@@ -207,10 +215,12 @@ export default function ExpensesPage({ }: ExpensesProps) {
             </div>
 
             {showAdd && <AddExpenseModal onClose={() => { setShowAdd(false); setEditId(undefined); }} editId={editId} />}
+            {viewing && <ExpenseItems expense={viewing} onClose={() => { setViewId(null); if (window.location.search) window.history.replaceState(null, '', window.location.pathname); }}
+                onEdit={isViewer ? undefined : () => { setEditId(viewing.id); setViewId(null); setShowAdd(true); }} />}
 
             {showBudget && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
+                <div className="modal-overlay">
+                    <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420, padding: 24 }}>
                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Receive alerts when you approach or exceed this budget.')}</p>
 

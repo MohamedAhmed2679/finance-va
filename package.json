@@ -2,7 +2,7 @@
   "name": "finance-va",
   "private": true,
   "version": "1.5.0",
-  "description": "Zaylo — Your money. Your move. Track spending, bills and savings in any currency.",
+  "description": "Zaylo \u2014 Your money. Your move. Track spending, bills and savings in any currency.",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -14,28 +14,27 @@
     "cap:sync": "npx cap sync"
   },
   "dependencies": {
-    "@capacitor/android": "^8.1.0",
+    "@capacitor/android": "^8.6.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/browser": "^8.0.5",
-    "@capacitor/core": "^8.1.0",
+    "@capacitor/core": "^8.6.0",
     "@capacitor/filesystem": "^8.1.5",
-    "@capacitor/ios": "^8.1.0",
+    "@capacitor/ios": "^8.6.0",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/share": "^8.0.3",
     "@capgo/capacitor-native-biometric": "8.8.3",
     "@fontsource-variable/inter": "5.2.5",
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "@react-oauth/google": "^0.13.4",
-    "@supabase/supabase-js": "^2.101.1",
+    "@supabase/supabase-js": "^2.119.0",
     "@tanstack/react-query": "^5.90.21",
-    "axios": "^1.13.6",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.34.3",
     "html2canvas": "^1.4.1",
     "i18next": "^25.8.13",
     "i18next-browser-languagedetector": "^8.2.1",
-    "jspdf": "^4.2.0",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
@@ -43,7 +42,7 @@
     "react-dropzone": "^15.0.0",
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^16.5.4",
-    "react-router-dom": "^7.13.1",
+    "react-router-dom": "^7.18.5",
     "react-webcam": "^7.2.0",
     "recharts": "^3.7.0",
     "tesseract.js": "^7.0.0",
@@ -51,7 +50,8 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.1.0",
+    "@capacitor/cli": "^8.6.0",
+    "@electric-sql/pglite": "^0.3.16",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
@@ -69,6 +69,7 @@
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1",
     "vite-plugin-electron": "^0.29.0",
+    "vitest": "^3.2.7",
     "wait-on": "^9.0.4"
   },
   "build": {
@@ -108,5 +109,13 @@
       "category": "public.app-category.finance",
       "identity": null
     }
+  },
+  "overrides": {
+    "dompurify": "^3.4.17",
+    "tmp": "^0.2.6",
+    "fflate": "^0.8.3",
+    "ws": "^8.20.2",
+    "brace-expansion@1": "^1.1.21",
+    "uuid": "^11.1.1"
   }
 }

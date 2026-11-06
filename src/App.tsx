@@ -29,6 +29,7 @@ import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
 import HistoryPage from './pages/HistoryPage';
+import SmartCartPage from './pages/SmartCartPage';
 import MobileTopBar from './components/MobileTopBar';
 import { setTxLanguage } from './i18n/translations';
 import { startDomTranslation } from './i18n/domTranslate';
@@ -113,6 +114,7 @@ function Shell() {
     const pages: Record<string, React.ReactElement> = {
         overview: <OverviewPage onNavigate={go} onAddExpense={() => setShowAdd(true)} />,
         expenses: <ExpensesPage />,
+        'smart-cart': <SmartCartPage />,
         earnings: <EarningsPage />,
         bills: <BillsPage />,
         savings: <SavingsPage />,
@@ -166,12 +168,13 @@ function Shell() {
             <TabBar active={active} onNavigate={go} />
             <JoinInvite />
 
-            {!['chat', 'messages', 'assistant'].includes(active) && <QuickAddMenu
+            {!['chat', 'messages', 'assistant', 'smart-cart'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setCapture('voice')}
                 onScanAdd={() => setCapture('scan')}
                 onPasteAdd={() => setCapture('text')}
                 onAddIncome={() => go('earnings')}
+                onSmartCart={() => go('smart-cart')}
             />}
             {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
 

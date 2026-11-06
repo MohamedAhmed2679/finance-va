@@ -430,8 +430,8 @@ export default function SettingsPage() {
 
             {/* Email Modal */}
             {showEmailModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
+                <div className="modal-overlay">
+                    <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420, padding: 24 }}>
                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Change Email')}</h2>
                         <div className="form-group">
                             <label className="form-label">{tx('New Email Address')}</label>
@@ -456,8 +456,8 @@ export default function SettingsPage() {
 
             {/* Simulated OAuth Modal */}
             {oauthProvider && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 32, textAlign: 'center' }}>
+                <div className="modal-overlay">
+                    <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420, padding: 32, textAlign: 'center' }}>
                         <div style={{ fontSize: 48, marginBottom: 16 }}>
                             {oauthProvider === 'google' ? 'G' : oauthProvider === 'apple' ? '' : 'M'}
                         </div>
@@ -476,8 +476,8 @@ export default function SettingsPage() {
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
+                <div className="modal-overlay">
+                    <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420, padding: 24 }}>
                         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--danger)', marginBottom: 8 }}>{tx('Are you sure you want to delete?')}</h2>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('This action can\'t be undone. All your expenses, goals, and settings will be permanently removed.')}</p>
                         <div style={{ display: 'flex', gap: 12 }}>

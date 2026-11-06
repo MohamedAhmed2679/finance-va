@@ -152,12 +152,44 @@ export interface Expense {
     notes: string;
     receiptUrl?: string;
     ocrText?: string;
-    source: 'manual' | 'ocr' | 'import';
+    source: 'manual' | 'ocr' | 'import' | 'smart_cart';
     deleted: boolean;
     /** Value in the workspace currency at entry time (multi-currency). */
     baseAmount?: number;
     baseCurrency?: string;
     fxRate?: number;
+    /** Set when the expense was confirmed from a Smart Cart. */
+    cartId?: string;
+    details?: SmartCartExpenseDetails;
+}
+
+/** Itemized snapshot saved with a Smart Cart purchase (never changes after confirmation). */
+export interface SmartCartExpenseDetails {
+    kind: 'smart_cart';
+    version: number;
+    cartId: string;
+    cartName: string | null;
+    storeName: string | null;
+    currency: string;
+    vatMode: 'none' | 'add' | 'included';
+    vatRateBp: number;
+    subtotalMinor: number;
+    taxableMinor: number;
+    exemptMinor: number;
+    vatMinor: number;
+    beforeVatMinor: number;
+    estimatedTotalMinor: number;
+    actualTotalMinor: number | null;
+    differenceMinor: number | null;
+    recordedMinor: number;
+    itemCount: number;
+    totalQtyMilli: number;
+    confirmedAt: string;
+    items: {
+        name: string; unitPriceMinor: number; qtyMilli: number; unitBasis: string; lineMinor: number; vatExempt: boolean;
+        packSize: string | null; barcode: string | null; productionDate: string | null; expiryDate: string | null;
+        notes: string | null; source: string; imagePaths: string[];
+    }[];
 }
 
 export interface MonthlyBill {

@@ -44,6 +44,8 @@ export function mapExpense(r: Row): Expense {
         source: (r.source === 'bill' ? 'manual' : r.source) || 'manual',
         deleted: Boolean(r.is_deleted ?? r.deleted ?? false),
         ...fx(r),
+        ...(r.cart_id || r.cartId ? { cartId: r.cart_id ?? r.cartId } : {}),
+        ...((r.details?.kind === 'smart_cart') ? { details: r.details } : {}),
     };
 }
 

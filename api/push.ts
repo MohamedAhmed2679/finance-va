@@ -115,6 +115,7 @@ async function dispatchPending() {
 }
 
 async function chatPush(me: Row, messageId: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(messageId)) return { sent: 0 };
     const msgs: Row[] = await db(`chat_messages?id=eq.${messageId}&select=id,workspace_id,user_id,body,attachments`);
     const m = msgs[0];
     if (!m || m.user_id !== me.id) return { sent: 0 };
@@ -142,8 +143,9 @@ async function handlePost(req: Request) {
 }
 
 async function handleCron(req: Request) {
+    // With CRON_SECRET set (recommended), Vercel sends it; without it, only Vercel's scheduler user agent is accepted.
     const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.get('Authorization') !== `Bearer ${secret}`) return json({ error: 'Not allowed' }, 401);
+    if (secret ? req.headers.get('Authorization') !== `Bearer ${secret}` : !/vercel-cron/i.test(req.headers.get('user-agent') || '')) return json({ error: 'Not allowed' }, 401);
     const created = await rpc('create_due_reminders', {});
     const pushed = setupVapid() ? await dispatchPending() : { notifications: 0, sent: 0, note: 'VAPID keys missing' };
     return json({ reminders: created, ...pushed });
