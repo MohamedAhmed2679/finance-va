@@ -78,6 +78,42 @@ function backend() {
             c.status = 'confirmed'; c.expense_id = id;
             return json(route, { expenseId: id, alreadyConfirmed: false });
         }
+        // ── AutoTrack fake (structured rows only; mirrors the v25 functions' behaviour)
+        const at = db.at || (db.at = { items: [], settings: { mode: 'review', ai_consent: false, custom_senders: [], last_processed_at: null, last_error: null }, accounts: [], rules: [], transfers: [], offline: false });
+        if (url.pathname === '/rest/v1/autotrack_items') {
+            if (m === 'GET') return json(route, at.items);
+            if (m === 'POST') {
+                if (at.offline) return route.abort('internetdisconnected');
+                const out = [];
+                for (const r of [].concat(body)) {
+                    if (at.items.some(x => x.fingerprint === r.fingerprint)) continue;      // UNIQUE (user, fingerprint)
+                    const row = { id: `it-${at.items.length + 1}`, final_target: null, linked_kind: null, linked_id: null, fee_expense_id: null, error: null, decided_at: null, created_at: new Date().toISOString(), ...r };
+                    at.items.unshift(row); out.push({ id: row.id });
+                }
+                return json(route, out, 201);
+            }
+        }
+        if (url.pathname === '/rest/v1/autotrack_settings') {
+            if (m === 'GET') return json(route, at.settings);
+            Object.assign(at.settings, ...[].concat(body)); return json(route, [], 201);
+        }
+        if (url.pathname === '/rest/v1/own_accounts' && m === 'GET') return json(route, at.accounts);
+        if (url.pathname === '/rest/v1/autotrack_rules' && m === 'GET') return json(route, at.rules);
+        if (url.pathname === '/rest/v1/autotrack_rules' && m === 'POST') { at.rules.push(...[].concat(body).map((r, i) => ({ id: `rule-${at.rules.length + i}`, ...r }))); return json(route, [], 201); }
+        if (url.pathname === '/rest/v1/transfers' && m === 'GET') return json(route, at.transfers);
+        if (url.pathname.startsWith('/rest/v1/rpc/autotrack_')) {
+            const it = at.items.find(x => x.id === body.p_item);
+            const fn = url.pathname.split('/').pop();
+            if (!it) return json(route, { message: 'autotrack: item not found' }, 400);
+            if (fn === 'autotrack_post') {
+                if (['auto_added', 'confirmed', 'linked'].includes(it.status)) return json(route, { kind: it.linked_kind, id: it.linked_id, already: true });
+                Object.assign(it, { status: body.p_auto ? 'auto_added' : 'confirmed', final_target: body.p_target, linked_kind: body.p_target, linked_id: `rec-${it.id}`, category: body.p_category ?? it.category, amount: body.p_amount ?? it.amount });
+                return json(route, { kind: body.p_target, id: it.linked_id, already: false });
+            }
+            if (fn === 'autotrack_undo') { it.status = 'undone'; return json(route, { undone: true }); }
+            if (fn === 'autotrack_ignore') { it.status = 'ignored'; return json(route, { ignored: true }); }
+            if (fn === 'autotrack_restore') { it.status = 'needs_review'; return json(route, { restored: true }); }
+        }
         if (url.pathname === '/rest/v1/rpc/account_deletion_preview') return json(route, { deleteWorkspaces: ['Home'], transferWorkspaces: ['Family'], leaveWorkspaces: [] });
         if (url.pathname === '/rest/v1/rpc/discard_smart_cart') { db.discardCalls++; const c = db.carts.get(body.p_cart_id); if (c) c.status = 'discarded'; return json(route, { discarded: true, imagePaths: [] }); }
         if (url.pathname === '/auth/v1/user' && m === 'PUT') return json(route, { id: 'auth1', aud: 'authenticated', email: 'shopper@example.test', new_email: body?.email, app_metadata: {}, user_metadata: {} });
@@ -476,6 +512,100 @@ await scenario('delete account: shows what happens, needs the exact email, never
     expect(await dlg.isVisible(), 'still signed in, dialog open');
     await page.keyboard.press('Escape');
     await dlg.waitFor({ state: 'detached' });
+}, { desktop: true, path: '/settings' });
+
+
+// ------------------------------------------------------------------ AutoTrack
+const SMS_PURCHASE = 'Purchase of EGP 650 at Grocery Store using card **5678 on 05/11/26 11:40.';
+async function pasteMessage(page, text) {
+    await page.getByRole('button', { name: 'Paste message' }).first().click();
+    await page.fill('#at-text', text);
+    await page.getByRole('button', { name: 'Read message' }).click();
+}
+
+await scenario('AutoTrack: paste → Needs Review with a reason → confirm with a correction → Added → Undo', async (page, db) => {
+    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    await page.getByText('Nothing waiting.').waitFor();
+    await pasteMessage(page, SMS_PURCHASE);
+    const card = page.locator('.at-item').first();
+    await card.getByText('Grocery Store').waitFor();
+    expect(await card.getByText('A completed card purchase.').count() === 1, 'explains why');
+    const stored = db.at.items[0];
+    expect(stored.amount === 650 && stored.currency === 'EGP' && stored.account_ref === '5678' && stored.status === 'needs_review', `structured fields stored: ${JSON.stringify(stored).slice(0, 160)}`);
+    expect(!JSON.stringify(db.requests.filter(r => r.path === '/rest/v1/autotrack_items')).includes('using card **5678 on 05/11/26 11:40.'.repeat(1)) || stored.excerpt.length <= 160, 'only a short excerpt is stored');
+    expect(!('body' in stored) && !('text' in stored), 'the full message is not a stored field');
+    await card.getByRole('button', { name: 'Review & confirm' }).click();
+    const dlg = page.getByRole('dialog', { name: 'Confirm transaction' });
+    await dlg.waitFor();
+    await page.selectOption('#at-cat', 'dining');
+    await dlg.getByRole('button', { name: 'Confirm' }).click();
+    await dlg.waitFor({ state: 'detached' });
+    const post = db.requests.find(r => r.path === '/rest/v1/rpc/autotrack_post');
+    expect(post && post.body.p_target === 'expense' && post.body.p_category === 'dining' && post.body.p_auto === false, `posted as a corrected expense: ${JSON.stringify(post?.body)}`);
+    await page.getByRole('tab', { name: /Added/ }).click();
+    await page.locator('.at-item .badge-success', { hasText: 'Confirmed' }).waitFor();
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await page.getByText('Undone. It no longer counts').waitFor();
+    expect(db.at.items[0].status === 'undone', 'undone');
+    await shot(page, '19-autotrack-added');
+}, { desktop: true, path: '/autotrack' });
+
+await scenario('AutoTrack: codes and balance notices are never stored; the same alert twice is recorded once', async (page, db) => {
+    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    await pasteMessage(page, 'Your OTP for EGP 650 at AMAZON is 482913. Do not share it.');
+    await page.getByText('Security code: not stored.').waitFor();
+    await page.fill('#at-text', 'Your available balance is EGP 9,500.');
+    await page.getByRole('button', { name: 'Read message' }).click();
+    await page.getByText('Balance notice only: no transaction.').waitFor();
+    expect(!db.requests.some(r => r.method === 'POST' && r.path === '/rest/v1/autotrack_items'), 'nothing was sent for codes or balances');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await pasteMessage(page, SMS_PURCHASE);
+    await page.locator('.at-item').first().waitFor();
+    await pasteMessage(page, SMS_PURCHASE);
+    await page.getByText('Already recorded: this alert was handled before.').waitFor();
+    expect(db.at.items.length === 1, `one item, not two (${db.at.items.length})`);
+}, { desktop: true, path: '/autotrack' });
+
+await scenario('AutoTrack: offline paste is kept on the device and synced later without duplicates', async (page, db) => {
+    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    db.at = db.at || undefined;
+    await page.evaluate(() => {});
+    // go offline for item writes
+    (db.at ??= { items: [], settings: { mode: 'review', ai_consent: false, custom_senders: [] }, accounts: [], rules: [], transfers: [] }).offline = true;
+    await pasteMessage(page, SMS_PURCHASE);
+    await page.getByText('Saved on this device').waitFor();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zaylo_autotrack_outbox_v1') || '[]').length) === 1, 'waiting in the outbox');
+    db.at.offline = false;
+    await page.reload();
+    await page.locator('.at-item').first().waitFor();
+    expect(db.at.items.length === 1, 'synced once');
+    expect(await page.evaluate(() => localStorage.getItem('zaylo_autotrack_outbox_v1')) === null, 'outbox emptied');
+}, { desktop: true, path: '/autotrack' });
+
+await scenario('Ask Zaylo: a pasted salary SMS goes through AutoTrack (not the chat AI) and is shown masked', async (page, db) => {
+    await page.getByRole('heading', { name: 'Ask Zaylo' }).waitFor();
+    await page.locator('textarea').first().fill('Salary credited: EGP 18,000 to account 4111111111111234. Ref TRX99812234');
+    await page.keyboard.press('Enter');
+    await page.getByText('Added to Needs Review.').waitFor();
+    expect(!db.requests.some(r => r.path.endsWith('/api/ai/zaylo') && r.body?.action === 'chat'), 'the chat AI was not called');
+    const shown = await page.locator('.chat-scroll').innerText();
+    expect(!shown.includes('4111111111111234') && !shown.includes('TRX99812234'), 'the chat shows a masked copy');
+    expect(db.at.items[0]?.suggested_target === 'income' && db.at.items[0].ingestion === 'assistant', `classified as income: ${db.at.items[0]?.suggested_target}`);
+}, { desktop: true, path: '/assistant' });
+
+await scenario('AutoTrack settings on the web: honest "not available", review-first by default, auto-add needs a choice', async (page, db) => {
+    await openSettings(page, 'AutoTrack');
+    await page.getByText('Not available on this device').waitFor();
+    expect(!(await page.getByRole('button', { name: 'Turn on AutoTrack' }).count()), 'no enable button where it can\'t work');
+    expect(await page.getByRole('radio', { name: /Review first/ }).isChecked(), 'review first is the default');
+    await page.getByRole('radio', { name: /Auto-add clear transactions/ }).check();
+    await page.waitForTimeout(400);
+    expect(db.at.settings.mode === 'auto', 'auto-add saved');
+    await page.getByRole('button', { name: 'Turn on AI reading…' }).click();
+    await page.getByRole('dialog', { name: 'Use Zaylo AI for unfamiliar messages?' }).waitFor();
+    await page.getByRole('button', { name: 'Not now' }).click();
+    expect(db.at.settings.ai_consent === false, 'AI stays off when declined');
+    await shot(page, '20-autotrack-settings');
 }, { desktop: true, path: '/settings' });
 
 // ------------------------------------------------------------------ report

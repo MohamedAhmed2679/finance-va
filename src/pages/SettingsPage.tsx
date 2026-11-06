@@ -1,3 +1,4 @@
+import AutoTrackSettings from '../components/AutoTrackSettings';
 import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import PushSettings from '../components/PushSettings';
 import ZayloIdCard from '../components/ZayloIdCard';
@@ -8,7 +9,7 @@ import BiometricToggle from '../components/BiometricToggle';
 import toast from 'react-hot-toast';
 import { t, tx } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
-import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown } from 'lucide-react';
+import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown, MessageSquareText } from 'lucide-react';
 import ReportSheet from '../components/ReportSheet';
 import CloudBackupSettings from '../components/CloudBackupSettings';
 import Dialog from '../components/Dialog';
@@ -84,6 +85,7 @@ export default function SettingsPage() {
         { id: 'referral', label: tx('Zaylo ID'), icon: Copy },
         { id: 'export', label: t(lang, 'export_data'), icon: Download },
         { id: 'cloud', label: t(lang, 'cloud_backup'), icon: Cloud },
+        { id: 'autotrack', label: tx('AutoTrack'), icon: MessageSquareText },
         { id: 'desktop', label: t(lang, 'desktop_app'), icon: Monitor },
         { id: 'notifications', label: t(lang, 'notifications'), icon: Bell },
     ];
@@ -408,6 +410,7 @@ export default function SettingsPage() {
                     )}
 
                     {activeSection === 'cloud' && <CloudBackupSettings />}
+                    {activeSection === 'autotrack' && <AutoTrackSettings onOpenAutoTrack={() => { window.history.pushState(null, '', '/autotrack'); window.dispatchEvent(new PopStateEvent('popstate')); }} />}
 
                     {activeSection === 'desktop' && (
                         <div className="card animate-fadeIn">

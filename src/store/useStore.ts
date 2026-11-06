@@ -153,7 +153,7 @@ export interface Expense {
     notes: string;
     receiptUrl?: string;
     ocrText?: string;
-    source: 'manual' | 'ocr' | 'import' | 'smart_cart';
+    source: 'manual' | 'ocr' | 'import' | 'smart_cart' | 'autotrack' | 'sms' | 'voice' | 'scan' | 'upload' | 'ai';
     deleted: boolean;
     /** Value in the workspace currency at entry time (multi-currency). */
     baseAmount?: number;
@@ -229,6 +229,7 @@ export interface Income {
     amount: number;
     currency: string;
     type: 'fixed' | 'variable';
+    source?: string;  // 'autotrack' when AutoTrack added it
     date: string; // ISO date string for variable income, or just the creation date for fixed
     createdAt: string;
     baseAmount?: number;

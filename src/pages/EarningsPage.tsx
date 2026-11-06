@@ -188,6 +188,7 @@ export default function EarningsPage() {
                                             <div style={{ fontWeight: 600, fontSize: 15 }}>{inc.name}</div>
                                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                                                 {inc.type === 'fixed' ? tx('Recurring per cycle') : `Received on ${format(new Date(inc.date), 'MMM d, yyyy')}`}
+                                                {inc.source === 'autotrack' && <span className="at-ledger-badge">{tx('Added by AutoTrack')}</span>}
                                             </div>
                                         </div>
                                     </div>

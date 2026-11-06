@@ -52,9 +52,38 @@ export default function AssistantPage() {
         scroll.current?.scrollTo({ top: scroll.current.scrollHeight, behavior: 'smooth' });
     }, [messages, activeWorkspaceId, busy]);
 
+    /** A pasted bank / wallet SMS goes through AutoTrack (on the device) instead of the chat AI. */
+    async function handleBankMessage(question: string): Promise<boolean> {
+        const { parseMessage } = await import('../autotrack/parse');
+        const p = parseMessage(question, null);
+        if (p.kind === 'other' || p.kind === 'promo') return false;
+        const { redactExcerpt } = await import('../autotrack/redact');
+        // the chat keeps only a masked copy; codes are never shown again or sent anywhere
+        const shown = p.kind === 'otp' ? tx('(security code message hidden)') : redactExcerpt(question);
+        setMessages(m => [...m, { role: 'user', text: shown }]);
+        setText(''); setError('');
+        if (p.kind === 'otp') { setMessages(m => [...m, { role: 'assistant', text: tx('That looks like a security code. Zaylo never reads or keeps codes; don\'t share them with anyone.') }]); return true; }
+        if (p.kind === 'balance') { setMessages(m => [...m, { role: 'assistant', text: tx('That\'s a balance notice, so there\'s no transaction to record.') }]); return true; }
+        setBusy(true);
+        try {
+            const { processMessage } = await import('../autotrack/service');
+            const r = await processMessage({ text: question, sender: null, ingestion: 'assistant' });
+            const reply = r.outcome === 'auto_added' ? `**${tx(r.message)}** ${tx('You can change or undo it in AutoTrack.')}`
+                : r.outcome === 'stored' ? `**${tx(r.message)}**\n- ${r.draft?.reason ?? ''}\n- ${tx('Open AutoTrack to confirm, change or ignore it.')}`
+                : r.outcome === 'duplicate' ? tx(r.message)
+                : r.outcome === 'queued' ? tx(r.message)
+                : `${tx('Nothing was recorded:')} ${tx(r.message)}`;
+            setMessages(m => [...m, { role: 'assistant', text: reply }]);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : tx('Couldn\'t process that message.'));
+        } finally { setBusy(false); }
+        return true;
+    }
+
     async function send(q?: string) {
         const question = (q ?? text).trim();
         if (!question || busy) return;
+        if (await handleBankMessage(question)) return;
         const next: ChatMessage[] = [...messages, { role: 'user', text: question }];
         setMessages(next); setText(''); setError(''); setBusy(true);
         try {

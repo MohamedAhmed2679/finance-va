@@ -105,7 +105,8 @@ jobs:
   release:
     name: Publish test-build release
     needs: [android, ios, macos, windows]
-    if: ${{ !cancelled() }}
+    # only main replaces the test-build release; other branches just produce downloadable artifacts
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
