@@ -15,7 +15,8 @@ const config: CapacitorConfig = {
     backgroundColor: '#0B0F1A',
     server: bundled ? undefined : { url: serverUrl, cleartext: false, allowNavigation: ['zaylo.cc', '*.zaylo.cc'] },
     android: { allowMixedContent: false },
-    ios: { contentInset: 'never', scheme: 'Finance VA' },
+    // limitsNavigationsToAppBoundDomains: iOS only allows the offline cache (service worker) in app-bound web views
+    ios: { contentInset: 'never', scheme: 'Finance VA', limitsNavigationsToAppBoundDomains: true },
 };
 
 export default config;

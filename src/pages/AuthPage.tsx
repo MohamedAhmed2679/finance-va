@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import Dialog from '../components/Dialog';
+import { savedAccounts, rememberAccount, forgetAccount, keepSignedIn, setKeepSignedIn, offerToSavePassword, biometricAvailable, enableBiometricSignIn, biometricCredentials, type SavedAccount } from '../services/savedSignIn';
 import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
 import { ZayloWave, ZPattern, ZayloLogo } from '../components/brand/Brand';
 import { canUseGoogleButton, mountGoogleButton } from '../services/googleSignIn';
@@ -68,14 +70,14 @@ function toE164(raw: string): string | null {
     return /^\d{8,15}$/.test(digits) ? '+' + digits : null;
 }
 
-function PasswordField({ id, value, onChange, autoComplete, meter }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; meter?: boolean }) {
+function PasswordField({ id, value, onChange, autoComplete, meter, name = 'password' }: { id: string; value: string; onChange: (v: string) => void; autoComplete: string; meter?: boolean; name?: string }) {
     const [show, setShow] = useState(false);
     const score = PW_RULES.filter(([re]) => re.test(value)).length;
     return (
         <div className="form-group">
             <label className="form-label" htmlFor={id}>{tx('Password')}</label>
             <div className="pw-field">
-                <input id={id} className="form-input" type={show ? 'text' : 'password'} value={value} required
+                <input id={id} name={name} className="form-input" type={show ? 'text' : 'password'} value={value} required
                     autoComplete={autoComplete} onChange={e => onChange(e.target.value)} />
                 <button type="button" className="pw-toggle" onClick={() => setShow(s => !s)} aria-label={show ? tx('Hide password') : tx('Show password')}>
                     {show ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -129,6 +131,9 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         return desc ? friendlyAuthError(decodeURIComponent(desc), 'Sign-in did not complete. Try again.') : '';
     });
     const [notice, setNotice] = useState('');
+    const [keep, setKeep] = useState(keepSignedIn);
+    const [accounts, setAccounts] = useState<SavedAccount[]>(savedAccounts);
+    const [offerBio, setOfferBio] = useState<null | { email: string; password: string; label: string; done: () => void }>(null);
 
     const [avail, setAvail] = useState<AuthAvailability | null>(null);
     useEffect(() => { getAuthAvailability().then(setAvail); }, []);
@@ -152,6 +157,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const busy = loading !== null;
 
     function doLogin(userId: string, userName: string, userEmail: string, provider?: string, userPhone?: string) {
+        const ident = userEmail || userPhone || phone;
+        if (ident) rememberAccount({ email: ident, name: userName || ident, method: provider === 'google' || provider === 'azure' || provider === 'apple' ? provider : userEmail ? 'email' : 'phone' });
         login({
             id: userId,
             name: userName,
@@ -192,7 +199,36 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
             setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Zaylo team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
             return;
         }
-        if (result.user) doLogin(result.user.id, result.user.name, result.user.email);
+        if (!result.user) return;
+        const u = result.user;
+        const enter = () => doLogin(u.id, u.name, u.email);
+        if (!keep) { enter(); return; }
+        rememberAccount({ email: email.trim(), name: u.name || email.trim(), method: 'email' });
+        offerToSavePassword(email.trim(), password, u.name).catch(() => {});
+        const saved = accounts.find(a => a.email.toLowerCase() === email.trim().toLowerCase());
+        const bio = saved?.biometric ? { ok: false, label: '' } : await biometricAvailable();
+        if (bio.ok) setOfferBio({ email: email.trim(), password, label: bio.label, done: enter });
+        else enter();
+    }
+
+    /** Saved account tapped on the sign-in screen. */
+    async function useSaved(a: SavedAccount) {
+        setError(''); setNotice('');
+        if (a.method === 'google' || a.method === 'azure' || a.method === 'apple') { oauth(a.method); return; }
+        if (a.method === 'phone') { setPhone(a.email); switchMode('phone'); return; }
+        setEmail(a.email); setPassword('');
+        if (a.biometric) {
+            setLoading('email');
+            const c = await biometricCredentials(a.email);
+            if (c) {
+                const result = await signInWithEmail(c.email, c.password);
+                setLoading(null);
+                if (result.success && result.user) { doLogin(result.user.id, result.user.name, result.user.email); return; }
+                setError(tx('Your saved sign-in no longer works (the password may have changed). Enter your password.'));
+                await forgetAccount(a.email).catch(() => {}); rememberAccount({ email: a.email, name: a.name, method: 'email' }); setAccounts(savedAccounts());
+            } else setLoading(null);
+        }
+        setTimeout(() => document.getElementById('si-pw')?.focus(), 50);
     }
 
     async function onSignUp(e: React.FormEvent) {
@@ -366,14 +402,49 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 {notice && <motion.div className="auth-msg ok" role="status" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>{notice}</motion.div>}
                             </AnimatePresence>
 
+                            {offerBio && (
+                                <div className="modal-overlay">
+                                    <Dialog labelledBy="bio-offer" onClose={() => { const d = offerBio.done; setOfferBio(null); d(); }} style={{ maxWidth: 420 }}>
+                                        <h2 id="bio-offer" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Use')} {offerBio.label} {tx('to sign in next time?')}</h2>
+                                        <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 18 }}>{tx('Your email and password are kept in this phone\'s secure storage and released only after your fingerprint or face is checked. You can turn this off any time.')}</p>
+                                        <div style={{ display: 'flex', gap: 10 }}>
+                                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { const d = offerBio.done; setOfferBio(null); d(); }} data-autofocus>{tx('Not now')}</button>
+                                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={async () => {
+                                                const o = offerBio; setOfferBio(null);
+                                                try { await enableBiometricSignIn(o.email, o.password); } catch { /* cancelled */ }
+                                                o.done();
+                                            }}>{tx('Turn on')}</button>
+                                        </div>
+                                    </Dialog>
+                                </div>
+                            )}
+
                             {mode === 'signin' && (
                                 <>
                                     {serverDown}
+                                    {accounts.length > 0 && (
+                                        <div className="saved-accounts" role="group" aria-label={tx('Saved accounts on this device')}>
+                                            {accounts.map(a => (
+                                                <div key={a.email} className="saved-account">
+                                                    <button type="button" className="saved-account-main" onClick={() => useSaved(a)} disabled={busy}>
+                                                        <span className="user-avatar" aria-hidden>{(a.name || a.email).charAt(0).toUpperCase()}</span>
+                                                        <span className="saved-account-text">
+                                                            <span className="saved-account-name">{a.name}</span>
+                                                            <span className="saved-account-email" dir="ltr">{a.email}</span>
+                                                            <span className="saved-account-how">{a.biometric ? tx('Sign in with fingerprint or face') : a.method === 'google' ? tx('Continue with Google') : a.method === 'azure' ? tx('Continue with Microsoft') : a.method === 'apple' ? tx('Continue with Apple') : a.method === 'phone' ? tx('Sign in with a code') : tx('Enter your password')}</span>
+                                                        </span>
+                                                    </button>
+                                                    <button type="button" className="saved-account-remove" aria-label={`${tx('Remove')} ${a.email} ${tx('from this device')}`}
+                                                        onClick={async () => { await forgetAccount(a.email); setAccounts(savedAccounts()); }}>×</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                     {social}
-                                    <form onSubmit={onSignIn} noValidate={false}>
+                                    <form onSubmit={onSignIn} noValidate={false} method="post" action="/" autoComplete="on">
                                         <div className="form-group">
                                             <label className="form-label" htmlFor="si-email">{tx('Email')}</label>
-                                            <input id="si-email" className="form-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                                            <input id="si-email" name="email" className="form-input" type="email" autoComplete="username email" required value={email} onChange={e => setEmail(e.target.value)} />
                                         </div>
                                         <PasswordField id="si-pw" value={password} onChange={setPassword} autoComplete="current-password" />
                                         <div className="auth-row">
@@ -382,6 +453,10 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         </div>
                                         {submit('Sign in', 'Signing in…')}
                                     </form>
+                                    <label className="keep-signed-in">
+                                        <input type="checkbox" checked={keep} onChange={e => { setKeep(e.target.checked); setKeepSignedIn(e.target.checked); }} />
+                                        <span>{tx('Keep me signed in on this device')}<br /><span className="keep-hint">{keep ? tx('Your account is remembered here for quick sign-in.') : tx('Use this on shared devices: you\'re signed out and your data is removed when the app is closed.')}</span></span>
+                                    </label>
                                 </>
                             )}
 

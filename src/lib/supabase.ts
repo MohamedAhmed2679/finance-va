@@ -9,11 +9,29 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
  * When VITE_SUPABASE_URL is not set (local dev without Supabase), the app
  * falls back to Zustand's localStorage persistence for offline-first behaviour.
  */
+/**
+ * Where the sign-in session is kept. "Keep me signed in" (the default) keeps it across restarts;
+ * when it's off, the session lives only until the app or browser is closed (sessionStorage).
+ */
+const KEEP = 'zaylo_keep_signed_in';
+const keep = () => { try { return localStorage.getItem(KEEP) !== '0'; } catch { return true; } };
+const authStorage = {
+    getItem: (k: string) => { try { return localStorage.getItem(k) ?? sessionStorage.getItem(k); } catch { return null; } },
+    setItem: (k: string, v: string) => {
+        try {
+            if (keep()) { localStorage.setItem(k, v); sessionStorage.removeItem(k); }
+            else { sessionStorage.setItem(k, v); localStorage.removeItem(k); }
+        } catch { /* storage blocked: the session lasts only in memory */ }
+    },
+    removeItem: (k: string) => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch { /* ignore */ } },
+};
+
 export const supabase = supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
           auth: {
               autoRefreshToken: true,
               persistSession: true,
+              storage: authStorage,
               detectSessionInUrl: true,
               // Use PKCE for enhanced security on all platforms
               flowType: 'pkce',

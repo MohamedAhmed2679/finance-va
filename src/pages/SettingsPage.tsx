@@ -1,3 +1,4 @@
+import SavedSignInSettings from '../components/SavedSignInSettings';
 import AutoTrackSettings from '../components/AutoTrackSettings';
 import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import PushSettings from '../components/PushSettings';
@@ -250,6 +251,7 @@ export default function SettingsPage() {
                             <div className="font-bold mb-5" style={{ fontSize: 16 }}>{tx('Security & Privacy')}</div>
                             <div className="flex-col gap-4">
                                 <BiometricToggle compact />
+                                <SavedSignInSettings />
                                 {[
                                     { label: t(lang, 'store_ocr'), desc: tx('Keep extracted receipt text for debugging'), key: 'storeOcr' },
                                 ].map(item => (

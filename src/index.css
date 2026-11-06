@@ -1958,3 +1958,21 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .at-steps { margin: 6px 0; padding-inline-start: 20px; font-size: 13px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; }
 .at-steps code { overflow-wrap: anywhere; }
 @media (max-width: 480px) { .at-grid { grid-template-columns: 1fr; } }
+
+/* Saved sign-in */
+.saved-accounts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.saved-account { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.saved-account-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: none; border: 0; color: var(--ink); font: inherit; text-align: start; cursor: pointer; }
+.saved-account-main:hover, .saved-account-main:focus-visible { background: var(--surface-2); }
+.saved-account-text { display: flex; flex-direction: column; min-width: 0; }
+.saved-account-name { font-weight: 600; font-size: 14.5px; }
+.saved-account-email { font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.saved-account-how { font-size: 12px; color: var(--note); margin-top: 2px; }
+.saved-account-remove { width: 40px; border: 0; border-inline-start: 1px solid var(--line); background: none; color: var(--ink-3); font-size: 20px; cursor: pointer; }
+.saved-account-remove:hover, .saved-account-remove:focus-visible { color: var(--cinnabar); background: var(--surface-2); }
+.keep-signed-in { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 13.5px; cursor: pointer; }
+.keep-signed-in input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
+.keep-hint { font-size: 12px; color: var(--ink-3); }
+.saved-signin-settings { padding: 14px 16px; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border); }
+
+.offline-banner { position: fixed; top: calc(var(--titlebar-height, 0px) + env(safe-area-inset-top, 0px) + 8px); left: 50%; transform: translateX(-50%); z-index: 900; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 12.5px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100vw - 32px); }

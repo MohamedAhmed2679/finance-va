@@ -140,13 +140,14 @@ async function scenario(name, fn, opts = {}) {
         localStorage.setItem('sb-ultugpyjbktlsubludds-auth-token', JSON.stringify({ access_token: 'test-access', refresh_token: 'test-refresh', token_type: 'bearer', expires_in: 3600, expires_at: exp,
             user: { id: 'auth1', aud: 'authenticated', role: 'authenticated', email: 'shopper@example.test', app_metadata: {}, user_metadata: {} } }));
     });
-    await ctx.addInitScript(([s, denyCam]) => {
-        if (!sessionStorage.getItem('seeded')) { localStorage.setItem('financeva-store', s); sessionStorage.setItem('seeded', '1'); }
+    if (opts.init) await ctx.addInitScript(opts.init);
+    await ctx.addInitScript(([s, denyCam, noStore]) => {
+        if (!noStore && !sessionStorage.getItem('seeded')) { localStorage.setItem('financeva-store', s); sessionStorage.setItem('seeded', '1'); }
         if (denyCam && navigator.permissions) {
             const q = navigator.permissions.query.bind(navigator.permissions);
             navigator.permissions.query = d => (d && d.name === 'camera' ? Promise.resolve({ state: 'denied' }) : q(d));
         }
-    }, [storeState(opts.lang), !!opts.denyCamera]);
+    }, [storeState(opts.lang), !!opts.denyCamera, !!opts.noStore]);
     const be = backend();
     await ctx.route(/supabase\.co|\/api\/ai\/zaylo|\/api\/push|\/api\/backup|\/api\/account/, be.handle);
     const page = await ctx.newPage();
@@ -607,6 +608,54 @@ await scenario('AutoTrack settings on the web: honest "not available", review-fi
     expect(db.at.settings.ai_consent === false, 'AI stays off when declined');
     await shot(page, '20-autotrack-settings');
 }, { desktop: true, path: '/settings' });
+
+
+// ------------------------------------------------------------------ offline start and saved sign-in
+await scenario('offline: after one visit the app opens with no connection and shows what is saved', async (page, db, be) => {
+    await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, { timeout: 15000 }).catch(async () => {
+        await page.reload(); await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15000 });
+    });
+    const ctx = page.context();
+    await ctx.setOffline(true);
+    await page.reload();
+    await page.getByText("Offline — showing what's saved on this device").waitFor({ timeout: 15000 });
+    await page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ }).waitFor();
+    expect(await page.locator('#root').innerText().then(t => t.length > 200), 'the app rendered from the cache');
+    await page.goto(`${BASE}/expenses`).catch(() => {});
+    await page.getByRole('heading', { name: 'Expenses' }).first().waitFor({ timeout: 15000 });
+    await ctx.setOffline(false);
+    await shot(page, '21-offline');
+}, { desktop: true, path: '/overview' });
+
+await scenario('saved accounts: tap to sign back in, remove from this device, keep-me-signed-in choice', async page => {
+    await page.getByText('Mohamed Test').waitFor();
+    await page.getByText('Gee Google').waitFor();
+    await page.getByRole('button', { name: /Mohamed Test/ }).click();
+    expect((await page.inputValue('#si-email')) === 'mo@example.test', 'email filled in');
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => document.activeElement?.id === 'si-pw'), 'cursor in the password box');
+    expect((await page.getAttribute('#si-pw', 'autocomplete')) === 'current-password' && (await page.getAttribute('#si-email', 'autocomplete'))?.includes('username'), 'password managers can recognise the form');
+    await page.getByRole('button', { name: /Remove g@example\.test from this device/ }).click();
+    await page.getByText('Gee Google').waitFor({ state: 'detached' });
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zaylo_saved_accounts_v1') || '[]').map(a => a.email).join()) === 'mo@example.test', 'removed from the device');
+    const keep = page.getByRole('checkbox', { name: /Keep me signed in/ });
+    expect(await keep.isChecked(), 'on by default');
+    await keep.uncheck();
+    expect(await page.evaluate(() => localStorage.getItem('zaylo_keep_signed_in')) === '0', 'choice saved');
+    await page.getByText('Use this on shared devices').waitFor();
+    expect(!((await page.evaluate(() => localStorage.getItem('zaylo_saved_accounts_v1') || '')).includes('password')), 'no password stored');
+    await shot(page, '22-saved-accounts');
+}, { desktop: true, path: '/', noStore: true, init: () => {
+    localStorage.setItem('zaylo_saved_accounts_v1', JSON.stringify([
+        { email: 'mo@example.test', name: 'Mohamed Test', method: 'email', lastUsedAt: '2026-11-06T10:00:00Z' },
+        { email: 'g@example.test', name: 'Gee Google', method: 'google', lastUsedAt: '2026-11-05T10:00:00Z' },
+    ]));
+} });
+
+await scenario('keep-me-signed-in off: reopening the app signs out and removes the data from the device', async page => {
+    await page.getByRole('button', { name: /^Sign in$/ }).first().waitFor({ timeout: 15000 });
+    expect(await page.evaluate(() => !(localStorage.getItem('financeva-store') || '').includes('shopper@example.test')), 'the saved account data is gone');
+}, { desktop: true, path: '/overview', init: () => { localStorage.setItem('zaylo_keep_signed_in', '0'); } });
 
 // ------------------------------------------------------------------ report
 let failed = 0;

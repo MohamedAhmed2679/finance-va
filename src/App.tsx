@@ -42,6 +42,8 @@ captureJoinLink();
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
 import AutoTrackPage from './pages/AutoTrackPage';
+import OfflineBanner from './components/OfflineBanner';
+import { useRememberSignedInAccount } from './services/useRememberAccount';
 import { useAutoTrackDevice } from './autotrack/useAutoTrackDevice';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
 import type { ParsedExpense } from './services/aiExpenseParser';
@@ -135,6 +137,7 @@ function Shell() {
     useLiveNotifications();
     useLiveChatAlerts(active);
     useAutoTrackDevice(navigate);
+    useRememberSignedInAccount();
 
     // Device notifications: tapping one opens the right page
     useEffect(() => { initPush(path => navigate(path)); }, [navigate]);
@@ -297,6 +300,7 @@ export default function App() {
     return (
         <MotionConfig reducedMotion="user">
             {content}
+            <OfflineBanner />
             <Toaster position="top-center" toastOptions={{
                 style: { background: 'var(--ink)', color: 'var(--paper)', borderRadius: 12, fontSize: 14, fontWeight: 500, maxWidth: 420 },
                 success: { iconTheme: { primary: 'var(--note)', secondary: 'var(--paper)' } },

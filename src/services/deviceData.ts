@@ -4,7 +4,7 @@
  * they're sent the next time the same person signs in here.
  */
 const USER_PREFIXES = ['zaylo_smart_cart_v1_', 'zaylo_health_', 'zaylo_last_ws_', 'zaylo_chat_'];
-const USER_KEYS = ['fva_impersonation', 'zaylo_desktop_backup_v1', 'zaylo_new_ws', 'zaylo_push_prompt_dismissed'];
+const USER_KEYS = ['fva_impersonation', 'zaylo_desktop_backup_v1', 'zaylo_new_ws', 'zaylo_push_prompt_dismissed', 'zaylo_sync_cursor_v1', 'zaylo_autotrack_outbox_v1'];
 
 function wipe(store: Storage | undefined) {
     if (!store) return;

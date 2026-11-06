@@ -5,6 +5,7 @@ import { tx } from '../i18n/translations';
 import { useStore } from '../store/useStore';
 import { confirmationText, deleteAccount, deletionPreview, type DeletionPreview } from '../services/account';
 import { clearLocalUserData } from '../services/deviceData';
+import { forgetAccount } from '../services/savedSignIn';
 
 /** Settings → Security & Privacy → Delete account. Shows exactly what will happen, then asks the person to type their email. */
 export default function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
@@ -25,6 +26,7 @@ export default function DeleteAccountDialog({ onClose }: { onClose: () => void }
         try {
             const r = await deleteAccount(typed.trim());
             clearLocalUserData();
+            if (user?.email) await forgetAccount(user.email).catch(() => {});
             try { localStorage.removeItem('zaylo_outbox_v1'); } catch { /* storage blocked */ }
             toast.success(r.warning || tx('Your Zaylo account was deleted.'), { id: 'account-deleted', duration: 9000 });
             onClose();

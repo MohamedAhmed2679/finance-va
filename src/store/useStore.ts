@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CATEGORIES, PAYMENT_METHODS, WORKSPACE_COLORS } from '../constants';
 import {
-    fetchExpensesFromCloud, fetchIncomesFromCloud, fetchBillsFromCloud, fetchSavingsGoalsFromCloud,
+
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
     fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud,
@@ -16,6 +16,7 @@ import { mapExpense, mapIncome, mapBill, mapGoal, mapWorkspace, mapMember, mapNo
 import { signOut as supabaseSignOut } from '../services/authProvider';
 import toast from 'react-hot-toast';
 import { isSupabaseReady } from '../lib/supabase';
+import { fetchChanges, type Changes, type Row } from '../services/deltaSync';
 
 let lastSyncToast = 0;
 // Per-account memory of the last workspace and whether the account ever had one.
@@ -424,32 +425,48 @@ export const useStore = create<AppState>()(
             },
             loadWorkspaceData: async (wsId) => {
                 if (!wsId || !isSupabaseReady()) return;
+                // Offline: keep showing what's saved on this device; sync resumes when the connection is back
+                if (typeof navigator !== 'undefined' && navigator.onLine === false) { set({ syncStatus: 'offline' }); return; }
                 set({ syncStatus: 'syncing' });
+                const s0 = get();
+                const has = (l: { workspaceId: string }[]) => l.some(r => r.workspaceId === wsId);
+                // Only rows that changed since the last sync (a full download on first load and once a day)
                 const [expenses, incomes, bills, goals] = await Promise.all([
-                    fetchExpensesFromCloud(wsId), fetchIncomesFromCloud(wsId), fetchBillsFromCloud(wsId), fetchSavingsGoalsFromCloud(wsId),
+                    fetchChanges(wsId, 'expense', has(s0.expenses)), fetchChanges(wsId, 'income', has(s0.incomes)),
+                    fetchChanges(wsId, 'bill', has(s0.bills)), fetchChanges(wsId, 'goal', has(s0.savingsGoals)),
                 ]);
                 if (expenses === null && incomes === null && bills === null && goals === null) {
-                    set({ syncStatus: 'error' });
+                    set({ syncStatus: navigator.onLine === false ? 'offline' : 'error' });
                     return;
                 }
                 // The cloud is the source of truth for this workspace; other workspaces' rows are untouched.
                 // Rows with changes still waiting in the outbox keep their local version.
                 set(s => {
-                    const merge = <T extends { id: string; workspaceId: string }>(local: T[], cloud: T[] | null, kind: 'expense' | 'income' | 'bill' | 'goal') => {
-                        if (cloud === null) return local;
+                    const merge = <T extends { id: string; workspaceId: string }>(local: T[], ch: Changes | null, map: (r: Row) => T, kind: 'expense' | 'income' | 'bill' | 'goal') => {
+                        if (ch === null) return local;
                         const { rows, deleted } = pendingChanges<T>(kind, wsId);
                         const keepIds = new Set(rows.map(r => r.id));
-                        const fromCloud = cloud.filter(c => !keepIds.has(c.id) && !deleted.has(c.id));
-                        return [...rows, ...fromCloud, ...local.filter(l => l.workspaceId !== wsId)];
+                        if (ch.mode === 'full') {
+                            const fromCloud = ch.rows.map(map).filter(c => !keepIds.has(c.id) && !deleted.has(c.id));
+                            return [...rows, ...fromCloud, ...local.filter(l => l.workspaceId !== wsId)];
+                        }
+                        // delta: replace changed rows, drop ones deleted elsewhere, keep everything else as it is
+                        const byId = new Map(local.map(l => [l.id, l] as const));
+                        for (const r of ch.rows) {
+                            if (keepIds.has(r.id) || deleted.has(r.id)) continue;
+                            if (r.is_deleted) byId.delete(r.id); else byId.set(r.id, map(r));
+                        }
+                        return [...byId.values()];
                     };
                     return {
-                        expenses: merge(s.expenses, expenses ? expenses.map(mapExpense) : null, 'expense'),
-                        incomes: merge(s.incomes, incomes ? incomes.map(mapIncome) : null, 'income'),
-                        bills: merge(s.bills, bills ? bills.map(mapBill) : null, 'bill'),
-                        savingsGoals: merge(s.savingsGoals, goals ? goals.map(mapGoal) : null, 'goal'),
+                        expenses: merge(s.expenses, expenses, r => mapExpense(r), 'expense'),
+                        incomes: merge(s.incomes, incomes, r => mapIncome(r), 'income'),
+                        bills: merge(s.bills, bills, r => mapBill(r), 'bill'),
+                        savingsGoals: merge(s.savingsGoals, goals, r => mapGoal(r), 'goal'),
                         syncStatus: 'synced',
                     };
                 });
+                [expenses, incomes, bills, goals].forEach(c => c?.commit());
             },
             addWorkspace: (ws) => {
                 const s = get();

@@ -66,5 +66,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Lets the app's web view use the offline cache (service worker) for zaylo.cc -->
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>zaylo.cc</string>
+		<string>www.zaylo.cc</string>
+	</array>
 </dict>
 </plist>
