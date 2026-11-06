@@ -1,3 +1,4 @@
+import Dialog from '../components/Dialog';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore, type Expense } from '../store/useStore';
@@ -20,7 +21,8 @@ function dayLabel(day: string) {
 }
 import { t, tx } from '../i18n/translations';
 import { getCategoryInfo, getPaymentMethodInfo, getActiveCycleDates } from '../constants';
-import { Search, Filter, X, Trash2, Plus, Edit2, Target, FileDown } from 'lucide-react';
+import { Search, Filter, X, Trash2, Plus, Edit2, Target, FileDown, ShoppingCart } from 'lucide-react';
+import ExpenseItems from '../smartcart/ExpenseItems';
 import ReportSheet from '../components/ReportSheet';
 import AddExpenseModal from '../components/AddExpenseModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
@@ -52,6 +54,9 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const [showBudget, setShowBudget] = useState(false);
     const [budgetInput, setBudgetInput] = useState((user?.monthlyBudget ?? 0).toString());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    // Smart Cart purchases open their itemized view (also from /expenses?view=<id>)
+    const [viewId, setViewId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('view'));
+    const viewing = viewId ? expenses.find(e => e.id === viewId && e.details) : undefined;
     const hideAmounts = user?.hideAmounts ?? false;
 
     const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
@@ -183,7 +188,11 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                                     style={{ gridTemplateColumns: isViewer ? '40px minmax(0,1fr) auto' : '40px minmax(0,1fr) auto auto' }}>
                                                     <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
                                                     <div style={{ minWidth: 0 }}>
-                                                        <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>
+                                                        {e.details ? (
+                                                            <button type="button" className="ledger-title sc-ledger-link" onClick={() => setViewId(e.id)} aria-label={`${tx('View items')}: ${e.merchant}`}>
+                                                                <ShoppingCart size={13} aria-hidden /> <span translate="no">{e.merchant}</span> <span className="sc-badge">{e.details.itemCount} {tx('items')}</span>
+                                                            </button>
+                                                        ) : <div className="ledger-title" translate={e.merchant ? "no" : undefined}>{e.merchant || catInfo.label}</div>}
                                                         <div className="ledger-sub">
                                                             {catInfo.label} · {pmInfo?.label}{e.last4 ? ` ••${e.last4}` : ''}{e.createdByName ? ` · ${e.createdByName.split(' ')[0]}` : ''}{e.description ? ` · ${e.description}` : ''}
                                                         </div>
@@ -207,23 +216,25 @@ export default function ExpensesPage({ }: ExpensesProps) {
             </div>
 
             {showAdd && <AddExpenseModal onClose={() => { setShowAdd(false); setEditId(undefined); }} editId={editId} />}
+            {viewing && <ExpenseItems expense={viewing} onClose={() => { setViewId(null); if (window.location.search) window.history.replaceState(null, '', window.location.pathname); }}
+                onEdit={isViewer ? undefined : () => { setEditId(viewing.id); setViewId(null); setShowAdd(true); }} />}
 
             {showBudget && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowBudget(false); }}>
+                    <Dialog labelledBy="dlg-budget" onClose={() => setShowBudget(false)} style={{ maxWidth: 420, padding: 24 }}>
+                        <h2 id="dlg-budget" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Set Monthly Budget')}</h2>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Receive alerts when you approach or exceed this budget.')}</p>
 
                         <div className="form-group">
-                            <label className="form-label">{tx('Monthly Budget (')}{currency})</label>
-                            <input type="number" className="form-input" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="0.00" autoFocus />
+                            <label className="form-label" htmlFor="budget-amount">{tx('Monthly Budget (')}{currency})</label>
+                            <input id="budget-amount" type="number" inputMode="decimal" min="0" className="form-input" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="0.00" data-autofocus />
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { updateUser({ monthlyBudget: parseFloat(budgetInput) || 0, notifyBudget: true }); setShowBudget(false); }}>{tx('Save Budget')}</button>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowBudget(false)}>{tx('Cancel')}</button>
                         </div>
-                    </div>
+                    </Dialog>
                 </div>
             )}
 
@@ -231,10 +242,10 @@ export default function ExpensesPage({ }: ExpensesProps) {
             {deleteConfirmId && (() => {
                 const expToDelete = expenses.find(ex => ex.id === deleteConfirmId);
                 return (
-                    <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
-                        <div className="modal" onClick={ev => ev.stopPropagation()} style={{ maxWidth: 400, textAlign: 'center' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
-                            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Delete Expense?')}</h3>
+                    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null); }}>
+                        <Dialog labelledBy="dlg-del-exp" onClose={() => setDeleteConfirmId(null)} style={{ maxWidth: 400, textAlign: 'center' }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }} aria-hidden>🗑️</div>
+                            <h3 id="dlg-del-exp" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Delete Expense?')}</h3>
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
                                 {tx('Are you sure you want to delete')}{' '}<strong>{expToDelete?.merchant ?? tx('this expense')}</strong>{tx('? This action cannot be undone.')}
                             </p>
@@ -242,7 +253,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                                 <button className="btn btn-secondary" onClick={() => setDeleteConfirmId(null)}>{tx('Cancel')}</button>
                                 <button className="btn btn-danger" onClick={() => { deleteExpense(deleteConfirmId); setDeleteConfirmId(null); }}>{tx('Delete')}</button>
                             </div>
-                        </div>
+                        </Dialog>
                     </div>
                 );
             })()}

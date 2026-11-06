@@ -10,6 +10,8 @@ import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
 import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown } from 'lucide-react';
 import ReportSheet from '../components/ReportSheet';
 import CloudBackupSettings from '../components/CloudBackupSettings';
+import Dialog from '../components/Dialog';
+import { supabase } from '../lib/supabase';
 
 export default function SettingsPage() {
     const { user, workspaces, activeWorkspaceId, updateWorkspace, updateUser, setTheme, theme, language, setLanguage, currency, setCurrency, logout, deleteAllData, categories, paymentMethods, addCategory, deleteCategory, addPaymentMethod, deletePaymentMethod } = useStore();
@@ -25,9 +27,6 @@ export default function SettingsPage() {
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
     const [showEmailModal, setShowEmailModal] = useState(false);
-    const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | 'microsoft' | null>(null);
-    const [oauthMode, setOauthMode] = useState<'email' | 'cloud' | null>(null);
-    const [oauthConnecting, setOauthConnecting] = useState(false);
     const [emailInput, setEmailInput] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showReport, setShowReport] = useState(false);
@@ -58,25 +57,20 @@ export default function SettingsPage() {
     }
 
 
-    const handleOauthConnect = (provider: 'google' | 'apple' | 'microsoft', mode: 'email' | 'cloud') => {
-        setOauthProvider(provider);
-        setOauthMode(mode);
-    };
-
-    const processOauth = () => {
-        setOauthConnecting(true);
-        setTimeout(() => {
-            setOauthConnecting(false);
-            if (oauthMode === 'cloud') {
-                updateUser({ connectedClouds: [...(user?.connectedClouds || []), oauthProvider!] });
-            } else if (oauthMode === 'email') {
-                updateUser({ email: emailInput });
-                setShowEmailModal(false);
-            }
-            setOauthProvider(null);
-            setOauthMode(null);
-        }, 1500);
-    };
+    const [emailSending, setEmailSending] = useState(false);
+    /** Real email change: Supabase emails a confirmation link; the address changes only after it's confirmed. */
+    async function sendEmailChange() {
+        const next = emailInput.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) { toast.error(tx('Enter a valid email address.'), { id: 'email-change' }); return; }
+        if (next.toLowerCase() === (user?.email || '').toLowerCase()) { toast.error(tx('That\'s already your email address.'), { id: 'email-change' }); return; }
+        if (!supabase) { toast.error(tx('You\'re offline. Try again when you\'re connected.'), { id: 'email-change' }); return; }
+        setEmailSending(true);
+        const { error } = await supabase.auth.updateUser({ email: next }, { emailRedirectTo: `${window.location.origin}/settings` });
+        setEmailSending(false);
+        if (error) { toast.error(error.message, { id: 'email-change' }); return; }
+        toast.success(tx('Check your inbox: we sent a confirmation link. Your email changes once you confirm it.'), { id: 'email-change', duration: 9000 });
+        setShowEmailModal(false);
+    }
 
     const menuSections = [
         { id: 'profile', label: t(lang, 'profile'), icon: User },
@@ -105,11 +99,12 @@ export default function SettingsPage() {
                 {/* Sidebar menu */}
                 <div className="card" style={{ padding: 8 }}>
                     {menuSections.map(s => (
-                        <div key={s.id} className={`nav-item ${activeSection === s.id ? 'active' : ''}`} style={{ borderRadius: 8, marginBottom: 2 }} onClick={() => setActiveSection(s.id)}>
-                            <s.icon size={16} />
+                        <button type="button" key={s.id} className={`nav-item ${activeSection === s.id ? 'active' : ''}`} aria-current={activeSection === s.id ? 'page' : undefined}
+                            style={{ borderRadius: 8, marginBottom: 2, fontFamily: 'inherit', textAlign: 'start' }} onClick={() => setActiveSection(s.id)}>
+                            <s.icon size={16} aria-hidden />
                             <span>{s.label}</span>
-                            <ChevronRight size={12} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
-                        </div>
+                            <ChevronRight size={12} aria-hidden style={{ marginInlineStart: 'auto', color: 'var(--text-muted)' }} />
+                        </button>
                     ))}
                     <div className="dropdown-divider" />
                     <div className="nav-item" style={{ color: 'var(--danger)' }} onClick={logout}>
@@ -309,8 +304,8 @@ export default function SettingsPage() {
                             </div>
                             <div style={{ marginTop: 20, padding: '16px', background: 'var(--danger-soft)', borderRadius: 12, border: '1px solid var(--cinnabar-soft)' }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--danger)', marginBottom: 4 }}>{t(lang, 'danger_zone')}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>{t(lang, 'irreversible')}</div>
-                                <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>{t(lang, 'delete_all_data')}</button>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>{tx('Removes the copy of your data kept on this device. Your account and everything saved in the cloud stay as they are.')}</div>
+                                <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>{tx('Remove data from this device')}</button>
                             </div>
                         </div>
                     )}
@@ -386,15 +381,24 @@ export default function SettingsPage() {
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{tx('Notifications')}</div>
                             <PushSettings />
                             <div style={{ fontWeight: 600, fontSize: 14, margin: '20px 0 10px' }}>{tx('Also remind me about')}</div>
-                            {[{ label: tx('Daily Reminder'), desc: tx('Get reminded to log your expenses each day'), key: 'notifyDaily' }, { label: tx('Monthly Summary'), desc: tx('Receive a monthly spending report'), key: 'notifyMonthly' }, { label: tx('Budget Alerts'), desc: tx('Get notified when you approach budget limits'), key: 'notifyBudget' }].map(n => (
-                                <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 10, marginBottom: 8, border: '1px solid var(--border)' }}>
-                                    <Bell size={18} style={{ color: 'var(--primary-light)' }} />
-                                    <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{n.label}</div><div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{n.desc}</div></div>
-                                    <div onClick={() => updateUser({ [n.key]: !(user as any)?.[n.key] })} style={{ width: 44, height: 24, borderRadius: 99, background: (user as any)?.[n.key] ? 'var(--primary)' : 'var(--border)', position: 'relative', cursor: 'pointer', transition: 'background 200ms' }}>
-                                        <div style={{ position: 'absolute', left: (user as any)?.[n.key] ? 'calc(100% - 22px)' : 2, top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 200ms' }} />
+                            {([
+                                { label: tx('Daily Reminder'), desc: tx('At 8 pm, if you haven\'t logged anything that day'), key: 'notifyDaily' },
+                                { label: tx('Monthly Summary'), desc: tx('On the 1st: what you spent last month in each workspace'), key: 'notifyMonthly' },
+                                { label: tx('Budget Alerts'), desc: user?.monthlyBudget ? tx('When your personal spending reaches 80% and 100% of your monthly budget') : tx('Set a monthly budget on the Expenses page first'), key: 'notifyBudget' },
+                            ] as const).map(n => {
+                                const on = Boolean(user?.[n.key]);
+                                return (
+                                    <div key={n.key} className="notify-row">
+                                        <Bell size={18} style={{ color: 'var(--primary-light)', flexShrink: 0 }} aria-hidden />
+                                        <div style={{ flex: 1 }}><div id={`lbl-${n.key}`} style={{ fontWeight: 600, fontSize: 14 }}>{n.label}</div><div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{n.desc}</div></div>
+                                        <button type="button" role="switch" aria-checked={on} aria-labelledby={`lbl-${n.key}`} className="switch" data-on={on}
+                                            onClick={() => { updateUser({ [n.key]: !on }); toast.success(!on ? tx('Reminder on') : tx('Reminder off'), { id: `notify-${n.key}` }); }}>
+                                            <span />
+                                        </button>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{tx('Reminders arrive on every device where notifications are on, and always show in Activity.')}</p>
                         </div>
                     )}
 
@@ -428,63 +432,37 @@ export default function SettingsPage() {
 
             {showReport && <ReportSheet onClose={() => setShowReport(false)} />}
 
-            {/* Email Modal */}
+            {/* Change email */}
             {showEmailModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Change Email')}</h2>
-                        <div className="form-group">
-                            <label className="form-label">{tx('New Email Address')}</label>
-                            <input type="email" className="form-input" value={emailInput} onChange={e => setEmailInput(e.target.value)} autoFocus />
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{tx('To apply these changes, you must re-authenticate with a provider.')}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('google', 'email')} disabled={!emailInput}>
-                                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.1C33.6 33.3 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z" /><path fill="#FF3D00" d="M6.3 14.7 13 19.6C14.9 14.6 19 11 24 11c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.8 13.6-4.7l-6.3-5.2c-2 1.4-4.5 2.2-7.3 2.2-5.2 0-9.5-3.2-11.1-7.6l-6.6 5.1C9.8 40 16.4 44 24 44z" /><path fill="#1976D2" d="M43.6 20H24v8h11.1c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.2c3.7-3.4 5.9-8.5 5.9-14.9 0-1.3-.1-2.7-.1-4z" /></svg>{' '}{tx('Verify with Google')}
-                            </button>
-                            <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('microsoft', 'email')} disabled={!emailInput}>
-                                <svg width="16" height="16" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022" /><rect x="12" y="1" width="10" height="10" fill="#7fba00" /><rect x="1" y="12" width="10" height="10" fill="#00a4ef" /><rect x="12" y="12" width="10" height="10" fill="#ffb900" /></svg>{' '}{tx('Verify with Microsoft')}
-                            </button>
-                            <button className="btn btn-secondary w-full" onClick={() => handleOauthConnect('apple', 'email')} disabled={!emailInput}>
-                                <Cloud size={16} />{' '}{tx('Verify with Apple')}
-                            </button>
-                        </div>
-                        <button className="btn btn-ghost w-full" style={{ marginTop: 12 }} onClick={() => setShowEmailModal(false)}>{tx('Cancel')}</button>
-                    </div>
-                </div>
-            )}
-
-            {/* Simulated OAuth Modal */}
-            {oauthProvider && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 32, textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>
-                            {oauthProvider === 'google' ? 'G' : oauthProvider === 'apple' ? '' : 'M'}
-                        </div>
-                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{tx('Sign in with')}{' '}{oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1)}</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>{tx('Zaylo wants to access your')}{' '}{oauthProvider}{' '}{tx('account to verify your identity and manage backups.')}</p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <button className="btn btn-primary w-full" onClick={processOauth} disabled={oauthConnecting}>
-                                {oauthConnecting ? tx('Validating...') : tx('Allow Access')}
-                            </button>
-                            <button className="btn btn-ghost w-full" onClick={() => { setOauthProvider(null); setOauthMode(null); }} disabled={oauthConnecting}>{tx('Cancel')}</button>
-                        </div>
-                    </div>
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget && !emailSending) setShowEmailModal(false); }}>
+                    <Dialog className="modal" labelledBy="dlg-email" onClose={() => { if (!emailSending) setShowEmailModal(false); }} style={{ maxWidth: 420, padding: 24 }}>
+                        <h2 id="dlg-email" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{tx('Change Email')}</h2>
+                        <form onSubmit={e => { e.preventDefault(); sendEmailChange(); }}>
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="new-email">{tx('New Email Address')}</label>
+                                <input id="new-email" type="email" autoComplete="email" className="form-input" value={emailInput} onChange={e => setEmailInput(e.target.value)} data-autofocus />
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{tx('We\'ll email a confirmation link. Your sign-in email changes only after you open it.')}</div>
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowEmailModal(false)} disabled={emailSending}>{tx('Cancel')}</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={emailSending || !emailInput.trim()}>{emailSending ? tx('Sending…') : tx('Send confirmation')}</button>
+                            </div>
+                        </form>
+                    </Dialog>
                 </div>
             )}
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-                    <div className="card animate-scale-up" style={{ width: 400, maxWidth: '100%', padding: 24 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--danger)', marginBottom: 8 }}>{tx('Are you sure you want to delete?')}</h2>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('This action can\'t be undone. All your expenses, goals, and settings will be permanently removed.')}</p>
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowDeleteModal(false); }}>
+                    <Dialog className="modal" labelledBy="dlg-device-data" onClose={() => setShowDeleteModal(false)} style={{ maxWidth: 420, padding: 24 }}>
+                        <h2 id="dlg-device-data" style={{ fontSize: 18, fontWeight: 700, color: 'var(--danger)', marginBottom: 8 }}>{tx('Remove data from this device?')}</h2>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Zaylo signs you out and clears what it stored here. Nothing is deleted from your account; sign in again to get it back.')}</p>
                         <div style={{ display: 'flex', gap: 12 }}>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>{tx('Cancel')}</button>
-                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { deleteAllData(); setShowDeleteModal(false); }}>{tx('Yes, Delete All Data')}</button>
+                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { setShowDeleteModal(false); deleteAllData(); logout(); }}>{tx('Remove and sign out')}</button>
                         </div>
-                    </div>
+                    </Dialog>
                 </div>
             )}
         </div>

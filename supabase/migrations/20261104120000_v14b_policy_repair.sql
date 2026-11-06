@@ -6,21 +6,21 @@
 -- policy idempotently. Safe to run more than once.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION public.check_is_workspace_member(w_id UUID)
+CREATE OR REPLACE FUNCTION public.check_is_workspace_member(check_workspace_id UUID)
 RETURNS BOOLEAN AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.workspace_members m
         JOIN public.users u ON u.id = m.user_id
-        WHERE m.workspace_id = w_id AND u.auth_id = auth.uid() AND m.status = 'active'
+        WHERE m.workspace_id = check_workspace_id AND u.auth_id = auth.uid() AND m.status = 'active'
     );
 $$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
 
-CREATE OR REPLACE FUNCTION public.check_is_workspace_admin(w_id UUID)
+CREATE OR REPLACE FUNCTION public.check_is_workspace_admin(check_workspace_id UUID)
 RETURNS BOOLEAN AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.workspace_members m
         JOIN public.users u ON u.id = m.user_id
-        WHERE m.workspace_id = w_id AND u.auth_id = auth.uid()
+        WHERE m.workspace_id = check_workspace_id AND u.auth_id = auth.uid()
           AND m.status = 'active' AND m.role IN ('owner', 'admin')
     );
 $$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;

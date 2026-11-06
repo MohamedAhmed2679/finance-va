@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { tx } from '../i18n/translations';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useStore } from '../store/useStore';
@@ -121,9 +122,10 @@ export default function AddExpenseModal({ onClose, editId }: Props) {
 
     // const catInfo = getCategoryInfo(category); // This variable was unused and has been commented out or removed if it was part of the original instruction.
 
+    const dlgRef = useDialog<HTMLDivElement>(onClose);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="modal animate-slideUp">
+            <div className="modal animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-label={tx('Expense')}>
                 <div className="modal-header">
                     <h2 className="modal-title">{editId ? tx('Edit Expense') : tx('Add Expense')}</h2>
                     <button className="modal-close" title={tx('Close')} onClick={onClose}><X size={20} /></button>

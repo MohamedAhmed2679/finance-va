@@ -41,6 +41,11 @@ const nativeAvailable = () => isNative() && Capacitor.isPluginAvailable('LocalNo
 
 export type PushState = 'on' | 'off' | 'denied' | 'unsupported';
 
+// The desktop and phone apps can't take back the system permission, so "Turn off" is remembered here.
+const MUTE_KEY = 'zaylo_device_notifications_off';
+const isMuted = () => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } };
+const setMuted = (v: boolean) => { try { if (v) localStorage.setItem(MUTE_KEY, '1'); else localStorage.removeItem(MUTE_KEY); } catch { /* private mode */ } };
+
 const urlB64ToUint8 = (b64: string) => {
     const pad = '='.repeat((4 - (b64.length % 4)) % 4);
     const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
@@ -74,9 +79,13 @@ export async function initPush(onOpen: (path: string) => void) {
 export async function pushState(): Promise<PushState> {
     if (nativeAvailable()) {
         const p = await LocalNotifications.checkPermissions().catch(() => ({ display: 'denied' }));
-        return p.display === 'granted' ? 'on' : p.display === 'denied' ? 'denied' : 'off';
+        return p.display === 'granted' ? (isMuted() ? 'off' : 'on') : p.display === 'denied' ? 'denied' : 'off';
     }
-    if (isElectron()) return 'Notification' in window ? (Notification.permission === 'granted' ? 'on' : Notification.permission === 'denied' ? 'denied' : 'off') : 'unsupported';
+    if (isElectron()) {
+        if (!('Notification' in window)) return 'unsupported';
+        if (Notification.permission === 'denied') return 'denied';
+        return Notification.permission === 'granted' && !isMuted() ? 'on' : 'off';
+    }
     if (!webPushSupported()) return 'unsupported';
     if (Notification.permission === 'denied') return 'denied';
     const reg = await navigator.serviceWorker.getRegistration('/sw.js');
@@ -101,13 +110,16 @@ export async function enablePush(userDbId: string): Promise<PushState> {
     if (nativeAvailable()) {
         const p = await LocalNotifications.requestPermissions();
         if (p.display !== 'granted') return 'denied';
+        setMuted(false);
         await LocalNotifications.schedule({ notifications: [{ id: 1, title: 'Notifications are on', body: "You'll hear from Zaylo about payments, payday, chats and workspace changes.", channelId: 'zaylo' }] }).catch(() => {});
         return 'on';
     }
     if (isElectron()) {
-        const p = await Notification.requestPermission();
-        if (p === 'granted') new Notification('Notifications are on', { body: "You'll hear from Zaylo while the app is open.", icon: '/icon-192.png' });
-        return p === 'granted' ? 'on' : p === 'denied' ? 'denied' : 'off';
+        const p = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+        if (p !== 'granted') return p === 'denied' ? 'denied' : 'off';
+        setMuted(false);
+        new Notification('Notifications are on', { body: "You'll hear from Zaylo while the app is open.", icon: '/icon-192.png' });
+        return 'on';
     }
     if (!webPushSupported()) return 'unsupported';
     const perm = await Notification.requestPermission();
@@ -131,6 +143,13 @@ export async function enablePush(userDbId: string): Promise<PushState> {
 }
 
 export async function disablePush(): Promise<void> {
+    if (nativeAvailable()) {
+        setMuted(true);
+        const pending = await LocalNotifications.getPending().catch(() => ({ notifications: [] as { id: number }[] }));
+        if (pending.notifications.length) await LocalNotifications.cancel({ notifications: pending.notifications }).catch(() => {});
+        return;
+    }
+    if (isElectron()) { setMuted(true); return; }
     if (!webPushSupported()) return;
     const reg = await navigator.serviceWorker.getRegistration('/sw.js');
     const sub = await reg?.pushManager.getSubscription();
@@ -155,7 +174,7 @@ let nextId = 1000;
 /** Show a device notification for something that just happened, when Zaylo isn't in front. */
 export async function notifyDevice(title: string, body: string, url = '/activity') {
     const away = typeof document !== 'undefined' && document.visibilityState !== 'visible';
-    if (!away) return;
+    if (!away || isMuted()) return;
     if (nativeAvailable()) {
         LocalNotifications.schedule({ notifications: [{ id: nextId++ % 100000 + 1000, title, body, extra: { url }, channelId: 'zaylo' }] }).catch(() => {});
         return;
@@ -175,8 +194,8 @@ const REMINDER_BASE = 500_000;
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 /** Replace scheduled reminders with the next 60 days of payment and payday reminders (9:00 local time). */
-export async function scheduleReminders(bills: ReminderBill[], paydays: ReminderPayday[]) {
-    if (!nativeAvailable()) return;
+export async function scheduleReminders(bills: ReminderBill[], paydays: ReminderPayday[], opts: { daily?: boolean } = {}) {
+    if (!nativeAvailable() || isMuted()) return;
     const perm = await LocalNotifications.checkPermissions().catch(() => ({ display: 'denied' }));
     if (perm.display !== 'granted') return;
     const pending = await LocalNotifications.getPending().catch(() => ({ notifications: [] as { id: number }[] }));
@@ -187,6 +206,13 @@ export async function scheduleReminders(bills: ReminderBill[], paydays: Reminder
     const now = new Date();
     for (let d = 0; d <= 60; d++) {
         const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, 9, 0, 0);
+        if (opts.daily) {
+            const evening = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 20, 0, 0);
+            if (evening > now && d <= 14) out.push({
+                id: REMINDER_BASE + 450_000 + d, channelId: 'zaylo', title: "Log today's expenses",
+                body: 'Add what you spent today so your budget stays accurate.', schedule: { at: evening, allowWhileIdle: true }, extra: { url: '/expenses' },
+            });
+        }
         if (day <= now) continue;
         const lastDay = new Date(day.getFullYear(), day.getMonth() + 1, 0).getDate();
         const month = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}`;
@@ -210,5 +236,5 @@ export async function scheduleReminders(bills: ReminderBill[], paydays: Reminder
             });
         }
     }
-    if (out.length) await LocalNotifications.schedule({ notifications: out.slice(0, 60) }).catch(() => {});
+    if (out.length) await LocalNotifications.schedule({ notifications: out.slice(0, 64) }).catch(() => {});
 }

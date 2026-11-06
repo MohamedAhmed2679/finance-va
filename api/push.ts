@@ -5,7 +5,8 @@
  *     { action: 'dispatch' }               send every notification that hasn't been pushed yet
  *     { action: 'chat', messageId }        tell the other members of a workspace about a new chat message
  *     { action: 'test' }                   send a test push to the caller's devices
- *   GET  /api/push?cron=reminders          daily: create payment / payday reminders, then dispatch
+ *   GET  /api/push?cron=reminders          8 am Cairo: payment / payday reminders, monthly summary (1st), Smart Cart photo cleanup, dispatch
+ *   GET  /api/push?cron=evening            8 pm Cairo: "log today's expenses" reminder, dispatch
  *
  * Env: SUPABASE_SERVICE_ROLE_KEY (push keys are derived from it unless VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY are set),
  *      VAPID_SUBJECT (optional),
@@ -72,8 +73,9 @@ const TITLES: Record<string, string> = {
     member_added: 'Added to a workspace', member_joined: 'New member', member_removed: 'Removed from a workspace', member_left: 'Someone left',
     role_change: 'Your role changed', invite: 'Workspace invite', join_request: 'Join request', admin_message: 'Message from Zaylo',
     admin_notice: 'Zaylo', bill_due: 'Payment reminder', payday: 'Payday', expense_added: 'New expense', workspace_archived: 'Workspace archived', workspace_deleted: 'Workspace deleted', backup: 'Backup saved',
+    daily_log: 'Log today\'s expenses', monthly_summary: 'Your monthly summary', budget_alert: 'Budget alert',
 };
-const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/messages', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces', backup: '/settings?section=cloud' };
+const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/messages', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces', backup: '/settings?section=cloud', daily_log: '/expenses', monthly_summary: '/insights', budget_alert: '/expenses' };
 
 interface Payload { title: string; body: string; url: string; tag?: string }
 
@@ -115,6 +117,7 @@ async function dispatchPending() {
 }
 
 async function chatPush(me: Row, messageId: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(messageId)) return { sent: 0 };
     const msgs: Row[] = await db(`chat_messages?id=eq.${messageId}&select=id,workspace_id,user_id,body,attachments`);
     const m = msgs[0];
     if (!m || m.user_id !== me.id) return { sent: 0 };
@@ -141,12 +144,34 @@ async function handlePost(req: Request) {
     }
 }
 
-async function handleCron(req: Request) {
+/** Deletes Smart Cart photos nobody uses any more (abandoned drafts, removed items, discarded carts). */
+async function cleanSmartCartPhotos() {
+    const paths: string[] = (await rpc('smart_cart_cleanup', {}).catch(() => [])) || [];
+    let deleted = 0;
+    for (let i = 0; i < paths.length; i += 100) {
+        const chunk = paths.slice(i, i + 100);
+        const r = await fetch(`${SB_URL()}/storage/v1/object/smart-cart`, {
+            method: 'DELETE',
+            headers: { apikey: SERVICE(), Authorization: `Bearer ${SERVICE()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prefixes: chunk }),
+        });
+        if (r.ok) deleted += chunk.length;
+    }
+    return { photosFound: paths.length, photosDeleted: deleted };
+}
+
+async function handleCron(req: Request, slot: 'morning' | 'evening') {
+    // With CRON_SECRET set (recommended), Vercel sends it; without it, only Vercel's scheduler user agent is accepted.
     const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.get('Authorization') !== `Bearer ${secret}`) return json({ error: 'Not allowed' }, 401);
-    const created = await rpc('create_due_reminders', {});
+    if (secret ? req.headers.get('Authorization') !== `Bearer ${secret}` : !/vercel-cron/i.test(req.headers.get('user-agent') || '')) return json({ error: 'Not allowed' }, 401);
+    const out: Row = {};
+    if (slot === 'morning') {
+        out.reminders = await rpc('create_due_reminders', {});
+        out.cleanup = await cleanSmartCartPhotos().catch(e => ({ error: (e as Error).message }));
+    }
+    out.preferenceReminders = await rpc('create_preference_reminders', { p_slot: slot }).catch(e => ({ error: (e as Error).message }));
     const pushed = setupVapid() ? await dispatchPending() : { notifications: 0, sent: 0, note: 'VAPID keys missing' };
-    return json({ reminders: created, ...pushed });
+    return json({ ...out, ...pushed });
 }
 
 export function OPTIONS() { return new Response(null, { status: 204, headers: CORS }); }
@@ -156,7 +181,9 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     const url = new URL(req.url);
     try {
-        if (url.searchParams.get('cron') === 'reminders') return await handleCron(req);
+        const cron = url.searchParams.get('cron');
+        if (cron === 'reminders') return await handleCron(req, 'morning');
+        if (cron === 'evening') return await handleCron(req, 'evening');
         const k = vapidKeys();
         return new Response(JSON.stringify({ configured: Boolean(k), publicKey: k?.publicKey || null }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
     } catch (e) { console.error('[push]', e); return json({ error: (e as Error).message }, 500); }

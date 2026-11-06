@@ -40,6 +40,12 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
 
     try {
         const native = isNative();
+        // Phone apps: Google through zaylo.cc, so Google's window names Zaylo instead of the Supabase project
+        if (native && provider === 'google') {
+            const { startAppGoogleSignIn } = await import('./googleSignIn');
+            await startAppGoogleSignIn();
+            return { success: true };
+        }
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: provider as Provider,
             options: {
@@ -316,7 +322,12 @@ export function initNativeAuthListener(onSignedIn: () => void): () => void {
             const params = new URL(url.replace('#', '?')).searchParams;
             const code = params.get('code');
             try {
-                if (code) {
+                const idToken = params.get('id_token');
+                if (idToken) {
+                    const { finishAppGoogleSignIn } = await import('./googleSignIn');
+                    const r = await finishAppGoogleSignIn(idToken, params.get('state') || '');
+                    if (!r.success) throw new Error(r.error);
+                } else if (code) {
                     const { error } = await supabase.auth.exchangeCodeForSession(code);
                     if (error) throw error;
                 } else if (params.get('access_token') && params.get('refresh_token')) {
@@ -325,6 +336,7 @@ export function initNativeAuthListener(onSignedIn: () => void): () => void {
                 onSignedIn();
             } catch (err) {
                 console.error('[Auth] Native OAuth exchange failed', err);
+                import('react-hot-toast').then(({ default: toast }) => toast.error((err as Error).message || 'Sign-in failed. Try again.', { id: 'native-auth' }));
             } finally {
                 import('@capacitor/browser').then(({ Browser }) => Browser.close().catch(() => {}));
             }

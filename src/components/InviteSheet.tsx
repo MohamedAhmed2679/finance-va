@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { tx } from '../i18n/translations';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -44,11 +45,6 @@ export default function InviteSheet({ ws, onClose }: { ws: Workspace; onClose: (
     const [fresh, setFresh] = useState('');
 
     useEffect(() => { if (tab === 'link') listInvites(ws.id).then(setLinks); }, [tab, ws.id]);
-    useEffect(() => {
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', esc);
-        return () => window.removeEventListener('keydown', esc);
-    }, [onClose]);
 
     async function addPerson(e: React.FormEvent) {
         e.preventDefault();
@@ -86,9 +82,10 @@ export default function InviteSheet({ ws, onClose }: { ws: Workspace; onClose: (
 
     const kind = kindOf(who);
 
+    const dlgRef = useDialog<HTMLDivElement>(onClose);
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="modal invite-sheet animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+            <div className="modal invite-sheet animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-labelledby="invite-title">
                 <div className="sheet-grip" aria-hidden />
                 <div className="modal-header">
                     <div>

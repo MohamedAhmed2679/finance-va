@@ -5,8 +5,11 @@
  * verified the branding) instead of the Supabase project address that the redirect flow shows.
  * Google returns an ID token, which Supabase turns into a normal session (signInWithIdToken).
  *
- * The phone apps and the desktop app keep the redirect flow: Google doesn't allow its sign-in
- * inside embedded web views, so those open the system browser.
+ * The phone apps can't show Google's button inside the app (Google blocks embedded web views), so they
+ * open zaylo.cc/app-signin in the system browser. That page shows the same Google button (so Google says
+ * "to continue to zaylo.cc") and hands the ID token back to the app through its link
+ * com.financeva.app://auth-callback. The token is bound to a nonce whose secret half never leaves the
+ * app, so a token caught on the way is useless to anyone else.
  */
 import { Capacitor } from '@capacitor/core';
 import { supabase, isSupabaseReady } from '../lib/supabase';
@@ -57,23 +60,51 @@ async function sha256Hex(text: string) {
  * Supabase checks against the ID token. Calls onResult after Supabase has created the session.
  */
 export async function mountGoogleButton(el: HTMLElement, opts: { width: number; locale: string; theme?: string; onStart?: () => void; onResult: (r: AuthResult) => void }) {
+    const raw = randomToken();
+    await renderGoogleButton(el, { ...opts, hashedNonce: await sha256Hex(raw), onCredential: async credential => {
+        opts.onStart?.();
+        opts.onResult(await signInWithGoogleIdToken(credential, raw));
+    } });
+}
+
+const randomToken = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24)))).replace(/[+/=]/g, c => (c === '+' ? '-' : c === '/' ? '_' : ''));
+
+/** Google's button with a caller-supplied nonce; the credential goes to onCredential. */
+export async function renderGoogleButton(el: HTMLElement, opts: { width: number; locale: string; theme?: string; hashedNonce: string; onCredential: (idToken: string | undefined) => void }) {
     const gsi = await loadGsi();
-    const raw = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24))));
-    const hashed = await sha256Hex(raw);
     gsi.initialize({
         client_id: GOOGLE_WEB_CLIENT_ID,
-        nonce: hashed,
+        nonce: opts.hashedNonce,
         ux_mode: 'popup',
         auto_select: false,
         itp_support: true,
         use_fedcm_for_button: true,
-        callback: async (resp: { credential?: string }) => {
-            opts.onStart?.();
-            opts.onResult(await signInWithGoogleIdToken(resp.credential, raw));
-        },
+        callback: (resp: { credential?: string }) => opts.onCredential(resp.credential),
     });
     el.innerHTML = '';
     gsi.renderButton(el, { type: 'standard', theme: opts.theme || 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width: Math.max(200, Math.min(400, Math.round(opts.width))), locale: opts.locale });
+}
+
+// ─── Phone apps: sign in through zaylo.cc in the system browser ───────────
+const APP_SIGNIN_KEY = 'zaylo_app_google_signin';
+export const APP_SIGNIN_ORIGIN = (import.meta.env.VITE_API_BASE as string | undefined) || 'https://zaylo.cc';
+
+/** Opens zaylo.cc/app-signin in the system browser. The app keeps the secret nonce and a state value. */
+export async function startAppGoogleSignIn() {
+    const raw = randomToken();
+    const state = randomToken();
+    try { localStorage.setItem(APP_SIGNIN_KEY, JSON.stringify({ raw, state, at: Date.now() })); } catch { /* storage blocked */ }
+    const url = `${APP_SIGNIN_ORIGIN}/app-signin?nonce=${encodeURIComponent(await sha256Hex(raw))}&state=${encodeURIComponent(state)}`;
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url, presentationStyle: 'popover' });
+}
+
+/** Finishes the phone sign-in when the browser hands the ID token back. */
+export async function finishAppGoogleSignIn(idToken: string, state: string): Promise<AuthResult> {
+    let saved: { raw: string; state: string; at: number } | null = null;
+    try { saved = JSON.parse(localStorage.getItem(APP_SIGNIN_KEY) || 'null'); localStorage.removeItem(APP_SIGNIN_KEY); } catch { /* ignore */ }
+    if (!saved || saved.state !== state || Date.now() - saved.at > 15 * 60_000) return { success: false, error: 'That sign-in link expired. Tap Continue with Google again.' };
+    return signInWithGoogleIdToken(idToken, saved.raw);
 }
 
 export async function signInWithGoogleIdToken(token: string | undefined, nonce: string): Promise<AuthResult> {

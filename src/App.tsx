@@ -9,6 +9,7 @@ import { consumeImpersonationLink } from './services/adminApi';
 import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
 import { PAGE_KEYS } from './components/nav';
+import AppSignInPage from './pages/AppSignInPage';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import OverviewPage from './pages/OverviewPage';
@@ -29,6 +30,7 @@ import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
 import AssistantPage from './pages/AssistantPage';
 import HistoryPage from './pages/HistoryPage';
+import SmartCartPage from './pages/SmartCartPage';
 import MobileTopBar from './components/MobileTopBar';
 import { setTxLanguage } from './i18n/translations';
 import { startDomTranslation } from './i18n/domTranslate';
@@ -113,6 +115,7 @@ function Shell() {
     const pages: Record<string, React.ReactElement> = {
         overview: <OverviewPage onNavigate={go} onAddExpense={() => setShowAdd(true)} />,
         expenses: <ExpensesPage />,
+        'smart-cart': <SmartCartPage />,
         earnings: <EarningsPage />,
         bills: <BillsPage />,
         savings: <SavingsPage />,
@@ -134,6 +137,7 @@ function Shell() {
 
     // Phone app: keep payment and payday reminders scheduled on the device
     const { bills, workspaces, incomes } = useStore();
+    const notifyDaily = useStore(s => Boolean(s.user?.notifyDaily));
     useEffect(() => {
         const wsName = (id: string) => workspaces.find(w => w.id === id)?.name || '';
         const t = setTimeout(() => scheduleReminders(
@@ -142,9 +146,10 @@ function Shell() {
                 const fixed = incomes.filter(i => i.workspaceId === w.id && i.type === 'fixed').reduce((s, i) => s + (i.baseCurrency === w.currency && i.baseAmount != null ? i.baseAmount : i.amount), 0);
                 return { workspaceId: w.id, workspaceName: w.name, day: w.cycleStartDay || 1, expected: fixed ? `${w.currency} ${fixed.toLocaleString()}` : undefined };
             }),
+            { daily: notifyDaily },
         ).catch(() => {}), 1500);
         return () => clearTimeout(t);
-    }, [bills, workspaces, incomes]);
+    }, [bills, workspaces, incomes, notifyDaily]);
 
     return (
         <div className={`app-shell ${isElectron ? 'electron-mode' : ''}`}>
@@ -166,12 +171,13 @@ function Shell() {
             <TabBar active={active} onNavigate={go} />
             <JoinInvite />
 
-            {!['chat', 'messages', 'assistant'].includes(active) && <QuickAddMenu
+            {!['chat', 'messages', 'assistant', 'smart-cart'].includes(active) && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setCapture('voice')}
                 onScanAdd={() => setCapture('scan')}
                 onPasteAdd={() => setCapture('text')}
                 onAddIncome={() => go('earnings')}
+                onSmartCart={() => go('smart-cart')}
             />}
             {showAdd && <AddExpenseModal onClose={() => setShowAdd(false)} />}
 
@@ -278,7 +284,8 @@ export default function App() {
     }, []);
 
     let content: React.ReactElement;
-    if (!isAuthenticated) content = <AuthPage onAuth={() => window.history.replaceState({}, '', '/overview')} />;
+    if (window.location.pathname === '/app-signin') content = <AppSignInPage />;
+    else if (!isAuthenticated) content = <AuthPage onAuth={() => window.history.replaceState({}, '', '/overview')} />;
     else if (showOnboarding) content = <OnboardingPage />;
     else if (isLocked) content = <LockScreen />;
     else content = <BrowserRouter><Shell /></BrowserRouter>;

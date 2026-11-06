@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import { tx } from '../i18n/translations';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -57,12 +58,13 @@ export default function JoinInvite() {
         } finally { setBusy(false); }
     }
 
+    const dlgRef = useDialog<HTMLDivElement>(() => close(), Boolean(token));
     if (!token) return null;
     const bad = info && info.status !== 'valid';
 
     return (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) close(); }}>
-            <div className="modal join-card animate-slideUp" role="dialog" aria-modal="true" aria-labelledby="join-title">
+            <div className="modal join-card animate-slideUp" ref={dlgRef} role="dialog" aria-modal="true" aria-labelledby="join-title">
                 <button className="modal-close join-close" onClick={close} aria-label={tx('Close')}><X size={20} /></button>
                 {!info && !error && <div className="skeleton" style={{ height: 140 }} />}
                 {info && !bad && (

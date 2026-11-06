@@ -405,8 +405,9 @@ async function handleCallback(url: URL) {
 }
 
 async function handleCron(req: Request) {
+    // With CRON_SECRET set (recommended), Vercel sends it; without it, only Vercel's scheduler user agent is accepted.
     const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.get('Authorization') !== `Bearer ${secret}`) return json({ error: 'Not allowed' }, 401);
+    if (secret ? req.headers.get('Authorization') !== `Bearer ${secret}` : !/vercel-cron/i.test(req.headers.get('user-agent') || '')) return json({ error: 'Not allowed' }, 401);
     const month = prevMonth();
     const started = Date.now();
     const due: Row[] = await db(`cloud_connections?or=(last_backup_month.is.null,last_backup_month.lt.${month})&select=*&order=updated_at.asc&limit=40`);

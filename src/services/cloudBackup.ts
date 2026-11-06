@@ -28,7 +28,7 @@ export interface CloudStatus {
     setupNeeded?: 'database';
 }
 
-async function call<T = any>(body: object): Promise<T> {
+async function call<T = Record<string, unknown>>(body: object): Promise<T> {
     const { data } = (await supabase?.auth.getSession()) || { data: { session: null } };
     const res = await fetch(`${API_BASE}/api/backup`, {
         method: 'POST',
@@ -46,7 +46,7 @@ export const disconnectCloud = (provider: CloudProvider) => call({ action: 'disc
 export const backupNow = (provider?: CloudProvider) => call<{ results: { provider: CloudProvider; ok: boolean; error?: string; files?: { name: string; url: string }[] }[] }>({ action: 'backup_now', provider });
 
 export const isElectron = () => typeof window !== 'undefined' && Boolean((window as unknown as { ipcRenderer?: unknown }).ipcRenderer) && /Electron/i.test(navigator.userAgent);
-const ipc = () => (window as unknown as { ipcRenderer: { invoke: (ch: string, ...a: unknown[]) => Promise<any> } }).ipcRenderer;
+const ipc = () => (window as unknown as { ipcRenderer: { invoke: (ch: string, ...a: unknown[]) => Promise<unknown> } }).ipcRenderer;
 
 /** Opens Google / Microsoft sign-in. In the apps it opens the system browser (Google blocks sign-in inside apps). */
 export async function connectCloud(provider: CloudProvider) {
@@ -81,7 +81,7 @@ const PREF_KEY = 'zaylo_desktop_backup_v1';
 
 export async function desktopSyncFolders(): Promise<SyncFolder[]> {
     if (!isElectron()) return [];
-    try { return await ipc().invoke('zaylo:sync-folders'); } catch { return []; }
+    try { return (await ipc().invoke('zaylo:sync-folders')) as SyncFolder[]; } catch { return []; }
 }
 export function desktopBackupPref(): DesktopBackupPref | null {
     try { return JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); } catch { return null; }
@@ -96,7 +96,7 @@ const toB64 = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i +
 /** Saves backup files into the chosen synced folder (in "Zaylo Backups"). */
 export async function saveToDesktopFolder(folderKey: SyncFolder['key'], month?: string) {
     const files = await backupFilesFor(month);
-    const res: { ok: boolean; dir?: string; error?: string } = await ipc().invoke('zaylo:save-files', { folderKey, files: files.map(f => ({ name: f.name, base64: toB64(f.bytes) })) });
+    const res = (await ipc().invoke('zaylo:save-files', { folderKey, files: files.map(f => ({ name: f.name, base64: toB64(f.bytes) })) })) as { ok: boolean; dir?: string; error?: string };
     if (!res.ok) throw new Error(res.error || 'Couldn\'t save the backup');
     return res.dir!;
 }
