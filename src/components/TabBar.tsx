@@ -57,6 +57,13 @@ export default function TabBar({ active, onNavigate }: TabBarProps) {
                             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
                             onDragEnd={(_, info) => { if (info.offset.y > 90 || info.velocity.y > 500) setMoreOpen(false); }}>
                             <div className="sheet-handle" />
+                            <button type="button" className="sheet-account" onClick={() => go('settings')}>
+                                <span className="user-avatar" aria-hidden>{(user?.name || user?.email || '?').charAt(0).toUpperCase()}</span>
+                                <span className="sheet-account-text">
+                                    <span className="sheet-account-name">{user?.name || tx('Your account')}</span>
+                                    <span className="sheet-account-email">{user?.email || user?.phone || ''}</span>
+                                </span>
+                            </button>
                             <div style={{ marginBottom: 14 }}><WorkspaceSwitcher onNavigate={go} /></div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                                 {extra.map((item, i) => (

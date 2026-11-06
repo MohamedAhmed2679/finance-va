@@ -113,7 +113,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     </div>
                     <div className="user-info">
                         <div className="user-name">{user?.name ?? tx('Guest')}</div>
-                        <div className="user-email">{user?.email || user?.phone || ''}</div>
+                        <div className="user-email" title={user?.email || user?.phone || ''}>{user?.email || user?.phone || ''}</div>
                     </div>
                     <button className="icon-btn" title={t(lang, 'sign_out')} aria-label={t(lang, 'sign_out')} onClick={(e) => { e.stopPropagation(); logout(); }}>
                         <LogOut size={17} />

@@ -281,8 +281,9 @@ a { color: var(--note); }
   flex-shrink: 0;
   position: sticky;
   top: var(--titlebar-height, 0px);
-  height: 100vh;
-  height: 100dvh;
+  /* the desktop app's title bar takes part of the window: the sidebar fits in what's left */
+  height: calc(100vh - var(--titlebar-height, 0px));
+  height: calc(100dvh - var(--titlebar-height, 0px));
   display: flex;
   flex-direction: column;
   padding: 22px 14px 16px;
@@ -290,7 +291,7 @@ a { color: var(--note); }
   color: #E6EAF2;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 100;
-  overflow-y: auto;
+  overflow: hidden;
   /* Sidebar always sits on Midnight, so it carries its own dark tokens */
   --ink: #F4F6FA; --ink-2: #AEB7CB; --ink-3: #7F89A1;
   --line: rgba(255, 255, 255, 0.08); --line-strong: rgba(255, 255, 255, 0.16);
@@ -359,6 +360,15 @@ a { color: var(--note); }
   flex-direction: column;
   gap: 2px;
   margin-top: 18px;
+  /* the menu scrolls on short windows; the account card at the bottom always stays visible */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  margin-inline: -6px;
+  padding-inline: 6px;
 }
 
 .nav-group-label {
@@ -408,7 +418,7 @@ a.nav-item { text-decoration: none; }
   background: var(--gradient);
 }
 
-.sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding-top: 16px; }
+.sidebar-footer { margin-top: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 16px; }
 
 .sidebar-user {
   display: flex;
@@ -433,7 +443,7 @@ a.nav-item { text-decoration: none; }
 }
 .user-info { flex: 1; min-width: 0; }
 .user-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-email { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-email { font-size: 12px; line-height: 1.35; color: var(--ink-3); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .icon-btn {
   width: 34px; height: 34px;
@@ -1878,3 +1888,24 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .app-signin h1 { font-size: 22px; font-weight: 700; margin: 0; }
 .app-signin p { max-width: 360px; color: var(--ink-3, #9aa3b5); margin: 0; line-height: 1.5; }
 .app-signin-btn { min-height: 44px; }
+
+/* Charts: no browser focus box after a tap (keyboard focus still shows), solid tooltips */
+.recharts-wrapper :focus:not(:focus-visible), .recharts-surface:focus:not(:focus-visible) { outline: none; }
+.recharts-tooltip-wrapper { z-index: 5; }
+.donut { position: relative; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; padding: 0 44px; }
+.donut-name { font-size: 11px; color: var(--ink-3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.donut-value { font-size: 16px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* Phone "More" sheet: who is signed in */
+.sheet-account { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--ink); text-align: start; font: inherit; cursor: pointer; }
+.sheet-account .user-avatar { flex-shrink: 0; }
+.sheet-account-text { display: flex; flex-direction: column; min-width: 0; }
+.sheet-account-name { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-account-email { font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+
+/* Delete account dialog */
+.del-summary { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--danger-soft); border: 1px solid var(--cinnabar-soft); }
+.del-group-title { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.del-group ul { margin: 0; padding-inline-start: 18px; font-size: 13px; color: var(--ink-2); }
+.del-expected { font-size: 13px; font-weight: 600; color: var(--ink); margin: 2px 0 8px; overflow-wrap: anywhere; user-select: all; }

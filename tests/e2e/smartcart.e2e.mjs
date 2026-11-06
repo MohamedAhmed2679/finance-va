@@ -78,6 +78,7 @@ function backend() {
             c.status = 'confirmed'; c.expense_id = id;
             return json(route, { expenseId: id, alreadyConfirmed: false });
         }
+        if (url.pathname === '/rest/v1/rpc/account_deletion_preview') return json(route, { deleteWorkspaces: ['Home'], transferWorkspaces: ['Family'], leaveWorkspaces: [] });
         if (url.pathname === '/rest/v1/rpc/discard_smart_cart') { db.discardCalls++; const c = db.carts.get(body.p_cart_id); if (c) c.status = 'discarded'; return json(route, { discarded: true, imagePaths: [] }); }
         if (url.pathname === '/auth/v1/user' && m === 'PUT') return json(route, { id: 'auth1', aud: 'authenticated', email: 'shopper@example.test', new_email: body?.email, app_metadata: {}, user_metadata: {} });
         if (url.pathname.startsWith('/auth/v1/')) return json(route, {}, 401);
@@ -111,7 +112,7 @@ async function scenario(name, fn, opts = {}) {
         }
     }, [storeState(opts.lang), !!opts.denyCamera]);
     const be = backend();
-    await ctx.route(/supabase\.co|\/api\/ai\/zaylo|\/api\/push|\/api\/backup/, be.handle);
+    await ctx.route(/supabase\.co|\/api\/ai\/zaylo|\/api\/push|\/api\/backup|\/api\/account/, be.handle);
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -454,6 +455,28 @@ await scenario('phone sign-in page on zaylo.cc refuses links it did not make', a
     await page.getByText("This sign-in link isn't valid any more").waitFor();
     expect(!(await page.locator('.app-signin-btn').count()), 'no Google button for a bad link');
 }, { path: '/app-signin?nonce=abc&state=x' });
+
+
+await scenario('delete account: shows what happens, needs the exact email, never deletes by accident', async (page, db) => {
+    await openSettings(page, 'Security & Privacy');
+    await page.getByRole('button', { name: 'Delete account' }).click();
+    const dlg = page.getByRole('dialog', { name: 'Delete your Zaylo account?' });
+    await dlg.waitFor();
+    await dlg.getByText('Family').waitFor();
+    expect(await dlg.getByText('Home').count() > 0, 'lists the workspace that will be deleted');
+    const del = dlg.getByRole('button', { name: 'Delete account' });
+    expect(await del.isDisabled(), 'disabled before typing');
+    await page.fill('#del-confirm', 'shopper@example');
+    expect(await del.isDisabled(), 'disabled for a partial email');
+    await page.fill('#del-confirm', 'SHOPPER@example.test');
+    expect(!(await del.isDisabled()), 'enabled for the exact email, any letter case');
+    await del.click();
+    await dlg.getByRole('alert').waitFor();
+    expect(!db.requests.some(r => r.path === '/api/account'), 'without a live session nothing is sent');
+    expect(await dlg.isVisible(), 'still signed in, dialog open');
+    await page.keyboard.press('Escape');
+    await dlg.waitFor({ state: 'detached' });
+}, { desktop: true, path: '/settings' });
 
 // ------------------------------------------------------------------ report
 let failed = 0;

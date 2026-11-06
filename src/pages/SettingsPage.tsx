@@ -1,3 +1,4 @@
+import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import PushSettings from '../components/PushSettings';
 import ZayloIdCard from '../components/ZayloIdCard';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ export default function SettingsPage() {
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailInput, setEmailInput] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showDeleteAccount, setShowDeleteAccount] = useState(false);
     const [showReport, setShowReport] = useState(false);
 
     // Categories state
@@ -306,6 +308,9 @@ export default function SettingsPage() {
                                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--danger)', marginBottom: 4 }}>{t(lang, 'danger_zone')}</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>{tx('Removes the copy of your data kept on this device. Your account and everything saved in the cloud stay as they are.')}</div>
                                 <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteModal(true)}>{tx('Remove data from this device')}</button>
+                                <div style={{ height: 1, background: 'var(--cinnabar-soft)', margin: '16px 0' }} />
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>{tx('Permanently delete your Zaylo account and the data that belongs only to you.')}</div>
+                                <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteAccount(true)}>{tx('Delete account')}</button>
                             </div>
                         </div>
                     )}
@@ -431,6 +436,7 @@ export default function SettingsPage() {
             </div>
 
             {showReport && <ReportSheet onClose={() => setShowReport(false)} />}
+            {showDeleteAccount && <DeleteAccountDialog onClose={() => setShowDeleteAccount(false)} />}
 
             {/* Change email */}
             {showEmailModal && (

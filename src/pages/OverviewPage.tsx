@@ -1,6 +1,7 @@
+import { CHART_TOOLTIP } from '../utils/chartStyle';
 import { PushPrompt } from '../components/PushSettings';
 import { toBase } from '../utils/money';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ZayloWave, ZPattern, ZayloMark, useCountUp } from '../components/brand/Brand';
 import { useStore, type Expense } from '../store/useStore';
@@ -37,6 +38,7 @@ function getCategoryData(expenses: Expense[], workspaceId: string, startDate: st
 }
 
 export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps) {
+    const [slice, setSlice] = useState<number | null>(null);
     const { user, expenses, bills, activeWorkspaceId, workspaces, currency, markBillPaid, syncStatus } = useStore();
     const lang = user?.language ?? 'en';
     const ws = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
@@ -176,7 +178,7 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                                     <defs><linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--note)" stopOpacity={0.22} /><stop offset="100%" stopColor="var(--note)" stopOpacity={0} /></linearGradient></defs>
                                     <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--ink-3)' }} axisLine={false} tickLine={false} minTickGap={16} />
                                     <YAxis tick={{ fontSize: 11, fill: 'var(--ink-3)' }} axisLine={false} tickLine={false} width={44} />
-                                    <Tooltip cursor={{ stroke: 'var(--line-strong)' }} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13, color: 'var(--ink)' }} formatter={(v: number | string | undefined) => [formatCurrency(Number(v) || 0, cur), 'Spent']} />
+                                    <Tooltip cursor={{ stroke: 'var(--line-strong)' }} contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: number | string | undefined) => [formatCurrency(Number(v) || 0, cur), 'Spent']} />
                                     <Area type="monotone" dataKey="amount" stroke="var(--note)" strokeWidth={2} fill="url(#spendFill)" animationDuration={900} />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -189,15 +191,25 @@ export default function OverviewPage({ onNavigate, onAddExpense }: OverviewProps
                         <div className="empty-state" style={{ padding: '36px 0' }}><div className="empty-desc">{tx('Categories appear here after your first expense.')}</div></div>
                     ) : (
                         <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-                            <div style={{ width: 150, height: 150, flexShrink: 0 }}>
+                            <div className="donut" style={{ width: 150, height: 150, flexShrink: 0 }} onMouseLeave={() => setSlice(null)}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie data={catData} cx="50%" cy="50%" innerRadius={46} outerRadius={70} paddingAngle={2} dataKey="value" strokeWidth={0} animationDuration={900}>
-                                            {catData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                    <PieChart accessibilityLayer={false}>
+                                        <Pie data={catData} cx="50%" cy="50%" innerRadius={46} outerRadius={70} paddingAngle={2} dataKey="value" strokeWidth={0} animationDuration={900}
+                                            onMouseEnter={(_, i) => setSlice(i)} onClick={(_, i) => setSlice((s: number | null) => (s === i ? null : i))}>
+                                            {catData.map((entry, i) => <Cell key={i} fill={entry.color} opacity={slice === null || slice === i ? 1 : 0.35} style={{ cursor: 'pointer', transition: 'opacity 150ms' }} />)}
                                         </Pie>
-                                        <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13 }} formatter={(v: number | string | undefined) => formatCurrency(Number(v) || 0, cur)} />
                                     </PieChart>
                                 </ResponsiveContainer>
+                                {/* The chosen slice's name and amount sit in the middle instead of a tooltip over the chart */}
+                                <div className="donut-center" aria-live="polite">
+                                    {(() => {
+                                        const c = slice !== null ? catData[slice] : null;
+                                        const total = catData.reduce((a, x) => a + x.value, 0);
+                                        return c
+                                            ? <><span className="donut-name">{c.name}</span><span className="donut-value">{Math.round((c.value / (total || 1)) * 100)}%</span></>
+                                            : <><span className="donut-name">{tx('Categories')}</span><span className="donut-value">{catData.length}</span></>;
+                                    })()}
+                                </div>
                             </div>
                             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
                                 {catData.slice(0, 5).map(c => (

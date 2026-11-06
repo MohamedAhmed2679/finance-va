@@ -1,3 +1,4 @@
+import { CHART_TOOLTIP } from '../utils/chartStyle';
 import { toBase } from '../utils/money';
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
@@ -77,7 +78,7 @@ export default function InsightsPage() {
                         <BarChart data={monthlyData} barSize={32}>
                             <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={50} />
-                            <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} formatter={(v: any) => formatCurrency(v, cur)} />
+                            <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
                             <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
                                 {monthlyData.map((_, i) => <Cell key={i} fill={i === monthlyData.length - 1 ? 'var(--note)' : `color-mix(in srgb, var(--note) ${Math.round((0.4 + i * 0.1) * 100)}%, transparent)`} />)}
                             </Bar>
@@ -97,7 +98,7 @@ export default function InsightsPage() {
                                     <Pie data={catData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} dataKey="value" strokeWidth={0} paddingAngle={2}>
                                         {catData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                     </Pie>
-                                    <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} formatter={(v: any) => formatCurrency(v, cur)} />
+                                    <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -129,7 +130,7 @@ export default function InsightsPage() {
                                 <Pie data={pmData} cx="50%" cy="50%" outerRadius={70} dataKey="value" strokeWidth={0} paddingAngle={3} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} labelLine={false}>
                                     {pmData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                 </Pie>
-                                <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} formatter={(v: any) => formatCurrency(v, cur)} />
+                                <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
