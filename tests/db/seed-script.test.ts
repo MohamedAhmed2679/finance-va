@@ -3,6 +3,14 @@ import { it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createTestDb } from './harness';
 
+it('creates the workspace if missing', async () => {
+    const t = await createTestDb();
+    const u = await t.signUp('mohamed@unifiedhive.com');
+    await t.db.exec(readFileSync('supabase/seed/seed_full_year_test_data.sql', 'utf8'));
+    const r = (await t.db.query<{ n: number; m: number }>(`SELECT (SELECT count(*)::int FROM public.workspaces WHERE owner_id = '${u.userId}') n, (SELECT count(*)::int FROM public.workspace_members WHERE user_id = '${u.userId}' AND role = 'owner') m`)).rows[0];
+    expect(r).toEqual({ n: 1, m: 1 });
+}, 120_000);
+
 it('seeds a year, re-runs without duplicates, and removes cleanly', async () => {
     const t = await createTestDb();
     const u = await t.signUp('Mohamed@unifiedhive.com');

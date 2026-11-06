@@ -31,10 +31,17 @@ BEGIN
     SELECT u.id INTO v_user FROM public.users u JOIN auth.users a ON a.id = u.auth_id WHERE lower(a.email) = v_email;
     IF v_user IS NULL THEN RAISE EXCEPTION 'No Zaylo account found for %. Sign in to Zaylo with it once, then run this again.', v_email; END IF;
 
+    -- The account's Personal workspace (or, failing that, any workspace it owns); created if it has none
     SELECT w.id, w.currency INTO v_ws, v_cur FROM public.workspaces w
-     WHERE w.owner_id = v_user AND w.type = 'personal' AND NOT coalesce(w.is_archived, false)
-     ORDER BY w.created_at LIMIT 1;
-    IF v_ws IS NULL THEN RAISE EXCEPTION 'That account has no Personal workspace yet. Open Zaylo with it once, then run this again.'; END IF;
+     WHERE w.owner_id = v_user
+     ORDER BY (w.type = 'personal') DESC, coalesce(w.is_archived, false), w.created_at LIMIT 1;
+    IF v_ws IS NULL THEN
+        INSERT INTO public.workspaces (name, type, owner_id, currency) VALUES ('Personal', 'personal', v_user, 'EGP') RETURNING id, currency INTO v_ws, v_cur;
+        RAISE NOTICE 'Created a Personal workspace for this account.';
+    END IF;
+    INSERT INTO public.workspace_members (workspace_id, user_id, role, status)
+    SELECT v_ws, v_user, 'owner', 'active'
+     WHERE NOT EXISTS (SELECT 1 FROM public.workspace_members WHERE workspace_id = v_ws AND user_id = v_user);
     IF v_cur <> 'EGP' THEN RAISE NOTICE 'Note: this workspace''s currency is %, the test data is in EGP.', v_cur; END IF;
 
     -- Start clean (removes only an earlier seed)
