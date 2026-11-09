@@ -16,6 +16,9 @@ import {
 } from '../autotrack/service';
 import type { OwnAccount } from '../autotrack/classify';
 import { knownSenders } from '../autotrack/senders';
+import AutoTrackSetup from './AutoTrackSetup';
+import { isSetUp } from '../autotrack/setup';
+import { useStore } from '../store/useStore';
 
 const STATE_TEXT: Record<DeviceState, [string, string]> = {
     unsupported: ['Not available on this device', 'Automatic tracking needs the Zaylo Android app. Here you can paste messages instead.'],
@@ -36,6 +39,8 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
     const [deleting, setDeleting] = useState(false);
     const [loadErr, setLoadErr] = useState('');
     const state = deviceState(st);
+    const userId = useStore(s => s.user?.dbId || s.user?.id);
+    const [wizard, setWizard] = useState(() => !isSetUp(userId));
 
     const refresh = useCallback(async () => {
         setSt(await nativeStatus());
@@ -77,6 +82,8 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
                 {onOpenAutoTrack && <button className="btn btn-secondary btn-sm" style={{ marginInlineStart: 'auto' }} onClick={onOpenAutoTrack}>{tx('Open AutoTrack')}</button>}
             </div>
             {loadErr && <div className="at-banner" role="alert">{loadErr}</div>}
+            {wizard && !loadErr ? <AutoTrackSetup onDone={() => { setWizard(false); refresh(); }} onCancel={() => setWizard(false)} />
+                : !loadErr && <button className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }} onClick={() => setWizard(true)}>{tx('Run setup again')}</button>}
 
             {/* ── this device */}
             <section className="at-section" aria-labelledby="at-device">
@@ -112,6 +119,8 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
                 </label>
             </section>
 
+            <details className="at-more">
+                <summary>{tx('More options')}<span className="at-note">{tx('Accounts, rules, senders, Zaylo AI, delete imported data')}</span></summary>
             {/* ── my accounts */}
             <section className="at-section" aria-labelledby="at-accounts">
                 <h4 id="at-accounts">{tx('My accounts and wallets')}</h4>
@@ -160,6 +169,8 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
                 <p className="at-note">{tx('Delete what AutoTrack stored (alert details and excerpts). You choose whether the records it added are kept.')}</p>
                 <button className="btn btn-danger btn-sm" onClick={() => setDeleting(true)}><Trash2 size={14} /> {tx('Delete imported data…')}</button>
             </section>
+
+            </details>
 
             {explain === 'enable' && <ExplainDialog kind="enable" onCancel={() => setExplain(null)} onAgree={enableAndroid} />}
             {explain === 'ai' && <ExplainDialog kind="ai" onCancel={() => setExplain(null)} onAgree={async () => { setExplain(null); await update({ ai_consent: true }); }} />}

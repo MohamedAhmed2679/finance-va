@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useStore } from '../store/useStore';
 import { t, tx } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
@@ -10,6 +11,22 @@ import { toBase } from '../utils/money';
 import { CURRENCIES } from '../constants';
 import ConversionHint from '../components/ConversionHint';
 import CurrencyDisplay from '../components/CurrencyDisplay';
+
+const INCOME_SUGGESTIONS: { name: string; type: 'fixed' | 'variable' }[] = [
+    { name: 'Salary', type: 'fixed' },
+    { name: 'Freelance', type: 'variable' },
+    { name: 'Bonus', type: 'variable' },
+    { name: 'Rent income', type: 'fixed' },
+    { name: 'Gift', type: 'variable' },
+];
+const todayIso = () => format(new Date(), 'yyyy-MM-dd');
+/** Accepts "1,500.50", "1500,5" and Arabic digits. */
+function parseAmount(raw: string): number {
+    const s = raw.trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\s/g, '');
+    const norm = /,\d{1,2}$/.test(s) && !s.includes('.') ? s.replace(',', '.') : s.replace(/,/g, '');
+    const n = Number(norm);
+    return Number.isFinite(n) ? n : NaN;
+}
 
 export default function EarningsPage() {
     const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome } = useStore();
@@ -29,7 +46,16 @@ export default function EarningsPage() {
     const [incName, setIncName] = useState('');
     const [incAmount, setIncAmount] = useState('');
     const [incType, setIncType] = useState<'fixed' | 'variable'>('fixed');
-    const [incDate, setIncDate] = useState('');
+    const [incDate, setIncDate] = useState(todayIso);
+    const formRef = useRef<HTMLDivElement>(null);
+    // On a phone the form opens below the stats: bring it into view and focus the first field.
+    useEffect(() => {
+        if (!showAdd) return;
+        const el = formRef.current; if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const t = setTimeout(() => (el.querySelector('#inc-name') as HTMLInputElement | null)?.focus({ preventScroll: true }), 250);
+        return () => clearTimeout(t);
+    }, [showAdd]);
     const [incCurrency, setIncCurrency] = useState(cur);
     useEffect(() => { setIncCurrency(cur); }, [cur]);
 
@@ -65,21 +91,24 @@ export default function EarningsPage() {
 
     function handleAddIncome(e: React.FormEvent) {
         e.preventDefault();
-        if (!incName || !incAmount || !ws) return;
+        const amount = parseAmount(incAmount);
+        if (!incName.trim() || !(amount > 0) || !ws) return;
 
         addIncome({
             workspaceId: ws.id,
             createdByUid: user?.id || 'sys',
-            name: incName,
-            amount: parseFloat(incAmount),
+            name: incName.trim(),
+            amount,
             currency: incCurrency,
             type: incType,
-            date: incType === 'variable' ? incDate : new Date().toISOString()
+            date: incType === 'variable' ? (incDate || todayIso()) : new Date().toISOString()
         });
 
         setShowAdd(false);
         setIncName('');
         setIncAmount('');
+        setIncDate(todayIso());
+        toast.success(tx('Income saved'));
     }
 
     return (
@@ -128,39 +157,51 @@ export default function EarningsPage() {
                 </div>
 
                 {showAdd && (
-                    <div className="card mb-6 animate-fadeIn" style={{ borderLeft: '4px solid var(--primary)' }}>
+                    <div ref={formRef} className="card mb-6 animate-fadeIn income-form-card">
                         <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>{tx('Add Income Source')}</h3>
-                        <form onSubmit={handleAddIncome} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                            <div className="form-group">
-                                <label className="form-label">{tx('Income Type')}</label>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button type="button" className={`btn ${incType === 'fixed' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('fixed')} style={{ flex: 1 }}>{tx('Fixed / Salary')}</button>
-                                    <button type="button" className={`btn ${incType === 'variable' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setIncType('variable')} style={{ flex: 1 }}>{tx('Variable / One-off')}</button>
+                        <form onSubmit={handleAddIncome} className="income-form">
+                            <div className="form-group income-form-full">
+                                <label className="form-label" htmlFor="inc-name">{tx('What is it?')}</label>
+                                <input id="inc-name" type="text" className="form-input" value={incName} onChange={e => setIncName(e.target.value)} placeholder={tx('e.g. Salary')} required autoComplete="off" enterKeyHint="next" />
+                                <div className="chip-wrap" style={{ marginTop: 8 }}>
+                                    {INCOME_SUGGESTIONS.map(s => (
+                                        <button key={s.name} type="button" className={`category-chip${incName === tx(s.name) ? ' selected' : ''}`}
+                                            onClick={() => { setIncName(tx(s.name)); setIncType(s.type); document.getElementById('inc-amount')?.focus(); }}>
+                                            {tx(s.name)}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">{tx('Name (e.g. Salary, Freelance project)')}</label>
-                                <input type="text" className="form-input" value={incName} onChange={e => setIncName(e.target.value)} required autoFocus />
-                            </div>
-                            <div className="form-group">
+                            <div className="form-group income-form-full">
                                 <label className="form-label" htmlFor="inc-amount">{tx('Amount')}</label>
                                 <div className="amount-currency">
                                     <select className="form-select" aria-label={tx('Currency')} value={incCurrency} onChange={e => setIncCurrency(e.target.value)}>
                                         {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                                     </select>
-                                    <input id="inc-amount" type="number" step="0.01" min="0" className="form-input" value={incAmount} onChange={e => setIncAmount(e.target.value)} required />
+                                    <input id="inc-amount" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" className="form-input" value={incAmount} onChange={e => setIncAmount(e.target.value)} placeholder="0.00" required enterKeyHint="done" />
                                 </div>
-                                <ConversionHint amount={incAmount} from={incCurrency} to={cur} />
+                                <ConversionHint amount={incAmount.replace(',', '.')} from={incCurrency} to={cur} />
+                            </div>
+                            <div className="form-group income-form-full">
+                                <label className="form-label" id="inc-type-label">{tx('How often?')}</label>
+                                <div className="income-type" role="radiogroup" aria-labelledby="inc-type-label">
+                                    <button type="button" role="radio" aria-checked={incType === 'fixed'} className={incType === 'fixed' ? 'active' : ''} onClick={() => setIncType('fixed')}>
+                                        <strong>{tx('Every cycle')}</strong><span>{tx('Salary, rent you receive')}</span>
+                                    </button>
+                                    <button type="button" role="radio" aria-checked={incType === 'variable'} className={incType === 'variable' ? 'active' : ''} onClick={() => setIncType('variable')}>
+                                        <strong>{tx('Just once')}</strong><span>{tx('Bonus, gift, a project')}</span>
+                                    </button>
+                                </div>
                             </div>
                             {incType === 'variable' && (
-                                <div className="form-group">
-                                    <label className="form-label">{tx('Date Received')}</label>
-                                    <input type="date" className="form-input" value={incDate} onChange={e => setIncDate(e.target.value)} required />
+                                <div className="form-group income-form-full">
+                                    <label className="form-label" htmlFor="inc-date">{tx('Date Received')}</label>
+                                    <input id="inc-date" type="date" className="form-input" value={incDate} max={todayIso()} onChange={e => setIncDate(e.target.value)} required />
                                 </div>
                             )}
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
+                            <div className="income-form-actions">
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>{tx('Cancel')}</button>
-                                <button type="submit" className="btn btn-primary">{tx('Save Income')}</button>
+                                <button type="submit" className="btn btn-primary" disabled={!incName.trim() || !(parseAmount(incAmount) > 0)}>{tx('Save Income')}</button>
                             </div>
                         </form>
                     </div>
@@ -179,21 +220,21 @@ export default function EarningsPage() {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {activeIncomes.map(inc => (
-                                <div key={inc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--bg-body)', borderRadius: 12 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                        <div style={{ width: 44, height: 44, borderRadius: 12, background: inc.type === 'fixed' ? 'var(--gain-soft)' : 'var(--note-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: inc.type === 'fixed' ? 'var(--gain)' : 'var(--note)' }}>
+                                <div key={inc.id} className="income-row">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                                        <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, background: inc.type === 'fixed' ? 'var(--gain-soft)' : 'var(--note-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: inc.type === 'fixed' ? 'var(--gain)' : 'var(--note)' }}>
                                             <Briefcase size={20} />
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: 15 }}>{inc.name}</div>
+                                            <div style={{ fontWeight: 600, fontSize: 15, overflowWrap: 'anywhere' }}>{inc.name}</div>
                                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                                {inc.type === 'fixed' ? tx('Recurring per cycle') : `Received on ${format(new Date(inc.date), 'MMM d, yyyy')}`}
+                                                {inc.type === 'fixed' ? tx('Recurring per cycle') : `${tx('Received on')} ${format(new Date(inc.date), 'MMM d, yyyy')}`}
                                                 {inc.source === 'autotrack' && <span className="at-ledger-badge">{tx('Added by AutoTrack')}</span>}
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                                        <span style={{ fontWeight: 700, fontSize: 16 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                        <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>
                                             <CurrencyDisplay amount={inc.amount} currency={inc.currency} entry={inc} showOriginal hideAmounts={hideAmounts} />
                                         </span>
                                         {!isViewer && (

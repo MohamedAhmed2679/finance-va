@@ -98,6 +98,14 @@ function backend() {
             Object.assign(at.settings, ...[].concat(body)); return json(route, [], 201);
         }
         if (url.pathname === '/rest/v1/own_accounts' && m === 'GET') return json(route, at.accounts);
+        if (url.pathname === '/rest/v1/own_accounts' && m === 'POST') { const r = { id: `acc-${at.accounts.length + 1}`, ...[].concat(body)[0] }; at.accounts.push(r); return json(route, { id: r.id }, 201); }
+        // ── invitations (v27)
+        if (url.pathname === '/rest/v1/rpc/list_my_invitations') return json(route, db.invitations || []);
+        if (url.pathname === '/rest/v1/rpc/respond_to_invitation') {
+            db.answers = [...(db.answers || []), body];
+            db.invitations = (db.invitations || []).filter(i => i.workspace_id !== body.p_workspace_id);
+            return json(route, body.p_accept ? 'accepted' : 'declined');
+        }
         if (url.pathname === '/rest/v1/autotrack_rules' && m === 'GET') return json(route, at.rules);
         if (url.pathname === '/rest/v1/autotrack_rules' && m === 'POST') { at.rules.push(...[].concat(body).map((r, i) => ({ id: `rule-${at.rules.length + i}`, ...r }))); return json(route, [], 201); }
         if (url.pathname === '/rest/v1/transfers' && m === 'GET') return json(route, at.transfers);
@@ -525,7 +533,7 @@ async function pasteMessage(page, text) {
 }
 
 await scenario('AutoTrack: paste → Needs Review with a reason → confirm with a correction → Added → Undo', async (page, db) => {
-    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    await page.getByRole('heading', { name: 'AutoTrack', exact: true }).waitFor();
     await page.getByText('Nothing waiting.').waitFor();
     await pasteMessage(page, SMS_PURCHASE);
     const card = page.locator('.at-item').first();
@@ -552,7 +560,7 @@ await scenario('AutoTrack: paste → Needs Review with a reason → confirm with
 }, { desktop: true, path: '/autotrack' });
 
 await scenario('AutoTrack: codes and balance notices are never stored; the same alert twice is recorded once', async (page, db) => {
-    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    await page.getByRole('heading', { name: 'AutoTrack', exact: true }).waitFor();
     await pasteMessage(page, 'Your OTP for EGP 650 at AMAZON is 482913. Do not share it.');
     await page.getByText('Security code: not stored.').waitFor();
     await page.fill('#at-text', 'Your available balance is EGP 9,500.');
@@ -568,7 +576,7 @@ await scenario('AutoTrack: codes and balance notices are never stored; the same 
 }, { desktop: true, path: '/autotrack' });
 
 await scenario('AutoTrack: offline paste is kept on the device and synced later without duplicates', async (page, db) => {
-    await page.getByRole('heading', { name: 'AutoTrack' }).waitFor();
+    await page.getByRole('heading', { name: 'AutoTrack', exact: true }).waitFor();
     db.at = db.at || undefined;
     await page.evaluate(() => {});
     // go offline for item writes
@@ -602,9 +610,10 @@ await scenario('AutoTrack settings on the web: honest "not available", review-fi
     await page.getByRole('radio', { name: /Auto-add clear transactions/ }).check();
     await page.waitForTimeout(400);
     expect(db.at.settings.mode === 'auto', 'auto-add saved');
+    await page.getByText('More options').click();
     await page.getByRole('button', { name: 'Turn on AI reading…' }).click();
     await page.getByRole('dialog', { name: 'Use Zaylo AI for unfamiliar messages?' }).waitFor();
-    await page.getByRole('button', { name: 'Not now' }).click();
+    await page.getByRole('dialog', { name: 'Use Zaylo AI for unfamiliar messages?' }).getByRole('button', { name: 'Not now' }).click();
     expect(db.at.settings.ai_consent === false, 'AI stays off when declined');
     await shot(page, '20-autotrack-settings');
 }, { desktop: true, path: '/settings' });
@@ -656,6 +665,96 @@ await scenario('keep-me-signed-in off: reopening the app signs out and removes t
     await page.getByRole('button', { name: /^Sign in$/ }).first().waitFor({ timeout: 15000 });
     expect(await page.evaluate(() => !(localStorage.getItem('financeva-store') || '').includes('shopper@example.test')), 'the saved account data is gone');
 }, { desktop: true, path: '/overview', init: () => { localStorage.setItem('zaylo_keep_signed_in', '0'); } });
+
+
+// ------------------------------------------------------------------ phone fixes (Nov 9)
+const noSideScroll = page => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+
+await scenario('phone: adding income fits the screen, suggests a name, and accepts "1,500"', async (page, db) => {
+    await page.getByRole('button', { name: 'Add Income' }).click();
+    await page.getByRole('heading', { name: 'Add Income Source' }).waitFor();
+    expect(await noSideScroll(page), 'no sideways scrolling');
+    const box = await page.locator('#inc-name').boundingBox();
+    expect(box && box.x >= 0 && box.x + box.width <= 390, `name field is on screen (${JSON.stringify(box)})`);
+    await page.getByRole('button', { name: 'Salary', exact: true }).click();
+    expect(await page.inputValue('#inc-name') === 'Salary', 'chip fills the name');
+    expect(await page.getByRole('radio', { name: /Every cycle/ }).getAttribute('aria-checked') === 'true', 'salary is recurring');
+    await page.fill('#inc-amount', '1,500');
+    await shot(page, '23-phone-add-income');
+    await page.getByRole('button', { name: 'Save Income' }).click();
+    await page.getByText('Income saved').waitFor();
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('financeva-store')).state.incomes);
+    expect(saved.length === 1 && saved[0].amount === 1500 && saved[0].name === 'Salary' && saved[0].type === 'fixed', `saved: ${JSON.stringify(saved)}`);
+}, { path: '/earnings' });
+
+await scenario('phone: picking a settings item scrolls to it', async page => {
+    await page.getByRole('heading', { name: 'Settings' }).first().waitFor();
+    await page.locator('.nav-item').filter({ hasText: /^Notifications$/ }).last().click();
+    await page.waitForTimeout(900);
+    const top = await page.locator('.settings-content').evaluate(el => el.getBoundingClientRect().top);
+    expect(top >= 0 && top < 300, `section is in view (top ${top})`);
+    await page.getByRole('button', { name: 'All settings' }).click();
+    await page.waitForTimeout(700);
+    expect(await page.evaluate(() => window.scrollY) < 50, 'back to the menu');
+}, { path: '/settings' });
+
+await scenario('phone: AutoTrack setup in three steps, then a pasted SMS lands in Needs Review', async (page, db) => {
+    await page.getByRole('heading', { name: 'Set up AutoTrack' }).waitFor();
+    await page.getByRole('button', { name: 'CIB' }).click();
+    await page.getByRole('button', { name: 'Vodafone Cash' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('radio', { name: /Ask me first/ }).waitFor();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByText('Try it: paste a bank or wallet SMS').waitFor();
+    expect(db.at.accounts.map(a => a.label).join(',') === 'CIB,Vodafone Cash', `own accounts made: ${JSON.stringify(db.at.accounts)}`);
+    expect(db.at.settings.mode === 'review', 'ask-first saved');
+    await page.fill('#at-try-text', SMS_PURCHASE);
+    await page.getByText('Money out:').waitFor();
+    expect(await noSideScroll(page), 'no sideways scrolling');
+    await shot(page, '24-phone-autotrack-setup');
+    await page.getByRole('button', { name: 'Add it' }).click();
+    await page.locator('.at-item').first().waitFor();
+    expect(db.at.items.length === 1 && db.at.items[0].status === 'needs_review' && db.at.items[0].amount === 650, 'one item waiting for review');
+    expect(!(await page.getByRole('heading', { name: 'Set up AutoTrack' }).count()), 'setup closes when done');
+    await page.reload();
+    await page.getByRole('heading', { name: 'AutoTrack', exact: true }).waitFor();
+    expect(!(await page.getByRole('heading', { name: 'Set up AutoTrack' }).count()), 'and stays closed');
+}, { path: '/autotrack' });
+
+await scenario('invitations: the guest sees who invited them and must accept or decline', async (page, db) => {
+    db.invitations = [{ workspace_id: 'w9', workspace: 'Family Budget', icon: '👪', color: '#7C3AED', role: 'member', inviter: 'Sara', members: 2, invited_at: now }];
+    await page.goto(page.url());
+    const card = page.locator('.invitation-card');
+    await card.getByText('Sara invited you to Family Budget').waitFor();
+    await shot(page, '25-phone-invitation');
+    await card.getByRole('button', { name: 'Decline' }).click();
+    await page.getByText(/Invitation declined/).waitFor();
+    expect(db.answers?.[0]?.p_accept === false && db.answers[0].p_workspace_id === 'w9', `declined: ${JSON.stringify(db.answers)}`);
+    expect(!(await page.locator('.invitation-card').count()), 'the card is gone');
+}, { path: '/overview' });
+
+await scenario('first-run choices apply right away: Arabic, right-to-left, and the chosen currency', async (page, db) => {
+    await page.getByRole('button', { name: /Continue|Next/ }).first().click();
+    await page.locator('select').nth(0).selectOption('EUR');
+    await page.locator('select').nth(1).selectOption('ar');
+    expect(await page.evaluate(() => document.documentElement.dir) === 'rtl', 'Arabic shows immediately');
+    for (let i = 0; i < 3 && await page.locator('.auth-card').count(); i++) await page.locator('.auth-card .btn-primary').last().click();
+    await page.waitForTimeout(800);
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('financeva-store')).state);
+    expect(st.user.language === 'ar' && st.language === 'ar', `language saved: ${st.user.language}/${st.language}`);
+    expect(st.user.defaultCurrency === 'EUR' && st.currency === 'EUR', `currency saved: ${st.user.defaultCurrency}/${st.currency}`);
+    expect(st.workspaces[0].currency === 'EUR', `workspace uses it: ${st.workspaces[0].currency}`);
+    expect(db.requests.some(r => r.method === 'PATCH' && r.path === '/rest/v1/users' && r.body?.language === 'ar' && r.body?.default_currency === 'EUR'), 'saved to the account');
+    expect(await page.evaluate(() => document.documentElement.dir) === 'rtl', 'still right-to-left after setup');
+}, { path: '/overview', init: () => {
+    const now = new Date().toISOString();
+    const me = { uid: 'u1', name: 'New Person', email: 'shopper@example.test', role: 'owner', status: 'active', joinedAt: now };
+    localStorage.setItem('financeva-store', JSON.stringify({ state: { isAuthenticated: true, showOnboarding: true, theme: 'light', language: 'en', currency: 'USD',
+        user: { id: 'auth1', dbId: 'u1', name: 'New Person', email: 'shopper@example.test', defaultCurrency: 'USD', language: 'en', theme: 'light', showOnboarding: true, connectedClouds: [], createdAt: now },
+        workspaces: [{ id: 'w1', name: 'Personal', type: 'personal', ownerId: 'u1', currency: 'USD', icon: '👤', color: '#2563FF', members: [me], activityLog: [], createdAt: now }],
+        activeWorkspaceId: 'w1', notifications: [], expenses: [], incomes: [], bills: [], savingsGoals: [] }, version: 3 }));
+    sessionStorage.setItem('seeded', '1');
+} });
 
 // ------------------------------------------------------------------ report
 let failed = 0;

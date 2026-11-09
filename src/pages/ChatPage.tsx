@@ -164,10 +164,11 @@ export default function ChatPage() {
         try {
             const r = await inviteMember(ws.id, adding.trim(), '', role);
             if (r === 'not_found') toast.error(tx('No Zaylo account matches that email, phone or Zaylo ID.'));
-            else if (r === 'pending') { toast.success(tx('They don\'t have Zaylo yet. They\'ll join this chat when they sign up with that email.')); setAdding(''); }
+            else if (r === 'pending') { toast.success(tx('They don\'t have Zaylo yet. They\'ll get your invitation when they sign up with that email.')); setAdding(''); }
+            else if (r === 'already_invited') { toast(tx('They already have an invitation. They still need to accept it.')); setAdding(''); }
             else if (r === 'already_member') toast(tx('They\'re already in this workspace.'));
             else if (r === 'self') toast(tx('That\'s you.'));
-            else { toast.success(tx('Added and notified')); setAdding(''); }
+            else { toast.success(tx('Invitation sent. They join once they accept.')); setAdding(''); }
         } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed'); }
     }
 
@@ -252,7 +253,7 @@ export default function ChatPage() {
                         {ws.members.map(m => (
                             <div key={m.uid} className="ledger-row" style={{ gridTemplateColumns: '32px minmax(0,1fr) auto', padding: '8px 0' }}>
                                 <span className="user-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>{(m.name || '?')[0].toUpperCase()}</span>
-                                <div style={{ minWidth: 0 }}><div className="ledger-title" style={{ fontSize: 14 }}>{m.name}{m.uid === me ? ' (you)' : ''}</div><div className="ledger-sub">{m.role}</div></div>
+                                <div style={{ minWidth: 0 }}><div className="ledger-title" style={{ fontSize: 14 }}>{m.name}{m.uid === me ? ' (you)' : ''}</div><div className="ledger-sub">{m.role}{m.status === 'invited' ? ` · ${tx('Invited')}` : ''}</div></div>
                                 {canManage && m.role !== tx('owner') && m.uid !== me ? (
                                     <button className="icon-btn" aria-label={`Remove ${m.name}`} onClick={async () => {
                                         if (!confirm(`Remove ${m.name}? They lose access to this workspace and its chat.`)) return;

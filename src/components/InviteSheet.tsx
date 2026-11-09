@@ -53,8 +53,9 @@ export default function InviteSheet({ ws, onClose }: { ws: Workspace; onClose: (
         setBusy(true); setNote(null);
         try {
             const r = await inviteMember(ws.id, id, '', role);
-            if (r === 'added') { toast.success(tx('Added. They got a notification.')); setWho(''); setNote({ tone: 'ok', text: `${id} is now a ${role} of ${ws.name}.` }); }
-            else if (r === 'pending') { setNote({ tone: 'ok', text: `${id} doesn't have Zaylo yet. They'll join ${ws.name} automatically when they sign up with that email. Send them a link so they know.` }); setWho(''); }
+            if (r === 'invited' || r === 'added') { toast.success(tx('Invitation sent')); setWho(''); setNote({ tone: 'ok', text: `Invitation sent to ${id}. They'll join ${ws.name} as ${role} once they accept.` }); }
+            else if (r === 'already_invited') { setWho(''); setNote({ tone: 'ok', text: `${id} already has an invitation to ${ws.name}. They still need to accept it.` }); }
+            else if (r === 'pending') { setNote({ tone: 'ok', text: `${id} doesn't have Zaylo yet. When they sign up with that email they'll see your invitation to accept. Send them a link so they know.` }); setWho(''); }
             else if (r === 'already_member') setNote({ tone: 'warn', text: `${id} is already in ${ws.name}.` });
             else if (r === 'self') setNote({ tone: 'warn', text: tx('That\'s your own account.') });
             else setNote({ tone: 'warn', text: `No Zaylo account matches ${id}. Check the spelling, use their email, or send an invite link.` });

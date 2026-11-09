@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useStore } from '../store/useStore';
 import { t, tx } from '../i18n/translations';
 import { CheckCircle, Bell, Clock, UserPlus, Shield, Receipt, Archive, Edit, Trash2, DollarSign, PiggyBank, Briefcase } from 'lucide-react';
@@ -16,7 +17,7 @@ interface TimelineItem {
 }
 
 export default function ActivityPage() {
-    const { user, notifications, workspaces, activeWorkspaceId, acceptInvite, declineInvite, acceptJoinRequest, declineJoinRequest, markNotificationActioned } = useStore();
+    const { user, notifications, workspaces, activeWorkspaceId, acceptInvite, declineInvite, acceptJoinRequest, declineJoinRequest, markNotificationActioned, answerInvitation, invitations } = useStore();
     const lang = user?.language ?? 'en';
 
     // Merge notifications + workspace activity logs into a single timeline
@@ -32,7 +33,7 @@ export default function ActivityPage() {
                 timestamp: n.createdAt,
                 workspaceName: n.workspaceName,
                 actioned: n.actioned,
-                isInvite: (n.type === 'invite' || n.type === 'join_request') && !n.actioned,
+                isInvite: (n.type === 'invite' || n.type === 'join_request' || (n.type === 'workspace_invite' && invitations.some(i => i.workspace_id === n.workspaceId))) && !n.actioned,
                 targetUid: n.targetUid,
                 workspaceId: n.workspaceId,
             });
@@ -60,7 +61,7 @@ export default function ActivityPage() {
         // Sort newest first
         items.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
         return items;
-    }, [notifications, workspaces, activeWorkspaceId]);
+    }, [notifications, workspaces, activeWorkspaceId, invitations]);
 
     const pendingInvites = timeline.filter(t => t.isInvite);
     const logHistory = timeline.filter(t => !t.isInvite);
@@ -134,11 +135,13 @@ export default function ActivityPage() {
                                 <div className="activity-invite-time">{formatTimestamp(n.timestamp)}</div>
                                 <div className="activity-invite-actions">
                                     <button className="btn btn-secondary w-full" onClick={() => {
-                                        if (n.type === 'invite') declineInvite(n.workspaceId!, n.targetUid!, n.id);
+                                        if (n.type === 'workspace_invite') answerInvitation(n.workspaceId!, false).catch(e => toast.error(String(e?.message || e)));
+                                        else if (n.type === 'invite') declineInvite(n.workspaceId!, n.targetUid!, n.id);
                                         else declineJoinRequest(n.id);
                                     }}>{tx('Decline')}</button>
                                     <button className="btn btn-primary w-full" onClick={() => {
-                                        if (n.type === 'invite') acceptInvite(n.workspaceId!, n.targetUid!, n.id);
+                                        if (n.type === 'workspace_invite') answerInvitation(n.workspaceId!, true).catch(e => toast.error(String(e?.message || e)));
+                                        else if (n.type === 'invite') acceptInvite(n.workspaceId!, n.targetUid!, n.id);
                                         else acceptJoinRequest(n.id);
                                     }}>{tx('Accept')}</button>
                                 </div>

@@ -437,7 +437,7 @@ export async function fetchWorkspaceMemberList(workspaceId: string): Promise<Mem
     return data as MemberRow[];
 }
 
-export type AddMemberResult = 'added' | 'not_found' | 'pending' | 'already_member' | 'self';
+export type AddMemberResult = 'added' | 'invited' | 'already_invited' | 'not_found' | 'pending' | 'already_member' | 'self';
 
 export async function addWorkspaceMemberRemote(workspaceId: string, identifier: string, role: string): Promise<AddMemberResult> {
     if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
@@ -482,6 +482,20 @@ export async function acceptInvite(token: string): Promise<{ status: string; wor
     const { data, error } = await supabase.rpc('accept_workspace_invite', { p_token: token });
     if (error) throw new Error(friendly(error.message));
     return data;
+}
+// ─── Invitations to answer (v27) ────────────────────────────────
+export interface Invitation { workspace_id: string; workspace: string; icon: string | null; color: string | null; role: string; inviter: string | null; members: number; invited_at: string }
+export async function listMyInvitations(): Promise<Invitation[] | null> {
+    if (!isSupabaseReady() || !supabase) return null;
+    const { data, error } = await supabase.rpc('list_my_invitations');
+    if (error) return null;   // before v27 is run there is nothing to answer
+    return (data as Invitation[]) || [];
+}
+export async function respondToInvitation(workspaceId: string, accept: boolean): Promise<string> {
+    if (!isSupabaseReady() || !supabase) throw new Error('Not connected');
+    const { data, error } = await supabase.rpc('respond_to_invitation', { p_workspace_id: workspaceId, p_accept: accept });
+    if (error) throw new Error(friendly(error.message));
+    return String(data);
 }
 export async function claimPendingInvites(): Promise<number> {
     if (!isSupabaseReady() || !supabase) return 0;

@@ -92,13 +92,13 @@ export default function WorkspacesPage() {
                                     return (
                                         <li key={m.uid}>
                                             <span className="user-avatar" aria-hidden>{(m.name || '?')[0].toUpperCase()}</span>
-                                            <span className="ws-member-name" translate="no">{m.name}{m.uid === me ? ' (you)' : ''}</span>
+                                            <span className="ws-member-name" translate="no">{m.name}{m.uid === me ? ' (you)' : ''}{m.status === 'invited' && <span className="badge badge-warning" style={{ marginInlineStart: 6 }}>{tx('Invited')}</span>}</span>
                                             {editable ? (
                                                 <select className="form-select ws-role" aria-label={`Role for ${m.name}`} value={m.role} onChange={e => changeRole(ws.id, m.uid, e.target.value as WorkspaceRole)}>
                                                     <option value="admin">{tx('Admin')}</option><option value="member">{tx('Member')}</option><option value="viewer">{tx('Viewer')}</option>
                                                 </select>
                                             ) : <span className="ws-role-label">{m.role === tx('owner') && <Crown size={12} />} {m.role}</span>}
-                                            {editable ? <button className="icon-btn" aria-label={`Remove ${m.name}`} title={tx('Remove')} onClick={() => kick(ws.id, m.uid, m.name)}><X size={15} /></button> : <span className="ws-member-pad" />}
+                                            {editable ? <button className="icon-btn" aria-label={m.status === 'invited' ? `Cancel the invitation for ${m.name}` : `Remove ${m.name}`} title={m.status === 'invited' ? tx('Cancel invitation') : tx('Remove')} onClick={() => kick(ws.id, m.uid, m.name)}><X size={15} /></button> : <span className="ws-member-pad" />}
                                         </li>
                                     );
                                 })}

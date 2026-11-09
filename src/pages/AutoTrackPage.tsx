@@ -10,6 +10,8 @@ import { useStore } from '../store/useStore';
 import { CATEGORIES, formatCurrency } from '../constants';
 import Dialog from '../components/Dialog';
 import { takePendingImport } from '../autotrack/useAutoTrackDevice';
+import AutoTrackSetup from '../components/AutoTrackSetup';
+import { isSetUp } from '../autotrack/setup';
 import {
     loadItems, loadAccounts, loadTransfers, confirmItem, ignoreItem, undoItem, restoreItem, linkItem, saveRule, processMessage, flushOutbox, pendingCount,
     addTransfer, deleteTransfer, type AutoTrackItem, type Transfer,
@@ -23,7 +25,8 @@ const TARGET_LABEL: Record<string, string> = { income: 'Income & Earnings', expe
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
 export default function AutoTrackPage({ onOpenSettings }: { onOpenSettings?: () => void }) {
-    const { activeWorkspaceId, expenses, incomes, loadWorkspaceData } = useStore();
+    const { activeWorkspaceId, expenses, incomes, loadWorkspaceData, user } = useStore();
+    const [setup, setSetup] = useState(() => !isSetUp(user?.dbId || user?.id));
     const loadData = () => { if (activeWorkspaceId) loadWorkspaceData(activeWorkspaceId).catch(() => {}); };
     const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(location.search).get('tab') as Tab) || 'review');
     const [items, setItems] = useState<AutoTrackItem[] | null>(null);
@@ -87,11 +90,13 @@ export default function AutoTrackPage({ onOpenSettings }: { onOpenSettings?: () 
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button className="btn btn-primary btn-sm" onClick={() => setPasting('')}><ClipboardPaste size={15} />{' '}{tx('Paste message')}</button>
-                    {onOpenSettings && <button className="btn btn-secondary btn-sm" onClick={onOpenSettings}><Settings2 size={15} />{' '}{tx('AutoTrack settings')}</button>}
+                    {!setup && !isSetUp(user?.dbId || user?.id) && <button className="btn btn-secondary btn-sm" onClick={() => setSetup(true)}>{tx('Set up')}</button>}
+                    {onOpenSettings && <button className="btn btn-secondary btn-sm" onClick={onOpenSettings}><Settings2 size={15} />{' '}{tx('Settings')}</button>}
                 </div>
             </div>
 
             {error && <div className="at-banner" role="alert">{error}</div>}
+            {setup && !error && <AutoTrackSetup onDone={() => { setSetup(false); refresh(); loadData(); }} onCancel={() => setSetup(false)} />}
             {pending > 0 && <div className="at-banner">{tx('Waiting to sync:')} {pending}</div>}
 
             <div className="segmented mb-4" role="tablist" aria-label={tx('AutoTrack views')}>

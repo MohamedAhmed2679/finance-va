@@ -3,7 +3,7 @@ import AutoTrackSettings from '../components/AutoTrackSettings';
 import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import PushSettings from '../components/PushSettings';
 import ZayloIdCard from '../components/ZayloIdCard';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { hashPin } from '../utils/pin';
 import BiometricToggle from '../components/BiometricToggle';
@@ -29,6 +29,20 @@ export default function SettingsPage() {
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
+    // On a phone the menu and the section are stacked: after a pick, scroll the section into view.
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [pickCount, setPickCount] = useState(0);
+    const pickSection = (id: string) => { setActiveSection(id); setPickCount(c => c + 1); };
+    useEffect(() => {
+        if (!pickCount) return;
+        const el = contentRef.current;
+        if (!el || !window.matchMedia('(max-width: 768px)').matches) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        requestAnimationFrame(() => {
+            el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+            el.focus({ preventScroll: true });
+        });
+    }, [pickCount]);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailInput, setEmailInput] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -105,7 +119,7 @@ export default function SettingsPage() {
                 <div className="card" style={{ padding: 8 }}>
                     {menuSections.map(s => (
                         <button type="button" key={s.id} className={`nav-item ${activeSection === s.id ? 'active' : ''}`} aria-current={activeSection === s.id ? 'page' : undefined}
-                            style={{ borderRadius: 8, marginBottom: 2, fontFamily: 'inherit', textAlign: 'start' }} onClick={() => setActiveSection(s.id)}>
+                            style={{ borderRadius: 8, marginBottom: 2, fontFamily: 'inherit', textAlign: 'start' }} onClick={() => pickSection(s.id)}>
                             <s.icon size={16} aria-hidden />
                             <span>{s.label}</span>
                             <ChevronRight size={12} aria-hidden style={{ marginInlineStart: 'auto', color: 'var(--text-muted)' }} />
@@ -118,7 +132,10 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Content */}
-                <div>
+                <div ref={contentRef} className="settings-content" tabIndex={-1}>
+                    <button type="button" className="btn btn-ghost settings-back" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <ChevronRight size={14} aria-hidden style={{ transform: 'rotate(-90deg)' }} />{tx('All settings')}
+                    </button>
                     {activeSection === 'profile' && (
                         <div className="card animate-fadeIn">
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20 }}>{tx('Profile')}</div>

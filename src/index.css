@@ -1976,3 +1976,73 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .saved-signin-settings { padding: 14px 16px; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border); }
 
 .offline-banner { position: fixed; top: calc(var(--titlebar-height, 0px) + env(safe-area-inset-top, 0px) + 8px); left: 50%; transform: translateX(-50%); z-index: 900; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--paper); font-size: 12.5px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100vw - 32px); }
+
+/* ---------- Add income (phone-first) ---------- */
+.income-form-card { border-inline-start: 4px solid var(--primary); scroll-margin-top: 80px; }
+.income-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.income-form .form-group { min-width: 0; margin-bottom: 0; }
+.income-type { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.income-type button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: start;
+  padding: 12px; border-radius: var(--radius-md); border: 1.5px solid var(--line); background: var(--surface);
+  color: var(--ink); font: inherit; cursor: pointer; min-height: 64px;
+}
+.income-type button strong { font-size: 14.5px; }
+.income-type button span { font-size: 12.5px; color: var(--text-muted); }
+.income-type button.active { border-color: var(--primary); background: var(--note-soft); box-shadow: 0 0 0 3px var(--note-soft); }
+.income-form-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.income-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; background: var(--bg-body); border-radius: 12px; }
+@media (min-width: 900px) {
+  .income-form { grid-template-columns: 1fr 1fr; }
+  .income-form .income-form-full:first-child { grid-column: 1 / -1; }
+  .income-form-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .income-form-actions { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 92px); background: var(--surface); padding-top: 8px; }
+  .income-form-actions .btn { flex: 1; min-height: 46px; }
+}
+
+/* Settings: on phones the picked section scrolls into view; a link goes back to the menu */
+.settings-content { scroll-margin-top: 76px; outline: none; }
+.settings-back { display: none; }
+@media (max-width: 768px) { .settings-back { display: inline-flex; margin-bottom: 8px; padding-inline: 4px; gap: 6px; } }
+
+/* Workspace invitations waiting for an answer */
+.invitations-bar { display: flex; flex-direction: column; gap: 10px; padding: 12px 24px 0; }
+.invitation-card {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px; border-radius: var(--radius-lg); background: var(--surface);
+  border: 1.5px solid var(--primary); box-shadow: var(--elev-1);
+}
+.invitation-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-size: 20px; flex-shrink: 0; }
+.invitation-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.invitation-text strong { font-size: 14.5px; overflow-wrap: anywhere; }
+.invitation-text span { font-size: 13px; color: var(--text-muted); }
+.invitation-actions { display: flex; gap: 8px; margin-inline-start: auto; }
+@media (max-width: 600px) {
+  .invitations-bar { padding: 8px 12px 0; }
+  .invitation-actions { width: 100%; }
+  .invitation-actions .btn { flex: 1; min-height: 44px; }
+}
+
+/* AutoTrack guided setup */
+.at-setup { margin-bottom: 16px; border: 1.5px solid var(--primary); }
+.at-setup-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.at-setup-head h2 { font-size: 17px; font-weight: 700; margin: 0; }
+.at-setup-steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.at-setup-steps li { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; background: var(--surface-3); color: var(--ink-2); }
+.at-setup-steps li.now { background: var(--primary); color: #fff; }
+.at-setup-steps li.done { background: var(--gain-soft); color: var(--gain); }
+.at-setup-body h3 { font-size: 15.5px; font-weight: 700; margin: 6px 0 6px; display: flex; align-items: center; gap: 6px; }
+.at-setup-body .chip-wrap .category-chip { min-height: 38px; gap: 6px; }
+.at-setup-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.at-consent { list-style: none; padding: 0; margin: 8px 0 12px; display: grid; gap: 8px; }
+.at-consent li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--ink-2); }
+.at-consent svg { flex-shrink: 0; margin-top: 2px; color: var(--gain); }
+.at-try { margin-top: 12px; }
+.at-try textarea { width: 100%; resize: vertical; }
+.at-try-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.at-try-preview { font-size: 14px; }
+.at-more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.at-more > summary { cursor: pointer; font-weight: 600; padding: 10px 0; display: flex; flex-direction: column; gap: 2px; }
+@media (max-width: 600px) { .at-setup-actions .btn { flex: 1; min-height: 44px; } }

@@ -83,6 +83,9 @@ export function useLiveNotifications() {
                 notifyDevice(n.workspaceName ? `Zaylo · ${n.workspaceName}` : 'Zaylo', n.message, String(raw.link || '/activity'));
                 // Added to (or joined) a workspace: load it right away so it shows in the switcher.
                 if (n.type === 'member_added' || n.type === 'member_joined') useStore.getState().hydrateStore();
+                // A new invitation to answer, or someone declined mine
+                if (n.type === 'workspace_invite') useStore.getState().loadInvitations();
+                if (n.type === 'member_declined' && n.workspaceId) useStore.getState().refreshMembers(n.workspaceId).catch(() => {});
             })
             .subscribe();
         return () => { supabase?.removeChannel(ch); };

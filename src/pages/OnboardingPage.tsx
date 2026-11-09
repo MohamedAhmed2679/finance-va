@@ -6,7 +6,7 @@ import { ChevronRight, Check } from 'lucide-react';
 import BiometricToggle from '../components/BiometricToggle';
 
 export default function OnboardingPage() {
-    const { user, updateUser, completeOnboarding } = useStore();
+    const { user, updateUser, completeOnboarding, setLanguage: setAppLanguage, setCurrency: setAppCurrency, workspaces, activeWorkspaceId, updateWorkspace, expenses, incomes } = useStore();
     const [step, setStep] = useState(1);
 
     // Draft states
@@ -22,7 +22,14 @@ export default function OnboardingPage() {
             setStep(step + 1);
         } else {
             // Finish
+            // Apply the choices everywhere at once: the account, this device, and the workspace made for them.
+            setAppLanguage(language);
+            setAppCurrency(currency);
             updateUser({ name, defaultCurrency: currency, language, voiceEnabled, smsEnabled });
+            const ws = workspaces.find(w => w.id === activeWorkspaceId) ?? workspaces[0];
+            const ownsIt = ws && user && (ws.ownerId === user.dbId || ws.ownerId === user.id);
+            const empty = ws && !expenses.some(e => e.workspaceId === ws.id) && !incomes.some(i => i.workspaceId === ws.id);
+            if (ws && ownsIt && empty && ws.currency !== currency) updateWorkspace(ws.id, { currency });
             completeOnboarding();
         }
     }
@@ -69,7 +76,7 @@ export default function OnboardingPage() {
 
                         <div className="form-group">
                             <label className="form-label">{tx('Language')}</label>
-                            <select className="form-input form-select form-input-lg" value={language} onChange={e => setLanguage(e.target.value)}>
+                            <select className="form-input form-select form-input-lg" value={language} onChange={e => { setLanguage(e.target.value); setAppLanguage(e.target.value); const u = useStore.getState().user; if (u) useStore.setState({ user: { ...u, language: e.target.value } }); }}>
                                 {SUPPORTED_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.nativeName} ({l.name})</option>)}
                             </select>
                         </div>

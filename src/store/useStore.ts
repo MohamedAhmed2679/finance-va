@@ -10,7 +10,7 @@ import {
     syncWorkspaceToCloud, syncWorkspaceMemberToCloud, logActivityToCloud, fetchNotifications,
     updateUserProfile, fetchWorkspacesByEmail, fetchUserProfile,
     fetchAccessibleWorkspaces, fetchWorkspaceMembers, deleteWorkspaceFromCloud,
-    fetchWorkspaceMemberList, addWorkspaceMemberRemote, claimPendingInvites, type AddMemberResult, removeWorkspaceMemberRemote, setWorkspaceMemberRoleRemote, ensureProfile, markNotificationRead
+    fetchWorkspaceMemberList, addWorkspaceMemberRemote, claimPendingInvites, listMyInvitations, respondToInvitation, type Invitation, type AddMemberResult, removeWorkspaceMemberRemote, setWorkspaceMemberRoleRemote, ensureProfile, markNotificationRead
 } from '../services/supabaseSync';
 import { mapExpense, mapIncome, mapBill, mapGoal, mapWorkspace, mapMember, mapNotification } from '../services/mappers';
 import { signOut as supabaseSignOut } from '../services/authProvider';
@@ -42,7 +42,7 @@ function reportSyncError(err: unknown) {
 export type CategoryKey = string;
 export type PaymentMethod = string;
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
-export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added' | 'member_added' | 'member_joined' | 'admin_notice' | 'admin_message';
+export type AppNotificationType = 'invite' | 'join_request' | 'role_change' | 'workspace_archived' | 'workspace_deleted' | 'expense_added' | 'member_added' | 'member_joined' | 'admin_notice' | 'admin_message' | 'workspace_invite' | 'member_declined';
 
 export interface CategoryDef {
     key: string;
@@ -307,6 +307,10 @@ interface AppState {
     updateWorkspace: (id: string, data: Partial<Workspace>) => void;
     deleteWorkspace: (id: string) => void;
     inviteMember: (workspaceId: string, identifier: string, name: string, role: WorkspaceRole) => Promise<AddMemberResult>;
+    /** Invitations waiting for this user's answer */
+    invitations: Invitation[];
+    loadInvitations: () => Promise<void>;
+    answerInvitation: (workspaceId: string, accept: boolean) => Promise<string>;
     removeMember: (workspaceId: string, uid: string) => Promise<void>;
     updateMemberRole: (workspaceId: string, uid: string, role: WorkspaceRole) => Promise<void>;
     refreshMembers: (workspaceId: string) => Promise<void>;
@@ -392,6 +396,7 @@ export const useStore = create<AppState>()(
                     bills: [],
                     savingsGoals: [],
                     notifications: [],
+                    invitations: [],
                     activeWorkspaceId: ''
                 });
                 get().hydrateStore();
@@ -400,7 +405,7 @@ export const useStore = create<AppState>()(
                 // The screen signs out at once; then unsent changes get a last chance to reach the cloud,
                 // the session ends and everything else this account left on the device is removed.
                 set({
-                    isAuthenticated: false, user: null, workspaces: [], expenses: [], incomes: [], bills: [], savingsGoals: [], notifications: [],
+                    isAuthenticated: false, user: null, workspaces: [], expenses: [], incomes: [], bills: [], savingsGoals: [], notifications: [], invitations: [],
                     activeWorkspaceId: '', categories: [...CATEGORIES], paymentMethods: [...PAYMENT_METHODS], showOnboarding: false,
                 });
                 within(flushOutbox().catch(() => {}), 8000).finally(() => {
@@ -529,8 +534,26 @@ export const useStore = create<AppState>()(
             }),
             inviteMember: async (workspaceId, identifier, _name, role) => {
                 const result = await addWorkspaceMemberRemote(workspaceId, identifier.trim(), role === 'owner' ? 'admin' : role);
-                if (result === 'added') { dispatchPush(); await get().refreshMembers(workspaceId); }
+                if (result === 'added' || result === 'invited' || result === 'already_invited') { dispatchPush(); await get().refreshMembers(workspaceId); }
                 return result;
+            },
+            invitations: [],
+            loadInvitations: async () => {
+                const list = await listMyInvitations();
+                if (list) set({ invitations: list });
+            },
+            answerInvitation: async (workspaceId, accept) => {
+                const r = await respondToInvitation(workspaceId, accept);
+                dispatchPush();
+                set(s => ({
+                    invitations: s.invitations.filter(i => i.workspace_id !== workspaceId),
+                    notifications: s.notifications.map(n => n.type === 'workspace_invite' && n.workspaceId === workspaceId ? { ...n, actioned: true } : n),
+                }));
+                if (r === 'accepted' || r === 'already_member') {
+                    await get().hydrateStore();
+                    if (get().workspaces.some(w => w.id === workspaceId)) get().setActiveWorkspace(workspaceId);
+                }
+                return r;
             },
             removeMember: async (workspaceId, uid) => {
                 await removeWorkspaceMemberRemote(workspaceId, uid);
@@ -546,7 +569,7 @@ export const useStore = create<AppState>()(
                 const rows = await fetchWorkspaceMemberList(workspaceId);
                 if (!rows) return;
                 const members: WorkspaceMember[] = rows.map(r => ({ uid: r.user_id, name: r.name || 'Member', email: r.email || '', role: r.role as WorkspaceRole, status: r.status === 'active' ? 'active' : 'invited', joinedAt: r.joined_at }));
-                set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members, type: members.length > 1 ? 'shared' : w.type } : w) }));
+                set(s => ({ workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members, type: members.filter(m => m.status === 'active').length > 1 ? 'shared' : w.type } : w) }));
             },
             acceptInvite: (workspaceId, uid, notificationId) => set(s => ({
                 workspaces: s.workspaces.map(w => w.id === workspaceId ? { ...w, members: w.members.map(m => m.uid === uid ? { ...m, status: 'active' } : m) } : w),
@@ -877,7 +900,18 @@ export const useStore = create<AppState>()(
                                 notifyDaily: Boolean(profile.notify_daily), notifyMonthly: Boolean(profile.notify_monthly), notifyBudget: Boolean(profile.notify_budget),
                             } : {}),
                             ...(profile.monthly_budget != null ? { monthlyBudget: Number(profile.monthly_budget) } : {}),
+                            // Choices saved on the account (first-run setup or Settings) apply on every device and every sign-in.
+                            // Before setup is finished, keep what was picked on this device's sign-in screen.
+                            ...(profile.show_onboarding === false ? {
+                                ...(profile.language ? { language: profile.language } : {}),
+                                ...(profile.default_currency ? { defaultCurrency: profile.default_currency } : {}),
+                                ...(profile.hide_amounts != null ? { hideAmounts: Boolean(profile.hide_amounts) } : {}),
+                            } : { language: state.user.language && state.user.language !== 'en' ? state.user.language : (state.language || state.user.language) }),
                         } : null }));
+                        {
+                            const u1 = get().user;
+                            if (u1) set({ language: u1.language || 'en', currency: u1.defaultCurrency || get().currency });
+                        }
                         const u0 = get().user;
                         if (u0 && !profile.notify_prefs_saved_at && (u0.notifyDaily || u0.notifyMonthly || u0.notifyBudget)) {
                             updateUserProfile(u0.id, { notify_daily: Boolean(u0.notifyDaily), notify_monthly: Boolean(u0.notifyMonthly), notify_budget: Boolean(u0.notifyBudget) }).catch(() => {});
@@ -898,8 +932,8 @@ export const useStore = create<AppState>()(
                     // Join any workspaces this email was invited to before the account existed.
                     if (isSupabaseReady()) {
                         const joined = await claimPendingInvites();
+                        await get().loadInvitations().catch(() => {});
                         if (joined > 0) dispatchPush();
-                        if (joined > 0) toast.success(joined === 1 ? 'You were added to a shared workspace.' : `You were added to ${joined} shared workspaces.`);
                     }
                     let ws = await fetchAccessibleWorkspaces(userId);
                     

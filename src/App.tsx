@@ -43,6 +43,7 @@ import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
 import AutoTrackPage from './pages/AutoTrackPage';
 import OfflineBanner from './components/OfflineBanner';
+import InvitationsBar from './components/InvitationsBar';
 import { useRememberSignedInAccount } from './services/useRememberAccount';
 import { useAutoTrackDevice } from './autotrack/useAutoTrackDevice';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
@@ -165,6 +166,7 @@ function Shell() {
                 <ImpersonationBar />
                 <MobileTopBar onNavigate={go} />
                 <div className="banner-slot"><AnnouncementBanner /></div>
+                <InvitationsBar />
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
                         <Routes location={location}>
