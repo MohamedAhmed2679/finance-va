@@ -13,31 +13,31 @@ export default function InsightsPage() {
     const lang = user?.language ?? 'en';
     const cur = currency;
     const hideAmounts = user?.hideAmounts ?? false;
-    const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
+    const wsExp = useMemo(() => expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId), [expenses, activeWorkspaceId]);
 
     const catData = useMemo(() => {
         const map: Record<string, number> = {};
         wsExp.forEach(e => { map[e.category] = (map[e.category] || 0) + toBase(e, cur); });
         return Object.entries(map).map(([cat, val]) => { const info = getCategoryInfo(cat); return { name: info.label, value: +val.toFixed(2), color: info.color, emoji: info.emoji }; }).sort((a, b) => b.value - a.value);
-    }, [wsExp]);
+    }, [wsExp, cur]);
 
     const pmData = useMemo(() => {
         const map: Record<string, number> = {};
         wsExp.forEach(e => { map[e.paymentMethod] = (map[e.paymentMethod] || 0) + toBase(e, cur); });
         return Object.entries(map).map(([pm, val]) => { const info = getPaymentMethodInfo(pm); return { name: info.label, value: +val.toFixed(2), emoji: info.emoji }; });
-    }, [wsExp]);
+    }, [wsExp, cur]);
 
     const merchantData = useMemo(() => {
         const map: Record<string, number> = {};
         wsExp.forEach(e => { map[e.merchant] = (map[e.merchant] || 0) + toBase(e, cur); });
         return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([m, v]) => ({ name: m, value: +v.toFixed(2) }));
-    }, [wsExp]);
+    }, [wsExp, cur]);
 
     const monthlyData = useMemo(() => {
         const map: Record<string, number> = {};
         wsExp.forEach(e => { const month = e.purchaseAt.slice(0, 7); map[month] = (map[month] || 0) + toBase(e, cur); });
         return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0])).slice(-6).map(([m, v]) => ({ month: m.slice(5) + '/' + m.slice(2, 4), amount: +v.toFixed(2) }));
-    }, [wsExp]);
+    }, [wsExp, cur]);
 
     const total = wsExp.reduce((s, e) => s + toBase(e, cur), 0);
     const avg = wsExp.length ? total / wsExp.length : 0;
@@ -78,7 +78,7 @@ export default function InsightsPage() {
                         <BarChart data={monthlyData} barSize={32}>
                             <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={50} />
-                            <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
+                            <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v) => formatCurrency(Number(v ?? 0), cur)} />
                             <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
                                 {monthlyData.map((_, i) => <Cell key={i} fill={i === monthlyData.length - 1 ? 'var(--note)' : `color-mix(in srgb, var(--note) ${Math.round((0.4 + i * 0.1) * 100)}%, transparent)`} />)}
                             </Bar>
@@ -98,7 +98,7 @@ export default function InsightsPage() {
                                     <Pie data={catData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} dataKey="value" strokeWidth={0} paddingAngle={2}>
                                         {catData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                     </Pie>
-                                    <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
+                                    <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v) => formatCurrency(Number(v ?? 0), cur)} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -130,7 +130,7 @@ export default function InsightsPage() {
                                 <Pie data={pmData} cx="50%" cy="50%" outerRadius={70} dataKey="value" strokeWidth={0} paddingAngle={3} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} labelLine={false}>
                                     {pmData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                 </Pie>
-                                <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v: any) => formatCurrency(v, cur)} />
+                                <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v) => formatCurrency(Number(v ?? 0), cur)} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>

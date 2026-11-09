@@ -11,6 +11,7 @@ const OLD_PALETTE = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E
 const brandColor = (c: string) => { const i = OLD_PALETTE.indexOf(c.toUpperCase()); return i >= 0 ? WORKSPACE_COLORS[i] : c; };
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows have a different shape per table
 type Row = Record<string, any>;
 const num = (v: unknown) => (v === null || v === undefined || v === '' ? 0 : Number(v));
 const str = (v: unknown, d = '') => (v === null || v === undefined ? d : String(v));

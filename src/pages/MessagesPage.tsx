@@ -6,7 +6,8 @@ import { Send } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import { checkFiles, uploadChatFiles, type Attachment } from '../services/chatFiles';
-import { FilePicker, Lightbox, MessageAttachments, PendingFiles, useAttachmentUrls, type GalleryItem } from '../components/chat/Attachments';
+import { FilePicker, Lightbox, MessageAttachments, PendingFiles, type GalleryItem } from '../components/chat/Attachments';
+import { useAttachmentUrls } from '../components/chat/useAttachmentUrls';
 
 interface SupportMessage { id: string; user_id: string; from_admin: boolean; sender_name: string; body: string; created_at: string; read_at: string | null; attachments?: (Attachment & { localUrl?: string })[] }
 
@@ -27,6 +28,7 @@ export default function MessagesPage() {
     const me = user?.dbId;
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data from the server; the flag shows progress
         if (!me || !isSupabaseReady() || !supabase) { setLoading(false); return; }
         supabase.from('support_messages').select('*').eq('user_id', me).order('created_at').limit(500)
             .then(({ data }) => {

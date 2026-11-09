@@ -1,5 +1,5 @@
 import { tx } from '../i18n/translations';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { History, RotateCcw, CloudUpload, RefreshCw } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -7,9 +7,10 @@ import { supabase, isSupabaseReady } from '../lib/supabase';
 import { flushOutbox, onOutboxChange } from '../services/outbox';
 import { formatCurrency } from '../constants';
 
+type AuditRow = Record<string, string | number | boolean | null | undefined>;
 interface Checkpoint {
     id: number; table_name: string; row_id: string; workspace_id: string | null;
-    op: 'INSERT' | 'UPDATE' | 'DELETE'; old_row: Record<string, any> | null; new_row: Record<string, any> | null;
+    op: 'INSERT' | 'UPDATE' | 'DELETE'; old_row: AuditRow | null; new_row: AuditRow | null;
     changed_by: string | null; changed_at: string;
 }
 
@@ -24,7 +25,7 @@ const IGNORE = new Set(['updated_at', 'created_at', 'id', 'workspace_id', 'creat
 function title(c: Checkpoint) {
     const r = c.new_row || c.old_row || {};
     const label = r.merchant || r.name || r.description || KIND[c.table_name];
-    const money = r.amount != null && r.currency ? ` · ${formatCurrency(Number(r.amount), r.currency, false)}` : '';
+    const money = r.amount != null && r.currency ? ` · ${formatCurrency(Number(r.amount), String(r.currency), false)}` : '';
     return `${label}${money}`;
 }
 
@@ -38,7 +39,7 @@ function describe(c: Checkpoint): { verb: string; detail: string; canRestore: bo
     const changed = Object.keys(n).filter(k => !IGNORE.has(k) && JSON.stringify(o[k]) !== JSON.stringify(n[k]));
     const detail = changed.slice(0, 3).map(k => {
         const f = FIELD[k] || k.replace(/_/g, ' ');
-        const fmt = (v: any) => v == null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v).slice(0, 40);
+        const fmt = (v: unknown) => v == null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v).slice(0, 40);
         return `${f}: ${fmt(o[k])} → ${fmt(n[k])}`;
     }).join(' · ') + (changed.length > 3 ? ` · +${changed.length - 3} more` : '');
     return { verb: `${kind} edited`, detail, canRestore: true, action: tx('Restore previous') };
@@ -64,19 +65,22 @@ export default function HistoryPage() {
 
     useEffect(() => onOutboxChange(setPending), []);
 
-    const load = useCallback(async () => {
-        if (!isSupabaseReady() || !supabase || !ws) { setLoading(false); return; }
+    const wsId = ws?.id;
+    const dbId = user?.dbId;
+    async function load() {
+        if (!isSupabaseReady() || !supabase || !wsId) { setLoading(false); return; }
         setLoading(true); setError('');
-        const profileFilter = user?.dbId ? `,and(table_name.eq.users,row_id.eq.${user.dbId})` : '';
+        const profileFilter = dbId ? `,and(table_name.eq.users,row_id.eq.${dbId})` : '';
         const { data, error: err } = await supabase.from('change_history').select('*')
-            .or(`workspace_id.eq.${ws.id}${profileFilter}`)
+            .or(`workspace_id.eq.${wsId}${profileFilter}`)
             .order('changed_at', { ascending: false }).limit(300);
         if (err) setError(/change_history|does not exist|schema cache/i.test(err.message) ? 'Checkpoints need the latest database update.' : "Couldn't load history.");
         setItems((data as Checkpoint[]) || []);
         setLoading(false);
-    }, [ws?.id, user?.dbId]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }
 
-    useEffect(() => { load(); }, [load]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- load the history again only when the workspace or person changes
+    useEffect(() => { load(); }, [wsId, dbId]);
 
     async function restore(c: Checkpoint, action: string) {
         if (!supabase) return;
@@ -137,7 +141,7 @@ export default function HistoryPage() {
                         <div className="ledger">
                             {list.map(c => {
                                 const d = describe(c);
-                                const who = c.changed_by && c.changed_by === user?.id ? 'You' : names[(c.new_row || c.old_row)?.created_by] || 'Someone in this workspace';
+                                const who = c.changed_by && c.changed_by === user?.id ? 'You' : names[String((c.new_row || c.old_row)?.created_by ?? '')] || 'Someone in this workspace';
                                 return (
                                     <div key={c.id} className="ledger-row history-row">
                                         <div style={{ minWidth: 0 }}>

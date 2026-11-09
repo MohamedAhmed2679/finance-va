@@ -24,7 +24,8 @@ import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
 import MessagesPage from './pages/MessagesPage';
-import { AnnouncementBanner, ImpersonationBar, useLiveNotifications, useLiveChatAlerts } from './components/LiveLayer';
+import { AnnouncementBanner, ImpersonationBar } from './components/LiveLayer';
+import { useLiveNotifications, useLiveChatAlerts } from './hooks/useLive';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
@@ -35,7 +36,8 @@ import MobileTopBar from './components/MobileTopBar';
 import { setTxLanguage } from './i18n/translations';
 import { startDomTranslation } from './i18n/domTranslate';
 import { initPush, scheduleReminders } from './services/push';
-import JoinInvite, { captureJoinLink } from './components/JoinInvite';
+import JoinInvite from './components/JoinInvite';
+import { captureJoinLink } from './services/joinLink';
 
 // zaylo.cc/join/<token>: remember the invite before routing or sign-in take over the URL
 captureJoinLink();
@@ -44,7 +46,7 @@ import LockScreen from './components/LockScreen';
 import AutoTrackPage from './pages/AutoTrackPage';
 import OfflineBanner from './components/OfflineBanner';
 import InvitationsBar from './components/InvitationsBar';
-import { useRememberSignedInAccount } from './services/useRememberAccount';
+import { useRememberSignedInAccount } from './hooks/useRememberAccount';
 import { useAutoTrackDevice } from './autotrack/useAutoTrackDevice';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
 import type { ParsedExpense } from './services/aiExpenseParser';
@@ -72,7 +74,7 @@ async function doRestore() {
         return;
     }
 
-    const profile: any = await fetchUserProfile(sbUser.id);
+    const profile = await fetchUserProfile(sbUser.id);
     const { user: storeUser, login } = useStore.getState();
     if (storeUser?.id === sbUser.id) return;
     refreshedThisBoot = true;

@@ -26,6 +26,7 @@ import type { Expense, Income, MonthlyBill } from '../src/store/useStore';
 
 export const config = { maxDuration: 60 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows have a different shape per table
 type Row = Record<string, any>;
 type Provider = 'google' | 'microsoft';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };

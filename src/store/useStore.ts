@@ -858,7 +858,7 @@ export const useStore = create<AppState>()(
                 set({ user: newUser, showOnboarding: newShowOnboarding });
 
                 // Map camelCase app keys to snake_case DB columns
-                const dbUpdates: Record<string, any> = {};
+                const dbUpdates: Record<string, unknown> = {};
                 if (updates.name !== undefined) dbUpdates.name = updates.name;
                 if (updates.defaultCurrency !== undefined) dbUpdates.default_currency = updates.defaultCurrency;
                 if (updates.language !== undefined) dbUpdates.language = updates.language;
@@ -1028,6 +1028,7 @@ export const useStore = create<AppState>()(
             name: 'financeva-store',
             version: 3,
             // v2/v3: refresh built-in category and workspace colours to the current (Zaylo) palette
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- whatever an older version saved on this device
             migrate: (persisted: any) => {
                 const OLD_WS = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E8A80', '#C4622D', '#13201C'];
                 if (persisted?.workspaces) {

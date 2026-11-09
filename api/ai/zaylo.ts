@@ -154,7 +154,10 @@ const EXTRACT_SCHEMA = {
     required: ['expenses'],
 };
 
-async function extract(b: Record<string, any>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- request bodies and model replies are checked field by field
+type Body = Record<string, any>;
+
+async function extract(b: Body) {
     const today = String(b.today || new Date().toISOString().slice(0, 10));
     const currency = String(b.baseCurrency || 'USD').toUpperCase().slice(0, 3);
     const source = String(b.source || 'text');
@@ -184,7 +187,7 @@ Rules:
     if (parts.length === 1 && !b.text) throw Object.assign(new Error('Nothing to read.'), { status: 400 });
 
     const { text } = await gemini(parts, { system, schema: EXTRACT_SCHEMA, temperature: 0 });
-    const out = parseJson<{ expenses: any[]; transcript?: string; note?: string }>(text);
+    const out = parseJson<{ expenses: Body[]; transcript?: string; note?: string }>(text);
     const expenses = (out.expenses || []).filter(e => Number(e.amount) > 0).map(e => ({
         amount: Math.round(Number(e.amount) * 100) / 100,
         currency: /^[A-Z]{3}$/.test(String(e.currency).toUpperCase()) ? String(e.currency).toUpperCase() : currency,
@@ -312,7 +315,7 @@ The transaction amount is not the balance ("available balance", "رصيد"). If 
     return { parsed: rules.kind === 'transaction' ? rules : parsed };
 }
 
-async function priceTag(b: Record<string, any>, userId: string) {
+async function priceTag(b: Body, userId: string) {
     if (!allowTagCall(userId)) throw Object.assign(new Error('Too many scans in a short time. Wait a few minutes, or add the item by hand.'), { status: 429 });
     const mime = String(b.image?.mime || '');
     const data = String(b.image?.data || '');
@@ -352,7 +355,7 @@ const INSIGHTS_SCHEMA = {
     required: ['score', 'headline', 'summary', 'tips'],
 };
 
-async function insights(b: Record<string, any>) {
+async function insights(b: Body) {
     const lang = b.language === 'ar' ? 'Arabic' : 'English';
     const system = `You are Zaylo's money coach. Voice: simple, secure, optimistic. Short sentences, plain words, no jargon, never preachy.
 Write in ${lang}. Base every statement on the numbers given; do not invent figures. Amounts are in ${b.currency || 'the base currency'}.
@@ -360,7 +363,7 @@ Score guide: 80+ spending under budget and stable, savings growing; 50-79 mixed;
 Give exactly 3 tips, each specific to a category, merchant or bill in the data, with a realistic monthly saving.
 Alerts: only real issues (budget passed, bill due within 3 days, a category up >40% vs last cycle). Empty list if none.`;
     const { text } = await gemini([{ text: `Spending snapshot (JSON):\n${JSON.stringify(b.snapshot).slice(0, 12000)}` }], { system, schema: INSIGHTS_SCHEMA, temperature: 0.4 });
-    const out = parseJson<any>(text);
+    const out = parseJson<Body>(text);
     return {
         score: Math.max(0, Math.min(100, Math.round(Number(out.score) || 0))),
         headline: String(out.headline || ''),
@@ -380,7 +383,7 @@ const APP_GUIDE = `How Zaylo works (use this to answer "how do I" questions):
 - Converter: live currency conversion. Settings: profile, language (Arabic/English), currency, theme, PIN and Face ID / fingerprint lock, budget, export to CSV/PDF, backups.
 - Messages: private conversation with the Zaylo team.`;
 
-async function chat(b: Record<string, any>) {
+async function chat(b: Body) {
     const lang = b.language === 'ar' ? 'Arabic' : 'the language the user writes in';
     const system = `You are Zaylo, the assistant inside the Zaylo personal finance app. Tagline: "Your money. Your move."
 Voice: simple, secure, optimistic. Short answers (under 120 words unless asked for detail), plain words, use bullet points for lists. Reply in ${lang}.

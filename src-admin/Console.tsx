@@ -29,6 +29,7 @@ function SupportFiles({ files }: { files?: { path: string; name: string; type: s
 const MeContext = createContext<Me | null>(null);
 
 type Tab = 'overview' | 'users' | 'workspaces' | 'messages' | 'announcements' | 'notify' | 'logs';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows have a different shape per table
 type Row = Record<string, any>;
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
@@ -82,8 +83,8 @@ function ErrorBox({ error, onRetry }: { error: string; onRetry: () => void }) {
 // ───────────────────────── Overview ─────────────────────────
 function Overview({ go }: { go: (t: Tab) => void }) {
     const { data, error, loading, reload } = useAdmin<Row>('stats');
+    const [days] = useState(() => { const now = Date.now(); return Array.from({ length: 30 }, (_, i) => new Date(now - (29 - i) * 864e5).toISOString().slice(0, 10)); });
     if (error) return <ErrorBox error={error} onRetry={reload} />;
-    const days = Array.from({ length: 30 }, (_, i) => { const d = new Date(Date.now() - (29 - i) * 864e5); return d.toISOString().slice(0, 10); });
     const max = Math.max(1, ...days.map(d => data?.signupsByDay?.[d] || 0));
     const stats = [
         ['Users', data?.users, 'users'], ['New this week', data?.newUsers, 'users'], ['Workspaces', data?.workspaces, 'workspaces'],

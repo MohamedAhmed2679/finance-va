@@ -45,7 +45,7 @@ export default function ConverterPage() {
             if (!r) throw new Error('Rate not available');
             setRate(r);
             setResult(parseFloat(amount) * r);
-        } catch (e) { setError(tx('Unable to fetch rates. Using cached data.')); }
+        } catch { setError(tx('Unable to fetch rates. Using cached data.')); }
         setLoading(false);
     }
 
@@ -61,6 +61,7 @@ export default function ConverterPage() {
             }
         }, 300);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- handleConvert reads exactly these values; listing it would re-run on every render
     }, [amount, fromCur, toCur, allRates]);
 
     const popularPairs = [

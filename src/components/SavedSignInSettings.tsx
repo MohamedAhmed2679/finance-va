@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { KeyRound } from 'lucide-react';
 import { tx } from '../i18n/translations';
@@ -10,7 +10,6 @@ export default function SavedSignInSettings() {
     const me = useStore(s => s.user?.email ?? '');
     const [keep, setKeep] = useState(keepSignedIn);
     const [list, setList] = useState<SavedAccount[]>(savedAccounts);
-    useEffect(() => setList(savedAccounts()), []);
     const mine = list.find(a => a.email.toLowerCase() === me.toLowerCase());
 
     return (

@@ -21,11 +21,14 @@ export interface OutboxEntry {
     id: string;
     workspaceId?: string;
     owner: string;            // users.id of who made the change
-    payload?: any;
+    payload?: Payload;
     at: number;
     tries: number;
     lastError?: string;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the stored expense/income/bill/goal/workspace, handed to its own sender
+type Payload = any;
 
 const KEY = 'zaylo_outbox_v1';
 const listeners = new Set<(n: number) => void>();
@@ -41,7 +44,7 @@ function write(list: OutboxEntry[]) {
     listeners.forEach(l => l(mine));
 }
 
-const SENDERS: Record<OutboxKind, { upsert: (p: any) => Promise<unknown>; delete?: (id: string) => Promise<unknown> }> = {
+const SENDERS: Record<OutboxKind, { upsert: (p: Payload) => Promise<unknown>; delete?: (id: string) => Promise<unknown> }> = {
     expense: { upsert: syncExpenseToCloud, delete: deleteExpenseFromCloud },
     income: { upsert: syncIncomeToCloud, delete: deleteIncomeFromCloud },
     bill: { upsert: syncBillToCloud, delete: deleteBillFromCloud },
@@ -79,7 +82,7 @@ export function pendingChanges<T>(kind: OutboxKind, workspaceId: string) {
 }
 
 /** Record a change and try to send it now. Resolves when sent; rejects (entry kept) when not. */
-export function enqueue(kind: OutboxKind, op: 'upsert' | 'delete', id: string, payload?: any, owner = currentOwner): Promise<void> {
+export function enqueue(kind: OutboxKind, op: 'upsert' | 'delete', id: string, payload?: Payload, owner = currentOwner): Promise<void> {
     const entry: OutboxEntry = { key: `${kind}:${id}`, kind, op, id, workspaceId: payload?.workspaceId, owner, payload, at: Date.now(), tries: 0 };
     const list = read().filter(e => e.key !== entry.key);
     list.push(entry);

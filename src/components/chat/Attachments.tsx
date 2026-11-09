@@ -2,28 +2,10 @@ import { tx } from '../../i18n/translations';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Download, FileText, File as FileIcon, Film, Image as ImageIcon, Music, Paperclip, X } from 'lucide-react';
-import { kindOf, formatBytes, signedUrls, downloadUrl, ACCEPT, type Attachment } from '../../services/chatFiles';
+import { kindOf, formatBytes, downloadUrl, ACCEPT, type Attachment } from '../../services/chatFiles';
 
 /** An attachment as shown in a chat, with who sent it and when. */
 export interface GalleryItem extends Attachment { messageId: string; sender: string; createdAt: string; localUrl?: string }
-
-/** Resolves signed URLs for the given attachments; local previews win while uploading. */
-export function useAttachmentUrls(items: { path: string; localUrl?: string }[]) {
-    const [urls, setUrls] = useState<Record<string, string>>({});
-    const key = items.filter(i => !i.localUrl).map(i => i.path).sort().join('|');
-    useEffect(() => {
-        let alive = true;
-        const paths = key ? key.split('|') : [];
-        if (!paths.length) return;
-        signedUrls(paths).then(u => { if (alive) setUrls(prev => ({ ...prev, ...u })); }).catch(() => {});
-        return () => { alive = false; };
-    }, [key]);
-    return useMemo(() => {
-        const out = { ...urls };
-        items.forEach(i => { if (i.localUrl) out[i.path] = i.localUrl; });
-        return out;
-    }, [urls, items]);
-}
 
 const KindIcon = ({ a, size = 18 }: { a: Attachment; size?: number }) => {
     const k = kindOf(a);

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
-import { rememberAccount } from './savedSignIn';
+import { rememberAccount } from '../services/savedSignIn';
 
 /**
  * Once signed in (any method, including Google/Microsoft redirects), remember the account on this

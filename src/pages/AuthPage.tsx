@@ -1,5 +1,5 @@
 import { tx } from '../i18n/translations';
-import { hasPendingJoin } from '../components/JoinInvite';
+import { hasPendingJoin } from '../services/joinLink';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
@@ -16,7 +16,7 @@ function GoogleButton({ lang, dark, disabled, fallback, onStart, onResult }: { l
     const ref = useRef<HTMLDivElement>(null);
     const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
     const cb = useRef({ onStart, onResult });
-    cb.current = { onStart, onResult };
+    useEffect(() => { cb.current = { onStart, onResult }; }, [onStart, onResult]);
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
@@ -212,7 +212,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     }
 
     /** Saved account tapped on the sign-in screen. */
-    async function useSaved(a: SavedAccount) {
+    async function signInWithSaved(a: SavedAccount) {
         setError(''); setNotice('');
         if (a.method === 'google' || a.method === 'azure' || a.method === 'apple') { oauth(a.method); return; }
         if (a.method === 'phone') { setPhone(a.email); switchMode('phone'); return; }
@@ -426,7 +426,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                         <div className="saved-accounts" role="group" aria-label={tx('Saved accounts on this device')}>
                                             {accounts.map(a => (
                                                 <div key={a.email} className="saved-account">
-                                                    <button type="button" className="saved-account-main" onClick={() => useSaved(a)} disabled={busy}>
+                                                    <button type="button" className="saved-account-main" onClick={() => signInWithSaved(a)} disabled={busy}>
                                                         <span className="user-avatar" aria-hidden>{(a.name || a.email).charAt(0).toUpperCase()}</span>
                                                         <span className="saved-account-text">
                                                             <span className="saved-account-name">{a.name}</span>

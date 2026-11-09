@@ -68,8 +68,8 @@ export async function signInWithOAuth(provider: 'google' | 'apple' | 'azure'): P
         }
         // On the web the page redirects to the provider; the session is picked up on return.
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'OAuth sign-in failed' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'OAuth sign-in failed' };
     }
 }
 
@@ -105,8 +105,8 @@ export async function signInWithEmail(email: string, password: string): Promise<
                 phone: data.user.phone,
             },
         };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Sign-in failed' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'Sign-in failed' };
     }
 }
 
@@ -149,8 +149,8 @@ export async function signUpWithEmail(
                 phone,
             },
         };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Sign-up failed' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'Sign-up failed' };
     }
 }
 
@@ -166,8 +166,8 @@ export async function resetPassword(email: string): Promise<{ success: boolean; 
         });
         if (error) throw error;
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to send reset email' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'Failed to send reset email' };
     }
 }
 
@@ -180,8 +180,8 @@ export async function updatePassword(password: string): Promise<{ success: boole
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to update password' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'Failed to update password' };
     }
 }
 
@@ -196,8 +196,8 @@ export async function sendPhoneOtp(phone: string): Promise<{ success: boolean; e
         const { error } = await supabase.auth.signInWithOtp({ phone });
         if (error) throw error;
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to send OTP' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'Failed to send OTP' };
     }
 }
 
@@ -234,8 +234,8 @@ export async function verifyPhoneOtp(phone: string, token: string): Promise<Auth
                 provider: 'phone',
             },
         };
-    } catch (err: any) {
-        return { success: false, error: err.message || 'OTP verification failed' };
+    } catch (err: unknown) {
+        return { success: false, error: (err instanceof Error ? err.message : '') || 'OTP verification failed' };
     }
 }
 
@@ -247,7 +247,7 @@ export async function signOut(): Promise<void> {
 }
 
 // ─── Auth State Listener ─────────────────────────────────────────
-export function onAuthStateChange(callback: (event: string, user: any) => void) {
+export function onAuthStateChange(callback: (event: string, user: import('@supabase/supabase-js').User | null) => void) {
     if (!isSupabaseReady() || !supabase) return { unsubscribe: () => {} };
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
@@ -363,7 +363,7 @@ export function getAuthAvailability(): Promise<AuthAvailability> {
     if (!url || !key) return Promise.resolve({ ...none, reachable: true, google: true, apple: true, azure: true, phone: true, email: true });
     availability = fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } })
         .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
-        .then((s: any) => ({
+        .then((s: { external?: Record<string, boolean>; disable_signup?: boolean }) => ({
             reachable: true,
             google: Boolean(s.external?.google),
             apple: Boolean(s.external?.apple),

@@ -22,7 +22,7 @@ function must<T extends { error: { message: string } | null }>(res: T): T {
 async function upsertWithFx(table: string, row: Record<string, unknown>) {
     const res = await supabase!.from(table).upsert(row);
     if (res.error && /base_amount|base_currency|fx_rate/i.test(res.error.message)) {
-        const { base_amount: _a, base_currency: _c, fx_rate: _r, ...rest } = row;
+        const rest = Object.fromEntries(Object.entries(row).filter(([k]) => !['base_amount', 'base_currency', 'fx_rate'].includes(k)));
         return must(await supabase!.from(table).upsert(rest));
     }
     return must(res);
@@ -298,7 +298,7 @@ export async function logActivityToCloud(activity: {
 
 // ─── User Profile ────────────────────────────────────────────────
 
-export async function updateUserProfile(authId: string, updates: Record<string, any>) {
+export async function updateUserProfile(authId: string, updates: Record<string, unknown>) {
     if (!isSupabaseReady() || !supabase) return;
 
     must(await supabase
@@ -404,6 +404,7 @@ export async function fetchAccessibleWorkspaces(userId: string) {
     ]);
     if (owned.error && memberships.error) return null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- workspace rows from two queries, mapped below
     const rows: Record<string, any>[] = [...(owned.data || [])];
     const known = new Set(rows.map(r => r.id));
     const extraIds = (memberships.data || []).map(m => m.workspace_id).filter(id => !known.has(id));
@@ -520,7 +521,7 @@ export async function ensureProfile() {
     if (!isSupabaseReady() || !supabase) return null;
     const { data, error } = await supabase.rpc('ensure_profile');
     if (error) return null;
-    return data as Record<string, any> | null;
+    return data as Record<string, unknown> | null;
 }
 
 export async function markNotificationRead(id: string) {

@@ -9,7 +9,7 @@ export default function ConversionHint({ amount, from, to }: { amount: number | 
     const [stale, setStale] = useState(false);
     useEffect(() => {
         let alive = true;
-        if (!to || from === to) { setRate(null); return; }
+        if (!to || from === to) return;
         convertAmount(1, from, to).then(r => { if (alive) { setRate(r); setStale(areRatesStale()); } }).catch(() => alive && setRate(null));
         return () => { alive = false; };
     }, [from, to]);

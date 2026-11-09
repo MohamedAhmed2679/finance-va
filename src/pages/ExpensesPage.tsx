@@ -1,7 +1,7 @@
 import Dialog from '../components/Dialog';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useStore, type Expense } from '../store/useStore';
+import { useStore, type Expense, type AppFilters, type CategoryKey, type PaymentMethod } from '../store/useStore';
 
 function localDay(iso: string) {
     const d = new Date(iso);
@@ -28,9 +28,7 @@ import AddExpenseModal from '../components/AddExpenseModal';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 import { toBase } from '../utils/money';
 
-interface ExpensesProps { }
-
-export default function ExpensesPage({ }: ExpensesProps) {
+export default function ExpensesPage() {
     const { workspaces, activeWorkspaceId, expenses, filters, setFilters, resetFilters, deleteExpense, user, updateUser, categories, paymentMethods } = useStore();
     const lang = user?.language ?? 'en';
     const currency = user?.defaultCurrency ?? 'USD';
@@ -59,12 +57,13 @@ export default function ExpensesPage({ }: ExpensesProps) {
     const viewing = viewId ? expenses.find(e => e.id === viewId && e.details) : undefined;
     const hideAmounts = user?.hideAmounts ?? false;
 
-    const wsExp = expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId);
+    const wsExp = useMemo(() => expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId), [expenses, activeWorkspaceId]);
     const wsCur = activeWorkspace?.currency ?? currency;
     const base = (e: Expense) => toBase(e, wsCur);
     const maxAmt = Math.ceil(Math.max(...wsExp.map(base), 100));
 
     const filtered = useMemo(() => {
+        const base = (e: Expense) => toBase(e, wsCur);
         let result = wsExp;
         if (filters.search) result = result.filter(e => e.merchant.toLowerCase().includes(filters.search.toLowerCase()) || e.description.toLowerCase().includes(filters.search.toLowerCase()));
         if (filters.categories.length) result = result.filter(e => filters.categories.includes(e.category));
@@ -79,7 +78,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
             case 'amount_asc': return [...result].sort((a, b) => base(a) - base(b));
             default: return [...result].sort((a, b) => b.purchaseAt.localeCompare(a.purchaseAt));
         }
-    }, [wsExp, filters]);
+    }, [wsExp, filters, wsCur]);
 
     function toggleCategory(cat: string) {
         const cats = filters.categories.includes(cat) ? filters.categories.filter(c => c !== cat) : [...filters.categories, cat];
@@ -115,7 +114,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                         <Filter size={14} />{t(lang, 'filters')}
                         {activeFilterCount > 0 && <span className="nav-badge" style={{ position: 'absolute', top: -6, right: -6 }}>{activeFilterCount}</span>}
                     </button>
-                    <select className="form-input form-select" style={{ width: 'auto', padding: '8px 32px 8px 12px', fontSize: 13 }} value={filters.sortBy} onChange={e => setFilters({ sortBy: e.target.value as any })}>
+                    <select className="form-input form-select" style={{ width: 'auto', padding: '8px 32px 8px 12px', fontSize: 13 }} value={filters.sortBy} onChange={e => setFilters({ sortBy: e.target.value as AppFilters['sortBy'] })}>
                         <option value="date_desc">{tx('Newest First')}</option>
                         <option value="date_asc">{tx('Oldest First')}</option>
                         <option value="amount_desc">{tx('Highest Amount')}</option>
@@ -131,7 +130,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                             <legend className="form-label">{tx('Category')}</legend>
                             <div className="chip-wrap">
                                 {categories.map(cat => (
-                                    <button type="button" key={cat.key} aria-pressed={filters.categories.includes(cat.key as any)} className={`category-chip ${filters.categories.includes(cat.key as any) ? 'selected' : ''}`} onClick={() => toggleCategory(cat.key)}>
+                                    <button type="button" key={cat.key} aria-pressed={filters.categories.includes(cat.key as CategoryKey)} className={`category-chip ${filters.categories.includes(cat.key as CategoryKey) ? 'selected' : ''}`} onClick={() => toggleCategory(cat.key)}>
                                         {cat.emoji} {cat.label}
                                     </button>
                                 ))}
@@ -150,7 +149,7 @@ export default function ExpensesPage({ }: ExpensesProps) {
                             <div className="form-label" style={{ marginTop: 14 }}>{tx('Payment method')}</div>
                             <div className="chip-wrap">
                                 {paymentMethods.map(pm => (
-                                    <button type="button" key={pm.key} aria-pressed={filters.paymentMethods.includes(pm.key as any)} className={`category-chip ${filters.paymentMethods.includes(pm.key as any) ? 'selected' : ''}`} onClick={() => { const pms = filters.paymentMethods.includes(pm.key as any) ? filters.paymentMethods.filter(p => p !== pm.key) : [...filters.paymentMethods, pm.key as any]; setFilters({ paymentMethods: pms }); }}>
+                                    <button type="button" key={pm.key} aria-pressed={filters.paymentMethods.includes(pm.key as PaymentMethod)} className={`category-chip ${filters.paymentMethods.includes(pm.key as PaymentMethod) ? 'selected' : ''}`} onClick={() => { const pms = filters.paymentMethods.includes(pm.key as PaymentMethod) ? filters.paymentMethods.filter(p => p !== pm.key) : [...filters.paymentMethods, pm.key as PaymentMethod]; setFilters({ paymentMethods: pms }); }}>
                                         {pm.emoji} {pm.label}
                                     </button>
                                 ))}

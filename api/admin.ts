@@ -18,6 +18,7 @@ const cors = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows have a different shape per table
 type Row = Record<string, any>;
 interface Admin { id: string; auth_id: string; email: string | null; name: string }
 
@@ -86,7 +87,8 @@ export default async function handler(req: Request) {
 
             case 'stats': {
                 const since7 = new Date(Date.now() - 7 * 864e5).toISOString();
-                const count = async (table: string, filter?: (q: any) => any) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a Supabase query builder, narrowed by the caller
+    const count = async (table: string, filter?: (q: any) => any) => {
                     let q = db.from(table).select('*', { count: 'exact', head: true });
                     if (filter) q = filter(q);
                     const { count: c } = await q;

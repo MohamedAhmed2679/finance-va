@@ -6,20 +6,7 @@ import { Users, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { acceptInvite, previewInvite, type InvitePreview } from '../services/supabaseSync';
 import { dispatchPush } from '../services/push';
-
-const KEY = 'zaylo_join_token';
-
-/** Called once at startup: a /join/<token> visit is remembered across sign-in (and OAuth redirects). */
-export function captureJoinLink() {
-    try {
-        const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]{8,64})\/?$/);
-        if (m) {
-            localStorage.setItem(KEY, m[1]);
-            window.history.replaceState({}, '', '/overview');
-        }
-    } catch { /* storage blocked: the link just won't survive sign-in */ }
-}
-export const hasPendingJoin = () => { try { return Boolean(localStorage.getItem(KEY)); } catch { return false; } };
+import { JOIN_KEY as KEY } from '../services/joinLink';
 
 const MESSAGES: Record<string, string> = {
     not_found: "This invite link doesn't exist. Ask for a new one.",

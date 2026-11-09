@@ -15,8 +15,9 @@ export const APPLE_CONFIG = {
 };
 
 export function initCloudKit() {
-    if (typeof (window as any).CloudKit !== 'undefined') {
-        (window as any).CloudKit.configure({
+    const ck = (window as unknown as { CloudKit?: { configure: (c: unknown) => void } }).CloudKit;
+    if (typeof ck !== 'undefined') {
+        ck.configure({
             containers: [{
                 containerIdentifier: import.meta.env.VITE_CLOUDKIT_CONTAINER || 'iCloud.com.financeva.app',
                 apiTokenAuth: {

@@ -25,7 +25,7 @@ export async function parseExpensesText(text: string, baseCurrency: string): Pro
     return parseLocally(text, baseCurrency);
 }
 
-function normalise(list: any[], baseCurrency: string): ParsedExpense[] {
+function normalise(list: ReadonlyArray<Partial<Record<keyof ParsedExpense, unknown>>>, baseCurrency: string): ParsedExpense[] {
     return list
         .filter(e => Number(e.amount) > 0)
         .map(e => ({

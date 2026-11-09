@@ -17,6 +17,7 @@ import { createECDH, createHash } from 'crypto';
 
 export const config = { maxDuration: 30 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- database rows have a different shape per table
 type Row = Record<string, any>;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });

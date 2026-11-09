@@ -22,7 +22,7 @@ export const CONSOLE_BASE = window.location.pathname.startsWith('/console') ? '/
 const API_BASE = import.meta.env.VITE_ADMIN_API_BASE ?? (CONSOLE_BASE ? '' : MAIN_APP_URL);
 
 /** Calls /api/admin with the console session's access token. */
-export async function adminCall<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+export async function adminCall<T = unknown>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
     if (!sb) throw new Error('Not connected to the database');
     const { data } = await sb.auth.getSession();
     const token = data.session?.access_token;
@@ -32,9 +32,9 @@ export async function adminCall<T = any>(action: string, payload: Record<string,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action, ...payload }),
     });
-    let body: any = null;
+    let body: unknown = null;
     try { body = await res.json(); } catch { /* non-JSON */ }
-    if (!res.ok) throw new Error(body?.error || `Request failed (${res.status})`);
+    if (!res.ok) throw new Error((body as { error?: string } | null)?.error || `Request failed (${res.status})`);
     return body as T;
 }
 

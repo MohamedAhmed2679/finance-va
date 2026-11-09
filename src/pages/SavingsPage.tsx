@@ -16,6 +16,7 @@ export default function SavingsPage() {
     const cur = ws?.currency ?? user?.defaultCurrency ?? 'USD';
     const cycleStartDay = ws?.cycleStartDay ?? 1;
     const wsGoals = savingsGoals.filter(g => g.workspaceId === activeWorkspaceId);
+    const wsGoalsCount = wsGoals.length;
     const hideAmounts = user?.hideAmounts ?? false;
 
     const [name, setName] = useState('');
@@ -29,7 +30,7 @@ export default function SavingsPage() {
         if (!name || !target) return;
         const colors = ['var(--note)', '#06d6a0', 'var(--amber)', '#3b82f6', '#ec4899', 'var(--cinnabar)'];
         const icons = ['🎯', '💰', '🏠', '✈️', '💻', '🎓', '🏖️', '🚗'];
-        addSavingsGoal({ workspaceId: activeWorkspaceId, name, reason, targetAmount: parseFloat(target), savedAmount: 0, currency: cur, color: colors[Math.floor(Math.random() * colors.length)], icon: icons[Math.floor(Math.random() * icons.length)] });
+        addSavingsGoal({ workspaceId: activeWorkspaceId, name, reason, targetAmount: parseFloat(target), savedAmount: 0, currency: cur, color: colors[wsGoalsCount % colors.length], icon: icons[wsGoalsCount % icons.length] });
         setName(''); setReason(''); setTarget('');
     }
 
@@ -76,7 +77,7 @@ export default function SavingsPage() {
         });
 
         return totalRollover;
-    }, [incomes, expenses, activeWorkspaceId, cycleStartDay]);
+    }, [incomes, expenses, activeWorkspaceId, cycleStartDay, cur]);
 
     const totalManualSaved = wsGoals.reduce((s, g) => s + g.savedAmount, 0);
     const totalSaved = totalManualSaved + rolloverSavings;

@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { Send, Users, UserPlus, X, Trash2, Images } from 'lucide-react';
 import { checkFiles, uploadChatFiles, type Attachment } from '../services/chatFiles';
 import { pushChatMessage } from '../services/push';
-import { ChatGallery, FilePicker, Lightbox, MessageAttachments, PendingFiles, useAttachmentUrls, type GalleryItem } from '../components/chat/Attachments';
+import { ChatGallery, FilePicker, Lightbox, MessageAttachments, PendingFiles, type GalleryItem } from '../components/chat/Attachments';
+import { useAttachmentUrls } from '../components/chat/useAttachmentUrls';
 import { useStore, type WorkspaceRole } from '../store/useStore';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 
@@ -45,6 +46,7 @@ export default function ChatPage() {
 
     // Load history + subscribe to new messages for this workspace
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data from the server; the flag shows progress
         if (!ws || !isSupabaseReady() || !supabase) { setLoading(false); return; }
         let alive = true;
         setLoading(true);
@@ -126,6 +128,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (side !== 'gallery' || !ws || !supabase) return;
         let alive = true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data from the server; the flag shows progress
         setHistoryLoading(true);
         supabase.from('chat_messages').select('id, sender_name, created_at, attachments').eq('workspace_id', ws.id).eq('is_deleted', false)
             .order('created_at', { ascending: false }).limit(1000)

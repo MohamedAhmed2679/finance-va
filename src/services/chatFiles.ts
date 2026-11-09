@@ -28,7 +28,7 @@ export function formatBytes(n: number) {
     return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const safeName = (name: string) => name.normalize('NFKD').replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_').slice(-80) || 'file';
+const safeName = (name: string) => name.normalize('NFKD').replace(/[^\w.-]+/g, '_').replace(/_+/g, '_').slice(-80) || 'file';
 
 /** Returns a message for files that can't be sent, or null when all are fine. */
 export function checkFiles(files: File[]): string | null {

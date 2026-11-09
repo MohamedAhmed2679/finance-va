@@ -49,6 +49,7 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
             setSettings(s); setAccounts(a); setRules(r); setLoadErr('');
         } catch (e) { setLoadErr(/does not exist|schema cache/i.test((e as Error).message) ? tx('AutoTrack needs the latest database update.') : (e as Error).message); }
     }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data from the server; the flag shows progress
     useEffect(() => { refresh(); }, [refresh]);
 
     async function enableAndroid() {
