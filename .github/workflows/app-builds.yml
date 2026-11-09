@@ -45,9 +45,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: android, path: Zaylo-android.apk, retention-days: 30 }
 
-  ios:
-    name: iOS IPA (unsigned)
+  apple:
+    # iPhone and Mac share one macOS machine: GitHub's Mac runners are often scarce,
+    # and waiting for two of them at once left the Mac build unbuilt.
+    name: iOS IPA (unsigned) + macOS DMG
     runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,6 +62,7 @@ jobs:
       - run: npx cap sync ios
       - name: Build unsigned app for devices
         run: |
+          set -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -40
@@ -67,21 +73,13 @@ jobs:
           zip -qry Zaylo-ios-unsigned.ipa Payload
       - uses: actions/upload-artifact@v4
         with: { name: ios, path: Zaylo-ios-unsigned.ipa, retention-days: 30 }
-
-  macos:
-    name: macOS DMG
-    runs-on: macos-15
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      ELECTRON: 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npx vite build
-      - run: npx electron-builder --mac --publish never
-      - run: cp release/*.dmg Zaylo-mac.dmg
+      - name: Build the Mac app
+        env: { ELECTRON: 'true' }
+        run: |
+          rm -rf dist
+          npx vite build
+          npx electron-builder --mac --publish never
+          cp release/*.dmg Zaylo-mac.dmg
       - uses: actions/upload-artifact@v4
         with: { name: macos, path: Zaylo-mac.dmg, retention-days: 30 }
 
@@ -104,9 +102,9 @@ jobs:
 
   release:
     name: Publish test-build release
-    needs: [android, ios, macos, windows]
+    needs: [android, apple, windows]
     # only main replaces the test-build release; other branches just produce downloadable artifacts
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.android.result == 'success' && needs.apple.result == 'success' && needs.windows.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
