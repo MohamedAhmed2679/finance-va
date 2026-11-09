@@ -49,9 +49,10 @@ export async function createTestDb(): Promise<TestDb> {
         try { await db.exec(readFileSync(join(MIGRATIONS, f), 'utf8')); applied.push(f); }
         catch (e) { skipped.push({ file: f, error: (e as Error).message }); }
     }
-    // Make sure every table/function created by migrations is usable by the API roles (Supabase grants these)
-    await db.exec(`GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-                   GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;`);
+    // Make sure every table created by migrations is usable by the API roles (Supabase grants these).
+    // Functions get EXECUTE from the default privileges above, exactly as on Supabase, so a migration's
+    // REVOKE stays in force here too (re-granting them all would hide functions that should be locked).
+    await db.exec(`GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;`);
 
     const as = async <T,>(who: string, sql: string, params: unknown[] = []) => {
         return await db.transaction(async tx => {

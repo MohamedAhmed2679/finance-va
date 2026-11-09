@@ -137,24 +137,14 @@ export function getPaymentMethodInfo(key: string) {
  */
 export function getActiveCycleDates(targetDate: string | Date, cycleStartDay = 1): { start: string, end: string } {
     const d = new Date(targetDate);
-    // If we're on day 15 but cycle starts on 25, we're in the PREVIOUS month's cycle.
-    // If we're on day 26 and cycle starts on 25, we're in the CURRENT month's cycle.
+    const day = Math.min(31, Math.max(1, Math.round(cycleStartDay) || 1));
+    // A cycle that starts on the 29th–31st starts on the last day of shorter months (e.g. 28 Feb).
+    const startIn = (y: number, m: number) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
 
-    let cycleStartMonth = d.getMonth();
-    let cycleStartYear = d.getFullYear();
-
-    if (d.getDate() < cycleStartDay) {
-        cycleStartMonth -= 1;
-        if (cycleStartMonth < 0) {
-            cycleStartMonth = 11;
-            cycleStartYear -= 1;
-        }
-    }
-
-    const start = new Date(cycleStartYear, cycleStartMonth, cycleStartDay);
-
-    // The end date is exactly one month from the start date minus 1 ms (or just day before).
-    const end = new Date(cycleStartYear, cycleStartMonth + 1, cycleStartDay - 1);
+    let start = startIn(d.getFullYear(), d.getMonth());
+    if (d.getDate() < start.getDate()) start = startIn(d.getFullYear(), d.getMonth() - 1);
+    const next = startIn(start.getFullYear(), start.getMonth() + 1);
+    const end = new Date(next.getFullYear(), next.getMonth(), next.getDate() - 1);
 
     // Using simple formatting that avoids timezone shift issues by extracting local dates
     const pad = (n: number) => n.toString().padStart(2, '0');

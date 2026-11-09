@@ -756,6 +756,26 @@ await scenario('first-run choices apply right away: Arabic, right-to-left, and t
     sessionStorage.setItem('seeded', '1');
 } });
 
+
+await scenario('phone: the salary day can be set when adding a salary, and changed later', async page => {
+    await page.getByRole('button', { name: 'Add Income' }).click();
+    await page.getByRole('button', { name: 'Salary', exact: true }).click();
+    await page.fill('#inc-amount', '18000');
+    await page.selectOption('#inc-payday', '25');
+    await page.getByText('Your month in Zaylo will run from the 25th').waitFor();
+    await page.getByRole('button', { name: 'Save Income' }).click();
+    await page.getByText('Salary day set to the 25th').waitFor();
+    const ws = await page.evaluate(() => JSON.parse(localStorage.getItem('financeva-store')).state.workspaces[0]);
+    expect(ws.cycleStartDay === 25, `workspace salary day: ${ws.cycleStartDay}`);
+    await page.getByText(/Salary day: the 25th/).waitFor();
+    await page.getByText(/Every cycle, paid on the 25th/).waitFor();
+    await page.getByRole('button', { name: 'Change' }).click();
+    await page.selectOption('#payday-head', '31');
+    await page.getByText(/Salary day: the 31st/).waitFor();
+    expect(await noSideScroll(page), 'no sideways scrolling');
+    await shot(page, '26-phone-salary-day');
+}, { path: '/earnings' });
+
 // ------------------------------------------------------------------ report
 let failed = 0;
 for (const [ok, name, err] of results) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${err ? `\n      ${err}` : ''}`); if (!ok) failed++; }

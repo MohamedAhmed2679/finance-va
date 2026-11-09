@@ -205,7 +205,7 @@ export default function SettingsPage() {
                             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Configure settings specific to the active workspace.')}</div>
 
                             <div className="form-group">
-                                <label className="form-label">{tx('Billing Cycle Start Day')}</label>
+                                <label className="form-label">{tx('Salary day (your month starts on this day)')}</label>
                                 <select
                                     className="form-input form-select"
                                     value={activeWorkspace?.cycleStartDay || 1}

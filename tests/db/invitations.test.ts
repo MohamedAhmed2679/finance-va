@@ -87,3 +87,19 @@ describe('workspace invitations', () => {
         expect(r.add_workspace_member).toBe('already_invited');
     });
 });
+
+describe('internal membership helpers cannot be called from the app (v28)', () => {
+    it('a stranger cannot make themselves a member of someone else\'s workspace', async () => {
+        const { o, ws } = await teamOf('inv-owner7@example.test');
+        const x = await t.signUp('inv-mallory7@example.test', { name: 'Mallory' });
+        const forge = (fn: string, extra: string) => t.as(x.authId,
+            `SELECT public.${fn}(json_populate_record(NULL::public.workspaces, json_build_object('id', $1::uuid, 'name', 'x', 'owner_id', $2::uuid)), json_populate_record(NULL::public.users, json_build_object('id', $3::uuid)), 'admin', 'x'${extra})`,
+            [ws, o.userId, x.userId]);
+        await expect(forge('invite_workspace_internal', '')).rejects.toThrow(/permission denied/);
+        await expect(forge('join_workspace_internal', ', false')).rejects.toThrow(/permission denied/);
+        await expect(t.as(x.authId, `SELECT public.notify_user($1, 'admin_message', NULL::public.workspaces, 'Your account is locked', 'Zaylo Support')`, [o.userId])).rejects.toThrow(/permission denied/);
+        await expect(t.as(x.authId, `SELECT public.find_user_by_identifier('inv-owner7@example.test')`)).rejects.toThrow(/permission denied/);
+        expect(await status(ws, x.userId)).toBeNull();
+        expect(await canSee(x.authId, ws)).toBe(false);
+    });
+});

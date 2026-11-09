@@ -20,6 +20,8 @@ const INCOME_SUGGESTIONS: { name: string; type: 'fixed' | 'variable' }[] = [
     { name: 'Gift', type: 'variable' },
 ];
 const todayIso = () => format(new Date(), 'yyyy-MM-dd');
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+const dayLabel = (n: number, lang: string) => (lang === 'ar' ? `يوم ${n}` : `the ${ordinal(n)}`);
 /** Accepts "1,500.50", "1500,5" and Arabic digits. */
 function parseAmount(raw: string): number {
     const s = raw.trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\s/g, '');
@@ -28,8 +30,18 @@ function parseAmount(raw: string): number {
     return Number.isFinite(n) ? n : NaN;
 }
 
+function PaydaySelect({ id, value, onChange, lang, disabled }: { id: string; value: number; onChange: (d: number) => void; lang: string; disabled?: boolean }) {
+    return (
+        <select id={id} className="form-select form-input" value={value} disabled={disabled} onChange={e => onChange(Number(e.target.value))}>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                <option key={d} value={d}>{lang === 'ar' ? `يوم ${d} من كل شهر` : `${ordinal(d)} of every month`}{d >= 29 ? (lang === 'ar' ? ' (أو آخر يوم)' : ' (or the last day)') : ''}</option>
+            ))}
+        </select>
+    );
+}
+
 export default function EarningsPage() {
-    const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome } = useStore();
+    const { user, incomes, expenses, workspaces, activeWorkspaceId, addIncome, deleteIncome, updateWorkspace } = useStore();
     const lang = user?.language ?? 'en';
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
@@ -47,6 +59,15 @@ export default function EarningsPage() {
     const [incAmount, setIncAmount] = useState('');
     const [incType, setIncType] = useState<'fixed' | 'variable'>('fixed');
     const [incDate, setIncDate] = useState(todayIso);
+    const canSetPayday = Boolean(isOwner || userRole === 'admin');
+    const [payday, setPayday] = useState(cycleStartDay);
+    useEffect(() => { setPayday(cycleStartDay); }, [cycleStartDay]);
+    const [editPayday, setEditPayday] = useState(false);
+    function savePayday(day: number) {
+        if (!ws || !canSetPayday || day === ws.cycleStartDay) return;
+        updateWorkspace(ws.id, { cycleStartDay: day });
+        toast.success(`${tx('Salary day set to')} ${dayLabel(day, lang)}`);
+    }
     const formRef = useRef<HTMLDivElement>(null);
     // On a phone the form opens below the stats: bring it into view and focus the first field.
     useEffect(() => {
@@ -104,6 +125,7 @@ export default function EarningsPage() {
             date: incType === 'variable' ? (incDate || todayIso()) : new Date().toISOString()
         });
 
+        if (incType === 'fixed') savePayday(payday);
         setShowAdd(false);
         setIncName('');
         setIncAmount('');
@@ -118,12 +140,23 @@ export default function EarningsPage() {
                 <header className="page-header" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <h1 className="page-title">{t(lang, 'earnings') || tx('Income & Earnings')}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                             <span className="badge" style={{ background: 'var(--primary-light)', color: '#fff', display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <CalendarRange size={14} />
                                 {tx('Active Cycle:')}{' '}{format(new Date(cycleStart), 'MMM d')} - {format(new Date(cycleEnd), 'MMM d')}
                             </span>
-                            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{lang === 'ar' ? `(تبدأ يوم ${cycleStartDay} من كل شهر)` : `(Starts on the ${cycleStartDay}${cycleStartDay === 1 || cycleStartDay === 21 || cycleStartDay === 31 ? 'st' : cycleStartDay === 2 || cycleStartDay === 22 ? 'nd' : cycleStartDay === 3 || cycleStartDay === 23 ? 'rd' : 'th'})`}</span>
+                            {editPayday && canSetPayday ? (
+                                <span className="payday-edit">
+                                    <label htmlFor="payday-head" className="sr-only">{tx('Salary day')}</label>
+                                    <PaydaySelect id="payday-head" value={cycleStartDay} lang={lang} onChange={d => { savePayday(d); setEditPayday(false); }} />
+                                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditPayday(false)}>{tx('Cancel')}</button>
+                                </span>
+                            ) : (
+                                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                                    {tx('Salary day:')} {dayLabel(cycleStartDay, lang)}
+                                    {canSetPayday && <button type="button" className="link-btn" onClick={() => setEditPayday(true)} style={{ marginInlineStart: 6 }}>{tx('Change')}</button>}
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -193,6 +226,17 @@ export default function EarningsPage() {
                                     </button>
                                 </div>
                             </div>
+                            {incType === 'fixed' && (
+                                <div className="form-group income-form-full">
+                                    <label className="form-label" htmlFor="inc-payday">{tx('Paid on day')}</label>
+                                    <PaydaySelect id="inc-payday" value={payday} lang={lang} disabled={!canSetPayday} onChange={setPayday} />
+                                    <div className="form-hint">
+                                        {canSetPayday
+                                            ? `${tx('Your month in Zaylo will run from')} ${dayLabel(payday, lang)} ${tx('to the day before the next payday.')}`
+                                            : tx('Only the workspace owner or an admin can change the salary day.')}
+                                    </div>
+                                </div>
+                            )}
                             {incType === 'variable' && (
                                 <div className="form-group income-form-full">
                                     <label className="form-label" htmlFor="inc-date">{tx('Date Received')}</label>
@@ -228,7 +272,7 @@ export default function EarningsPage() {
                                         <div>
                                             <div style={{ fontWeight: 600, fontSize: 15, overflowWrap: 'anywhere' }}>{inc.name}</div>
                                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                                {inc.type === 'fixed' ? tx('Recurring per cycle') : `${tx('Received on')} ${format(new Date(inc.date), 'MMM d, yyyy')}`}
+                                                {inc.type === 'fixed' ? `${tx('Every cycle, paid on')} ${dayLabel(cycleStartDay, lang)}` : `${tx('Received on')} ${format(new Date(inc.date), 'MMM d, yyyy')}`}
                                                 {inc.source === 'autotrack' && <span className="at-ledger-badge">{tx('Added by AutoTrack')}</span>}
                                             </div>
                                         </div>
