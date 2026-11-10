@@ -76,14 +76,12 @@ export interface User {
     smsEnabled?: boolean;
     hideAmounts: boolean;
     showOnboarding?: boolean;
-    storeOcr?: boolean;
     notifyDaily?: boolean;
     notifyMonthly?: boolean;
     notifyBudget?: boolean;
     monthlyBudget?: number;
     connectedClouds?: string[];
     backupInterval?: 'daily' | 'weekly' | 'monthly' | 'manual';
-    geminiKey?: string;
     createdAt: string;
 }
 
@@ -1026,10 +1024,12 @@ export const useStore = create<AppState>()(
         }),
         {
             name: 'financeva-store',
-            version: 3,
+            version: 4,
             // v2/v3: refresh built-in category and workspace colours to the current (Zaylo) palette
+            // v4: drop two retired settings (a personal AI key and "store receipt text") that were saved on the device but never used
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- whatever an older version saved on this device
             migrate: (persisted: any) => {
+                if (persisted?.user) { delete persisted.user.geminiKey; delete persisted.user.storeOcr; }
                 const OLD_WS = ['#1E5B47', '#A87A22', '#2C6A8F', '#B5372F', '#6A52B0', '#1E8A80', '#C4622D', '#13201C'];
                 if (persisted?.workspaces) {
                     persisted.workspaces = persisted.workspaces.map((w: Workspace) => {

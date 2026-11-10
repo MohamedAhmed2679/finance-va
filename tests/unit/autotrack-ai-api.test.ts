@@ -13,6 +13,7 @@ vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
         const auth = (init.headers as Record<string, string>).Authorization;
         return new Response(JSON.stringify(auth.startsWith('Bearer user-') ? { id: auth.slice(7) } : {}), { status: auth.startsWith('Bearer user-') ? 200 : 401 });
     }
+    if (u.includes('/rest/v1/consent_events')) return new Response(JSON.stringify([{ granted: true }]), { status: 200 }); // this person allowed AI
     if (u.includes('generativelanguage.googleapis.com')) {
         geminiCalls.push(String(init.body));
         return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(geminiReply) }] } }] }), { status: 200 });

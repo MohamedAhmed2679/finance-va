@@ -8,7 +8,10 @@ import { onAuthStateChange, initNativeAuthListener } from './services/authProvid
 import { consumeImpersonationLink } from './services/adminApi';
 import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
-import { PAGE_KEYS } from './components/nav';
+import { PAGE_KEYS, REDIRECTS, rememberPage } from './components/nav';
+import SectionTabs from './components/SectionTabs';
+import AiConsentDialog from './components/AiConsentDialog';
+import { refreshAiConsent } from './services/aiConsent';
 import AppSignInPage from './pages/AppSignInPage';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -23,7 +26,7 @@ import EarningsPage from './pages/EarningsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatPage from './pages/ChatPage';
-import MessagesPage from './pages/MessagesPage';
+import HelpPage from './pages/HelpPage';
 import { AnnouncementBanner, ImpersonationBar } from './components/LiveLayer';
 import { useLiveNotifications, useLiveChatAlerts } from './hooks/useLive';
 import AddExpenseModal from './components/AddExpenseModal';
@@ -98,9 +101,9 @@ async function doRestore() {
 }
 
 const pageMotion = {
-    initial: { opacity: 0, y: 8 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const } },
-    exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
+    initial: { opacity: 0, y: 4 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const } },
+    exit: { opacity: 0, transition: { duration: 0.1 } },
 };
 
 function Shell() {
@@ -113,9 +116,12 @@ function Shell() {
 
     const active = location.pathname.split('/')[1] || 'overview';
     const go = useCallback((page: string) => {
-        navigate(`/${PAGE_KEYS.includes(page) ? page : 'overview'}`);
+        const target = REDIRECTS[page] || page;
+        navigate(`/${PAGE_KEYS.includes(target) ? target : 'overview'}`);
         window.scrollTo({ top: 0 });
     }, [navigate]);
+    useEffect(() => { rememberPage(active); }, [active]);
+    const hasAdd = !['chat', 'help', 'assistant', 'smart-cart', 'autotrack', 'settings'].includes(active);
 
     const isElectron = navigator.userAgent.includes('Electron');
 
@@ -135,7 +141,7 @@ function Shell() {
         settings: <SettingsPage />,
         chat: <ChatPage />,
         assistant: <AssistantPage />,
-        messages: <MessagesPage />,
+        help: <HelpPage />,
     };
     useLiveNotifications();
     useLiveChatAlerts(active);
@@ -169,20 +175,22 @@ function Shell() {
                 <MobileTopBar onNavigate={go} />
                 <div className="banner-slot"><AnnouncementBanner /></div>
                 <InvitationsBar />
+                <SectionTabs active={active} onNavigate={go} />
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
                         <Routes location={location}>
                             <Route path="/" element={<Navigate to="/overview" replace />} />
                             {Object.entries(pages).map(([key, el]) => <Route key={key} path={`/${key}`} element={el} />)}
+                            {Object.entries(REDIRECTS).map(([from, to]) => <Route key={from} path={`/${from}`} element={<Navigate to={`/${to}`} replace />} />)}
                             <Route path="*" element={<Navigate to="/overview" replace />} />
                         </Routes>
                     </motion.div>
                 </AnimatePresence>
             </main>
-            <TabBar active={active} onNavigate={go} />
+            <TabBar active={active} onNavigate={go} addSlot={hasAdd} />
             <JoinInvite />
 
-            {!['chat', 'messages', 'assistant', 'smart-cart', 'autotrack'].includes(active) && <QuickAddMenu
+            {hasAdd && <QuickAddMenu
                 onManualAdd={() => setShowAdd(true)}
                 onVoiceAdd={() => setCapture('voice')}
                 onScanAdd={() => setCapture('scan')}
@@ -262,6 +270,7 @@ export default function App() {
         if (isAuthenticated) {
             checkBillReminders();
             initSessionManager();
+            refreshAiConsent().catch(() => {});   // pick up a permission given or withdrawn on another device
             // Desktop app: save last month's backup into iCloud Drive / OneDrive folder if it isn't there yet
             const t = setTimeout(() => {
                 import('./services/cloudBackup').then(m => m.desktopMonthlyCatchUp()).then(r => {
@@ -305,6 +314,7 @@ export default function App() {
         <MotionConfig reducedMotion="user">
             {content}
             <OfflineBanner />
+            {isAuthenticated && <AiConsentDialog />}
             <Toaster position="top-center" toastOptions={{
                 style: { background: 'var(--ink)', color: 'var(--paper)', borderRadius: 12, fontSize: 14, fontWeight: 500, maxWidth: 420 },
                 success: { iconTheme: { primary: 'var(--note)', secondary: 'var(--paper)' } },

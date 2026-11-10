@@ -1,3 +1,4 @@
+import AiSettings from '../components/AiSettings';
 import SavedSignInSettings from '../components/SavedSignInSettings';
 import AutoTrackSettings from '../components/AutoTrackSettings';
 import DeleteAccountDialog from '../components/DeleteAccountDialog';
@@ -10,7 +11,7 @@ import BiometricToggle from '../components/BiometricToggle';
 import toast from 'react-hot-toast';
 import { t, tx } from '../i18n/translations';
 import { CURRENCIES, SUPPORTED_LANGUAGES } from '../constants';
-import { Copy, Check, Shield, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown, MessageSquareText } from 'lucide-react';
+import { Copy, Check, Bell, Download, LogOut, User, Globe, Lock, ChevronRight, Cloud, Monitor, Tags, Plus, Trash2, Briefcase, Wand2, FileDown, MessageSquareText } from 'lucide-react';
 import ReportSheet from '../components/ReportSheet';
 import CloudBackupSettings from '../components/CloudBackupSettings';
 import Dialog from '../components/Dialog';
@@ -25,7 +26,7 @@ export default function SettingsPage() {
     const [curDraft, setCurDraft] = useState(currency);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name ?? '');
-    const [activeSection, setActiveSection] = useState<string | null>(() => new URLSearchParams(window.location.search).get('section') || 'profile');
+    const [activeSection, setActiveSection] = useState<string | null>(() => new URLSearchParams(window.location.search).get('section')?.replace('integrations', 'ai') || 'profile');
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -96,7 +97,7 @@ export default function SettingsPage() {
         { id: 'language', label: t(lang, 'language_region'), icon: Globe },
         { id: 'security', label: t(lang, 'security_privacy'), icon: Lock },
         { id: 'categories', label: t(lang, 'categories_methods'), icon: Tags },
-        { id: 'integrations', label: tx('AI Integrations'), icon: Wand2 },
+        { id: 'ai', label: tx('AI and data'), icon: Wand2 },
         { id: 'referral', label: tx('Zaylo ID'), icon: Copy },
         { id: 'export', label: t(lang, 'export_data'), icon: Download },
         { id: 'cloud', label: t(lang, 'cloud_backup'), icon: Cloud },
@@ -178,26 +179,7 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {activeSection === 'integrations' && (
-                        <div className="card animate-fadeIn">
-                            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('AI Integrations')}</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Configure your personal API keys for AI functionalities.')}</div>
-
-                            <div className="form-group">
-                                <label className="form-label">{tx('Gemini API Key')}</label>
-                                <input 
-                                    type="password" 
-                                    className="form-input" 
-                                    value={user?.geminiKey || ''} 
-                                    onChange={e => updateUser({ geminiKey: e.target.value })} 
-                                    placeholder="AIzaSy..." 
-                                />
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                                    {tx('Your personal Gemini API Key from Google AI Studio. Stored securely on your device. Used for AI Health Summary and Expense Parsing.')}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {activeSection === 'ai' && <AiSettings />}
 
                     {activeSection === 'workspace' && (
                         <div className="card animate-fadeIn">
@@ -269,23 +251,6 @@ export default function SettingsPage() {
                             <div className="flex-col gap-4">
                                 <BiometricToggle compact />
                                 <SavedSignInSettings />
-                                {[
-                                    { label: t(lang, 'store_ocr'), desc: tx('Keep extracted receipt text for debugging'), key: 'storeOcr' },
-                                ].map(item => (
-                                    <div key={item.key} className="flex-row items-center gap-4 rounded-xl" style={{ padding: '14px 16px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-                                        <Shield size={20} style={{ color: 'var(--primary-light)', flexShrink: 0 }} />
-                                        <div className="flex-1">
-                                            <div className="font-bold" style={{ fontSize: 14 }}>{item.label}</div>
-                                            <div className="text-muted text-xs mt-1">{item.desc}</div>
-                                        </div>
-                                        <div onClick={() => { updateUser({ [item.key]: !(user as unknown as Record<string, boolean>)?.[item.key] }); }}
-                                            className="relative cursor-pointer"
-                                            style={{ width: 44, height: 24, borderRadius: 99, background: (user as unknown as Record<string, boolean>)?.[item.key] ? 'var(--primary)' : 'var(--border)', flexShrink: 0, transition: 'background 200ms' }}>
-                                            <div className="absolute bg-white rounded-full" style={{ left: (user as unknown as Record<string, boolean>)?.[item.key] ? 'calc(100% - 22px)' : 2, top: 2, width: 20, height: 20, transition: 'left 200ms' }} />
-                                        </div>
-                                    </div>
-                                ))}
-
                                 <div style={{ marginTop: 8, padding: '14px 16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>{tx('Auto-Lock Setup')}</div>
                                     

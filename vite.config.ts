@@ -46,6 +46,7 @@ function serviceWorker(): Plugin {
 const isElectron = process.env.ELECTRON === 'true'
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version || JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version) },
   server: {
     port: 3000,
   },

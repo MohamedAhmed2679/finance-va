@@ -226,6 +226,8 @@ export class ExtractionError extends Error {
 
 export async function extractFromImage(base64: string, cartCurrency: string, purpose: 'tag' | 'packaging'): Promise<ExtractionResult> {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new ExtractionError('Reading a photo needs an internet connection. You can add the item by hand now.', 'offline');
+    const { ensureAiConsent } = await import('../services/aiConsent');
+    if (!(await ensureAiConsent('smart_cart'))) throw new ExtractionError('Reading photos uses Zaylo AI, which is turned off. You can add the item by hand, or turn AI on in Settings.', 'service');
     const { data } = (await supabase?.auth.getSession()) || { data: { session: null } };
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 55_000);

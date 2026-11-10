@@ -22,6 +22,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 type Row = Record<string, any>;
 interface Admin { id: string; auth_id: string; email: string | null; name: string }
 
+const REQUEST_STATUSES = ['open', 'waiting_on_you', 'resolved', 'closed'];
+
 async function audit(db: SupabaseClient, actor: Admin, action: string, target: string | null, details: Row = {}) {
     await db.from('audit_log').insert({ actor_id: actor.id, actor_email: actor.email, action, target_user_id: target, details });
 }
@@ -315,7 +317,9 @@ export default async function handler(req: Request) {
                 return json({ threads });
             }
             case 'getThread': {
-                const { data, error } = await db.from('support_messages').select('*').eq('user_id', body.userId).order('created_at', { ascending: true }).limit(500);
+                // The earlier free-form conversation: messages that don't belong to a numbered request.
+                let { data, error } = await db.from('support_messages').select('*').eq('user_id', body.userId).is('request_id', null).order('created_at', { ascending: true }).limit(500);
+                if (error) ({ data, error } = await db.from('support_messages').select('*').eq('user_id', body.userId).order('created_at', { ascending: true }).limit(500));   // database not upgraded to v29 yet
                 if (error) throw error;
                 await db.from('support_messages').update({ read_at: new Date().toISOString() }).eq('user_id', body.userId).eq('from_admin', false).is('read_at', null);
                 return json({ messages: data });
@@ -325,10 +329,64 @@ export default async function handler(req: Request) {
                 if (!text || !body.userId) return json({ error: 'Write a message' }, 400);
                 const { data, error } = await db.from('support_messages').insert({ user_id: body.userId, from_admin: true, sender_name: 'Zaylo team', body: text }).select().single();
                 if (error) throw error;
-                await db.from('notifications').insert({ user_id: body.userId, type: 'admin_message', message: `New message from the Zaylo team: ${text.slice(0, 120)}`, sender_name: 'Zaylo team', link: '/messages' });
+                await db.from('notifications').insert({ user_id: body.userId, type: 'admin_message', message: `New message from the Zaylo team: ${text.slice(0, 120)}`, sender_name: 'Zaylo team', link: '/help?view=requests' });
                 await pushNow(req);
                 await audit(db, admin, 'message.send', body.userId, { preview: text.slice(0, 120) });
                 return json({ message: data });
+            }
+
+            // ── Support requests (v29) ──
+            case 'listRequests': {
+                let q = db.from('support_requests').select('id, number, user_id, category, subject, severity, status, confidential, created_at, updated_at, users!support_requests_user_id_fkey(name, email, phone)').order('updated_at', { ascending: false }).limit(300);
+                if (body.status === 'active') q = q.in('status', ['open', 'waiting_on_you']);
+                else if (REQUEST_STATUSES.includes(String(body.status))) q = q.eq('status', String(body.status));
+                const { data, error } = await q;
+                if (error) throw error;
+                const ids = (data || []).map(r => r.id);
+                const unread: Record<string, number> = {};
+                if (ids.length) {
+                    const { data: un } = await db.from('support_messages').select('request_id').in('request_id', ids).eq('from_admin', false).is('read_at', null);
+                    (un || []).forEach(m => { unread[m.request_id] = (unread[m.request_id] || 0) + 1; });
+                }
+                return json({ requests: (data || []).map(r => ({ ...r, unread: unread[r.id] || 0 })) });
+            }
+            case 'getRequest': {
+                if (!body.requestId) return json({ error: 'Choose a request' }, 400);
+                const { data: request, error } = await db.from('support_requests').select('*, users!support_requests_user_id_fkey(id, name, email, phone)').eq('id', body.requestId).maybeSingle();
+                if (error) throw error;
+                if (!request) return json({ error: 'Request not found' }, 404);
+                const { data: messages, error: e2 } = await db.from('support_messages').select('*').eq('request_id', body.requestId).order('created_at', { ascending: true }).limit(500);
+                if (e2) throw e2;
+                await db.from('support_messages').update({ read_at: new Date().toISOString() }).eq('request_id', body.requestId).eq('from_admin', false).is('read_at', null);
+                if (request.confidential) await audit(db, admin, 'support.view_confidential', request.user_id, { request: request.number });
+                return json({ request, messages });
+            }
+            case 'replyRequest': {
+                const text = String(body.body || '').trim().slice(0, 4000);
+                if (!text || !body.requestId) return json({ error: 'Write a reply' }, 400);
+                const { data: request } = await db.from('support_requests').select('id, number, user_id, status, confidential').eq('id', body.requestId).maybeSingle();
+                if (!request) return json({ error: 'Request not found' }, 404);
+                if (request.status === 'closed') return json({ error: 'This request is closed. Reopen it before replying.' }, 409);
+                const { data, error } = await db.from('support_messages').insert({ user_id: request.user_id, request_id: request.id, from_admin: true, sender_name: 'Zaylo team', body: text }).select().single();
+                if (error) throw error;
+                // The notification never carries the reply text: it can show on a lock screen.
+                await db.from('notifications').insert({ user_id: request.user_id, type: 'admin_message', message: `The Zaylo team replied to your support request #${request.number}`, sender_name: 'Zaylo team', link: `/help?request=${request.id}` });
+                await pushNow(req);
+                await audit(db, admin, 'support.reply', request.user_id, { request: request.number });
+                return json({ message: data });
+            }
+            case 'setRequestStatus': {
+                const status = String(body.status || '');
+                if (!body.requestId || !REQUEST_STATUSES.includes(status)) return json({ error: 'Choose a status' }, 400);
+                const { data, error } = await db.from('support_requests').update({ status, updated_at: new Date().toISOString(), closed_at: status === 'closed' || status === 'resolved' ? new Date().toISOString() : null }).eq('id', body.requestId).select('id, number, user_id, status').maybeSingle();
+                if (error) throw error;
+                if (!data) return json({ error: 'Request not found' }, 404);
+                if (status === 'resolved') {
+                    await db.from('notifications').insert({ user_id: data.user_id, type: 'admin_message', message: `Your support request #${data.number} was marked as resolved. Reply or reopen it if you still need help.`, sender_name: 'Zaylo team', link: `/help?request=${data.id}` });
+                    await pushNow(req);
+                }
+                await audit(db, admin, 'support.status', data.user_id, { request: data.number, status });
+                return json({ request: data });
             }
 
             case 'listWorkspaces': {

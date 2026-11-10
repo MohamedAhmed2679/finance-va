@@ -24,7 +24,11 @@
       "destination": "/terms.html"
     },
     {
-      "source": "/((?!api/|assets/|console|privacy|terms|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/security",
+      "destination": "/security.html"
+    },
+    {
+      "source": "/((?!api/|assets/|console|privacy|terms|security|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],

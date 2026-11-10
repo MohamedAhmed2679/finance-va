@@ -76,7 +76,7 @@ const TITLES: Record<string, string> = {
     admin_notice: 'Zaylo', bill_due: 'Payment reminder', payday: 'Payday', expense_added: 'New expense', workspace_archived: 'Workspace archived', workspace_deleted: 'Workspace deleted', backup: 'Backup saved',
     daily_log: 'Log today\'s expenses', monthly_summary: 'Your monthly summary', budget_alert: 'Budget alert',
 };
-const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/messages', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces', backup: '/settings?section=cloud', daily_log: '/expenses', monthly_summary: '/insights', budget_alert: '/expenses' };
+const LINKS: Record<string, string> = { bill_due: '/bills', payday: '/earnings', admin_message: '/help?view=requests', member_added: '/workspaces', member_joined: '/workspaces', role_change: '/workspaces', backup: '/settings?section=cloud', daily_log: '/expenses', monthly_summary: '/insights', budget_alert: '/expenses' };
 
 interface Payload { title: string; body: string; url: string; tag?: string }
 

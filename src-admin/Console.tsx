@@ -36,7 +36,7 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
     { key: 'overview', label: 'Overview', icon: Gauge },
     { key: 'users', label: 'Users', icon: Users },
     { key: 'workspaces', label: 'Workspaces', icon: FolderOpen },
-    { key: 'messages', label: 'Messages', icon: MessageSquare },
+    { key: 'messages', label: 'Support', icon: MessageSquare },
     { key: 'announcements', label: 'Announcements', icon: Megaphone },
     { key: 'notify', label: 'Send notification', icon: Bell },
     { key: 'logs', label: 'Logs', icon: ScrollText },
@@ -391,8 +391,122 @@ function WorkspacesTab() {
     );
 }
 
-// ───────────────────────── Messages ─────────────────────────
-function MessagesTab() {
+// ───────────────────────── Support ─────────────────────────
+const STATUS_LABEL: Record<string, string> = { open: 'Open', waiting_on_you: 'Waiting on user', resolved: 'Resolved', closed: 'Closed' };
+const STATUS_TONE: Record<string, string> = { open: 'badge-primary', waiting_on_you: 'badge-warning', resolved: 'badge-success', closed: '' };
+const CATEGORY_LABEL: Record<string, string> = {
+    account: 'Account and sign-in', expenses_income: 'Expenses and income', bills_savings: 'Bills and savings', smart_cart: 'Smart Cart', autotrack: 'AutoTrack',
+    workspaces: 'Workspaces', sync_backup: 'Sync, backup, export', ai_assistant: 'Zaylo AI', billing: 'Billing', feedback: 'Feedback', other: 'Other',
+    sec_account_compromise: 'Security: account access', sec_suspicious_activity: 'Security: suspicious activity', sec_unauthorized_record: 'Security: unexpected record',
+    sec_privacy: 'Privacy concern', sec_vulnerability: 'Security weakness',
+};
+
+function SupportTab() {
+    const [view, setView] = useState<'requests' | 'earlier'>('requests');
+    return (
+        <>
+            <div className="tabs" role="tablist" aria-label="Support">
+                <button role="tab" aria-selected={view === 'requests'} className={`tab-btn ${view === 'requests' ? 'active' : ''}`} onClick={() => setView('requests')}>Requests</button>
+                <button role="tab" aria-selected={view === 'earlier'} className={`tab-btn ${view === 'earlier' ? 'active' : ''}`} onClick={() => setView('earlier')}>Earlier conversations</button>
+            </div>
+            {view === 'requests' ? <RequestsPanel /> : <EarlierConversations />}
+        </>
+    );
+}
+
+function RequestsPanel() {
+    const [filter, setFilter] = useState('active');
+    const [list, setList] = useState<Row[] | null>(null);
+    const [error, setError] = useState('');
+    const [sel, setSel] = useState<{ request: Row; messages: Row[] } | null>(null);
+    const [text, setText] = useState('');
+    const [busy, setBusy] = useState(false);
+
+    const load = useCallback(() => {
+        setError('');
+        adminCall<{ requests: Row[] }>('listRequests', { status: filter }).then(r => setList(r.requests)).catch(e => { setList([]); setError(e instanceof Error ? e.message : 'Requests could not be loaded'); });
+    }, [filter]);
+    useEffect(() => { load(); }, [load]);
+
+    const open = async (id: string) => {
+        try { setSel(await adminCall<{ request: Row; messages: Row[] }>('getRequest', { requestId: id })); setText(''); load(); }
+        catch (e) { toast.error(e instanceof Error ? e.message : 'The request could not be opened'); }
+    };
+    async function reply() {
+        if (!sel || !text.trim() || busy) return;
+        setBusy(true);
+        try { await adminCall('replyRequest', { requestId: sel.request.id, body: text }); await open(sel.request.id); }
+        catch (e) { toast.error(e instanceof Error ? e.message : 'The reply was not sent'); }
+        finally { setBusy(false); }
+    }
+    async function setStatus(status: string) {
+        if (!sel) return;
+        try { await adminCall('setRequestStatus', { requestId: sel.request.id, status }); toast.success(`Marked as ${STATUS_LABEL[status].toLowerCase()}`); await open(sel.request.id); }
+        catch (e) { toast.error(e instanceof Error ? e.message : 'The status was not changed'); }
+    }
+
+    if (error) return <ErrorBox error={error} onRetry={load} />;
+    const r = sel?.request;
+    return (
+        <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.4fr)', gap: 16, alignItems: 'start' }}>
+            <div className="card" style={{ padding: 8 }}>
+                <div style={{ padding: 8 }}>
+                    <label className="sr-only" htmlFor="req-filter">Show</label>
+                    <select id="req-filter" className="form-input form-select" value={filter} onChange={e => setFilter(e.target.value)}>
+                        <option value="active">Open and waiting</option><option value="resolved">Resolved</option><option value="closed">Closed</option><option value="all">All</option>
+                    </select>
+                </div>
+                {list === null && <p className="text-sm text-muted" style={{ padding: 12 }}>Loading…</p>}
+                {list?.length === 0 && <div className="empty-state"><div className="empty-title">No requests here</div><div className="empty-desc">Requests people send from Help appear in this list.</div></div>}
+                {(list || []).map(q => (
+                    <button key={q.id} className="dropdown-item w-full" style={{ border: 'none', background: r?.id === q.id ? 'var(--surface-2)' : 'none', alignItems: 'flex-start' }} onClick={() => open(q.id)}>
+                        <span className="flex-1" style={{ textAlign: 'start', minWidth: 0 }}>
+                            <span className="truncate" style={{ display: 'block', fontWeight: 600, color: 'var(--ink)' }}>#{q.number} {q.subject}</span>
+                            <span className="truncate" style={{ display: 'block', fontSize: 12.5 }}>{q.users?.name || q.users?.email || 'User'} · {CATEGORY_LABEL[q.category] || q.category} · {q.severity}</span>
+                            <span style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                                <span className={`badge ${STATUS_TONE[q.status]}`}>{STATUS_LABEL[q.status]}</span>
+                                {q.confidential && <span className="badge badge-danger">Confidential</span>}
+                            </span>
+                        </span>
+                        {q.unread > 0 && <span className="nav-badge" aria-label={`${q.unread} unread`}>{q.unread}</span>}
+                    </button>
+                ))}
+            </div>
+            <div className="card">
+                {!sel || !r ? <p className="text-sm text-muted">Choose a request.</p> : (
+                    <>
+                        <div className="card-head" style={{ alignItems: 'flex-start' }}>
+                            <div style={{ minWidth: 0 }}>
+                                <div className="card-title">#{r.number} {r.subject}</div>
+                                <span className="text-xs text-muted">{r.users?.name} · {r.users?.email || r.users?.phone} · {CATEGORY_LABEL[r.category] || r.category} · severity {r.severity} · opened {fmtDate(r.created_at)}</span>
+                            </div>
+                            <span className={`badge ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                        </div>
+                        {r.confidential && <p className="text-sm" style={{ color: 'var(--cinnabar)', marginBottom: 8 }}>Confidential report. Opening it was recorded in the audit log. Don't forward its content outside the team.</p>}
+                        {(r.related_feature || r.related_ref) && <p className="text-sm text-muted" style={{ marginBottom: 8 }}>Related: {[r.related_feature, r.related_ref].filter(Boolean).join(' · ')}</p>}
+                        {r.diagnostics && <details style={{ marginBottom: 8 }}><summary className="text-sm">Technical details the user chose to include</summary><pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(r.diagnostics, null, 2)}</pre></details>}
+                        <div className="admin-thread" style={{ maxHeight: 420 }}>
+                            {sel.messages.map(m => <div key={m.id} className={`bubble ${m.from_admin ? 'mine' : ''}`}><SupportFiles files={m.attachments} />{m.body && <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>}<time>{fmtDate(m.created_at)}</time></div>)}
+                        </div>
+                        {r.status !== 'closed' && (
+                            <div className="flex gap-2 mt-2">
+                                <textarea className="form-input" rows={2} placeholder="Reply to the user" value={text} maxLength={4000} onChange={e => setText(e.target.value)} aria-label="Reply" />
+                                <button className="btn btn-primary" onClick={reply} disabled={!text.trim() || busy} aria-label="Send reply"><Send size={16} /></button>
+                            </div>
+                        )}
+                        <div className="flex gap-2 mt-2" style={{ flexWrap: 'wrap' }}>
+                            {r.status !== 'resolved' && r.status !== 'closed' && <button className="btn btn-secondary btn-sm" onClick={() => setStatus('resolved')}>Mark resolved</button>}
+                            {r.status !== 'closed' && <button className="btn btn-secondary btn-sm" onClick={() => setStatus('closed')}>Close</button>}
+                            {(r.status === 'closed' || r.status === 'resolved') && <button className="btn btn-secondary btn-sm" onClick={() => setStatus('open')}>Reopen</button>}
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function EarlierConversations() {
     const { data, error, reload } = useAdmin<{ threads: Row[] }>('listThreads');
     const [sel, setSel] = useState<Row | null>(null);
     const [msgs, setMsgs] = useState<Row[]>([]);
@@ -407,7 +521,7 @@ function MessagesTab() {
     return (
         <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.4fr)', gap: 16, alignItems: 'start' }}>
             <div className="card" style={{ padding: 8 }}>
-                {data?.threads?.length === 0 && <div className="empty-state"><div className="empty-title">No conversations</div><div className="empty-desc">Messages users send from the Messages page appear here. You can start one from a user's details.</div></div>}
+                {data?.threads?.length === 0 && <div className="empty-state"><div className="empty-title">No conversations</div><div className="empty-desc">Free-form messages sent before support requests were introduced, and messages you start from a user's details.</div></div>}
                 {(data?.threads || []).map(t => (
                     <button key={t.user.id} className="dropdown-item w-full" style={{ border: 'none', background: sel?.user.id === t.user.id ? 'var(--surface-2)' : 'none', alignItems: 'flex-start' }} onClick={() => open(t)}>
                         <span className="flex-1" style={{ textAlign: 'start', minWidth: 0 }}>
@@ -573,7 +687,7 @@ export default function Console({ me, tab, setTab }: { me: Me; tab: Tab; setTab:
                     {tab === 'overview' && <Overview go={setTab} />}
                     {tab === 'users' && <UsersTab key={usersKey} onOpen={setOpenUser} />}
                     {tab === 'workspaces' && <WorkspacesTab />}
-                    {tab === 'messages' && <MessagesTab />}
+                    {tab === 'messages' && <SupportTab />}
                     {tab === 'announcements' && <AnnouncementsTab />}
                     {tab === 'notify' && <NotifyTab />}
                     {tab === 'logs' && <LogsTab />}

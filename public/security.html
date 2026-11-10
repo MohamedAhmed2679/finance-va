@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security overview · Zaylo</title><link rel="icon" href="/favicon.svg"><style>
+:root{--paper:#F4F6FA;--ink:#0B0F1A;--ink2:#485169;--note:#2563FF}
+@media (prefers-color-scheme:dark){:root{--paper:#0B0F1A;--ink:#F4F6FA;--ink2:#B3BCD0;--note:#5B8CFF}}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:48px 16px 64px}
+h1{font-size:32px;letter-spacing:-.02em;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px}
+p,li{color:var(--ink2)}a{color:var(--note)}.meta{font-size:14px;color:var(--ink2)}
+</style></head><body><main>
+<p><a href="/">Zaylo</a></p><h1>Security overview</h1><p class="meta">Last updated 10 November 2026</p>
+<p>This page describes the protections that are in place in Zaylo today, in plain terms, and what Zaylo is not. It is a description, not a certification.</p>
+<h2>What Zaylo is, and is not</h2>
+<p>Zaylo is a record-keeping app for your spending, income, bills and savings goals. It does not hold your money, move money, connect to your bank account, or take card payments. Zaylo is not a bank, and nothing in it is insured or guaranteed.</p>
+<h2>Your account and your records</h2>
+<ul><li>Every connection between the app and Zaylo's servers is encrypted (HTTPS).</li>
+<li>Access rules are enforced in the database itself: each request is checked against the signed-in person, so you can read and change only your own records and those of workspaces you belong to.</li>
+<li>People you invite to a shared workspace see that workspace only. They never see your personal workspace.</li>
+<li>You can lock the app on a device with a PIN, Face ID or fingerprint. The PIN is stored as a one-way hash.</li>
+<li>You can export your records and delete your account yourself, in Settings.</li></ul>
+<h2>Staff access</h2>
+<p>Zaylo administrators can view an account when it is needed to answer a support request or keep the service safe. Administrator actions are recorded in an audit log.</p>
+<h2>AI features</h2>
+<p>AI features are optional. Nothing is sent to the AI provider until you allow it, the app shows what would be sent before you decide, and you can withdraw permission at any time in Settings. Requests to the AI provider are made from Zaylo's servers; the app on your device never holds the provider's access key.</p>
+<h2>Bank alerts (AutoTrack)</h2>
+<p>AutoTrack is off until you set it up. Alerts are read on your device. Security codes are never read, stored or sent.</p>
+<h2>Independent review</h2>
+<p>Zaylo has not been independently audited or certified against a security standard such as SOC 2, ISO 27001 or PCI DSS. If that changes, this page will say so and name the assessor.</p>
+<h2>Report a concern</h2>
+<p>If you think someone else has access to your account, or you have found a weakness in Zaylo, open <strong>Help</strong> in the app and choose <strong>Report a security concern</strong>. These reports go to the Zaylo team and are not handled by AI.</p></main></body></html>

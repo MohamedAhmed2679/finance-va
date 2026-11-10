@@ -130,6 +130,9 @@ async function aiRead(text: string, sender: string | null | undefined, receivedA
     const first = parseMessage(text, sender, receivedAt);
     if (first.kind !== 'other') return null;                 // read fine, or a code/advert/balance: never sent to AI
     if (!/\d/.test(text) || !/(egp|جنيه|usd|\$|€|ج\.م|le\b|debit|credit|خصم|إيداع|ايداع|تحويل|transfer|paid|received)/i.test(text)) return null;
+    // AutoTrack runs in the background, so it never asks: without the AI permission it simply doesn't use AI.
+    const { hasAiConsent } = await import('../services/aiConsent');
+    if (!hasAiConsent()) return null;
     const { data } = (await supabase?.auth.getSession()) || { data: { session: null } };
     if (!data.session) return null;
     const res = await fetch(`${API_BASE}/api/ai/zaylo`, {

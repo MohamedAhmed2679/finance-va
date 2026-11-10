@@ -49,7 +49,7 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
             setSettings(s); setAccounts(a); setRules(r); setLoadErr('');
         } catch (e) { setLoadErr(/does not exist|schema cache/i.test((e as Error).message) ? tx('AutoTrack needs the latest database update.') : (e as Error).message); }
     }, []);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data from the server; the flag shows progress
+     
     useEffect(() => { refresh(); }, [refresh]);
 
     async function enableAndroid() {
@@ -174,7 +174,7 @@ export default function AutoTrackSettings({ onOpenAutoTrack }: { onOpenAutoTrack
             </details>
 
             {explain === 'enable' && <ExplainDialog kind="enable" onCancel={() => setExplain(null)} onAgree={enableAndroid} />}
-            {explain === 'ai' && <ExplainDialog kind="ai" onCancel={() => setExplain(null)} onAgree={async () => { setExplain(null); await update({ ai_consent: true }); }} />}
+            {explain === 'ai' && <ExplainDialog kind="ai" onCancel={() => setExplain(null)} onAgree={async () => { setExplain(null); const { ensureAiConsent } = await import('../services/aiConsent'); if (await ensureAiConsent('autotrack')) await update({ ai_consent: true }); }} />}
             {explain === 'history' && <HistoryDialog customSenders={settings.custom_senders} onClose={() => { setExplain(null); refresh(); }} />}
             {addingAccount && <AccountDialog onClose={() => setAddingAccount(false)} onSaved={() => { setAddingAccount(false); refresh(); }} />}
             {deleting && <DeleteDialog onClose={() => setDeleting(false)} />}

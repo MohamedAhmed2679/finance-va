@@ -1,19 +1,25 @@
 /**
  * Zaylo AI client — talks to /api/ai/zaylo (Google Gemini behind it).
  * Sends aggregated snapshots for insights and chat, and files/recordings for extraction.
+ * Every call that sends data first passes the permission check in aiConsent.ts.
  */
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { getActiveCycleDates } from '../constants';
 import { convertAmountSync } from './exchangeRates';
 import type { ParsedExpense } from './aiExpenseParser';
+import { ensureAiConsent, AiConsentDeclined, type AiSurface } from './aiConsent';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 export type CaptureSource = 'voice' | 'scan' | 'upload' | 'sms' | 'text';
 
 export class AIError extends Error { status: number; constructor(m: string, s: number) { super(m); this.status = s; } }
 
+const SURFACE: Record<string, AiSurface> = { chat: 'assistant', insights: 'insights', extract: 'capture' };
+
 async function call<T>(action: string, payload: Record<string, unknown>): Promise<T> {
+    // Nothing is sent to the AI provider until the person has allowed it ('status' sends no data).
+    if (action !== 'status' && !(await ensureAiConsent(SURFACE[action] || 'assistant'))) throw new AiConsentDeclined();
     if (!supabase) throw new AIError('Zaylo AI needs an internet connection and a signed-in account.', 0);
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
@@ -150,7 +156,8 @@ export function getHealthReport(): Promise<HealthReport> {
     return call<HealthReport>('insights', { snapshot, currency: snapshot.currency, language: s.user?.language || 'en' });
 }
 
-export interface ChatMessage { role: 'user' | 'assistant'; text: string }
+/** `local` marks a note written by the app on this device (not by AI, and never sent to it). */
+export interface ChatMessage { role: 'user' | 'assistant'; text: string; local?: boolean }
 
 export async function askZaylo(messages: ChatMessage[]): Promise<string> {
     const s = useStore.getState();
