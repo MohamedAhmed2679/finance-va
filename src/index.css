@@ -2375,3 +2375,6 @@ div.sheet-account { cursor: default; }
 .two-step-gate .btn-primary { width: 100%; min-height: 48px; }
 .two-step-gate-icon { color: var(--note); }
 .two-step-gate .keep-hint a { color: var(--note); }
+
+.health-ai-note { margin-top: 12px; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+.health-ai-note a { color: var(--note); }

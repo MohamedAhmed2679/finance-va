@@ -1177,4 +1177,5 @@ export const AR: Record<string, string> = {
     'Two-step verification couldn\'t be started. Try again.': 'تعذّر بدء التحقق بخطوتين. حاول مرة أخرى.',
     'The code couldn\'t be checked. Try again.': 'تعذّر التحقق من الرمز. حاول مرة أخرى.',
     'Two-step verification couldn\'t be turned off. Try again.': 'تعذّر إيقاف التحقق بخطوتين. حاول مرة أخرى.',
+    'Written by AI from this workspace\'s totals, budget, recent expenses, bills and savings goals. It can be wrong, and it is not financial advice.': 'كتبه الذكاء الاصطناعي من إجماليات مساحة العمل هذه وميزانيتها وأحدث المصروفات والفواتير وأهداف الادخار. قد يخطئ، وليس نصيحة مالية.',
 };

@@ -1,6 +1,7 @@
 import { tx } from '../i18n/translations';
 import { useEffect, useId, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Sparkles, RefreshCw, AlertTriangle, MessageCircleQuestion } from 'lucide-react';
 import { getHealthReport, type HealthReport } from '../services/zayloAI';
 import { useStore } from '../store/useStore';
@@ -74,6 +75,7 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
                             ))}
                         </ol>
                     )}
+                    <p className="health-ai-note">{tx('Written by AI from this workspace\'s totals, budget, recent expenses, bills and savings goals. It can be wrong, and it is not financial advice.')} <Link to="/settings?section=ai">{tx('What is sent')}</Link></p>
                     {onAsk && <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={onAsk}><MessageCircleQuestion size={15} />{' '}{tx('Ask Zaylo a question')}</button>}
                 </motion.div>
             ) : (

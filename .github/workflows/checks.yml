@@ -1,0 +1,30 @@
+# Runs on every push and pull request: types, lint, all tests (unit and database), build,
+# and a check for known high-severity vulnerabilities in the packages the app ships.
+name: Checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types
+        run: npx tsc -b
+      - name: Lint
+        run: npx eslint src src-admin api tests
+      - name: Tests
+        run: npx vitest run
+      - name: Build
+        run: npm run build
+      - name: Known vulnerabilities in shipped packages
+        run: npm audit --omit=dev --audit-level=high
