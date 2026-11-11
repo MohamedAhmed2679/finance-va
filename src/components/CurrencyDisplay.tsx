@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { formatCurrency } from '../constants';
+import { formatCurrency, formatMoney } from '../constants';
 import { convertAmountSync } from '../services/exchangeRates';
 import { toBase, type Convertible } from '../utils/money';
 
@@ -11,9 +11,12 @@ interface CurrencyDisplayProps {
     entry?: Convertible;
     /** Also show the amount as entered when it was in another currency. */
     showOriginal?: boolean;
+    /** Whole amounts without .00 (summaries such as the dashboard). */
+    trim?: boolean;
 }
 
-export default function CurrencyDisplay({ amount, currency, hideAmounts = false, entry, showOriginal = false }: CurrencyDisplayProps) {
+export default function CurrencyDisplay({ amount, currency, hideAmounts = false, entry, showOriginal = false, trim = false }: CurrencyDisplayProps) {
+    const fmt = trim ? formatMoney : formatCurrency;
     const { currency: userCurrency } = useStore();
     
     // Fallback if not provided, assuming it's recorded in user's default or workspace default
@@ -30,7 +33,7 @@ export default function CurrencyDisplay({ amount, currency, hideAmounts = false,
     const usdAmount = convertAmountSync(amount, baseCurrency, 'USD') ?? amount;
     
     // Without exchange rates, show the amount in its own currency rather than mislabel it
-    const primaryText = converted === null ? formatCurrency(amount, baseCurrency, false) : formatCurrency(converted, userCurrency, false);
+    const primaryText = converted === null ? fmt(amount, baseCurrency, false) : fmt(converted, userCurrency, false);
     const usdText = formatCurrency(usdAmount, 'USD', false);
 
     // The USD equivalent stays available on hover/long-press without crowding every row.
@@ -38,7 +41,7 @@ export default function CurrencyDisplay({ amount, currency, hideAmounts = false,
         return (
             <span className="amount-dual" title={entry?.fxRate ? `Converted at 1 ${baseCurrency} = ${entry.fxRate.toFixed(4)} ${entry.baseCurrency}` : undefined}>
                 <span>{primaryText}</span>
-                <span className="amount-orig">{formatCurrency(amount, baseCurrency, false)}</span>
+                <span className="amount-orig">{fmt(amount, baseCurrency, false)}</span>
             </span>
         );
     }

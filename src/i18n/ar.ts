@@ -1178,4 +1178,23 @@ export const AR: Record<string, string> = {
     'The code couldn\'t be checked. Try again.': 'تعذّر التحقق من الرمز. حاول مرة أخرى.',
     'Two-step verification couldn\'t be turned off. Try again.': 'تعذّر إيقاف التحقق بخطوتين. حاول مرة أخرى.',
     'Written by AI from this workspace\'s totals, budget, recent expenses, bills and savings goals. It can be wrong, and it is not financial advice.': 'كتبه الذكاء الاصطناعي من إجماليات مساحة العمل هذه وميزانيتها وأحدث المصروفات والفواتير وأهداف الادخار. قد يخطئ، وليس نصيحة مالية.',
+
+    // Dashboard
+    'Daily spending': 'الإنفاق اليومي',
+    'Where it went': 'أين ذهبت الأموال',
+    'Today in blue': 'اليوم باللون الأزرق',
+    'Day': 'اليوم',
+    'of': 'من',
+    'in this cycle': 'في هذه الدورة',
+    'Could save about': 'يمكن توفير حوالي',
+    'a month': 'شهريًا',
+    'Steady': 'مستقر',
+    'Strong': 'قوي',
+    'Overdue by': 'متأخرة',
+    'Due in': 'مستحقة بعد',
+    'day': 'يوم',
+    'days': 'أيام',
+    'Spent': 'المصروف',
+    'less': 'أقل',
+    'more': 'أكثر',
 };

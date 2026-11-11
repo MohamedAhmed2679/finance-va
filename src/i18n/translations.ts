@@ -1,7 +1,7 @@
 export const translations: Record<string, Record<string, string>> = {
     en: {
         app_name: 'Zaylo', ask_zaylo: 'Ask Zaylo', overview: 'Overview', expenses: 'Expenses', savings: 'Savings', converter: 'Converter', settings: 'Settings',
-        today_spend: "Today's Spend", this_month: 'This Month', add_expense: 'Add Expense', recent_expenses: 'Recent Expenses',
+        today_spend: "Today's Spend", this_month: 'This Month', add_expense: 'Add expense', recent_expenses: 'Recent expenses',
         merchant: 'Merchant', category: 'Category', date: 'Date', amount: 'Amount', user: 'User',
         search_merchant: 'Search by merchant...', filters: 'Filters', date_range: 'Date Range', all_users: 'All Users',
         savings_goals: 'Savings Goals', add_goal: 'Add a New Goal', dream_goal: 'Dream / Goal', target_amount: 'Target Amount', saved: 'Saved', add_funds: 'Add Funds', delete: 'Delete',
@@ -18,7 +18,7 @@ export const translations: Record<string, Record<string, string>> = {
         get_ai_advice: 'Get Financial Advice', generate_advice: 'Generate Advice', ai_analysis: 'AI Health Summary',
         workspaces: 'Workspaces', new_workspace: 'New Workspace', create_workspace: 'Create Workspace', join_workspace: 'Join Workspace',
         invite_member: 'Invite Member', invite_by_email: 'Invite by Email', invite_by_phone: 'Invite by Phone', invite_link: 'Invite Link',
-        spend_over_time: 'Spend Over Time', category_breakdown: 'Category Breakdown', top_merchants: 'Top Merchants',
+        spend_over_time: 'Spend over time', category_breakdown: 'Category breakdown', top_merchants: 'Top Merchants',
         export_csv: 'Export CSV', export_pdf: 'Export PDF', insights: 'Insights',
         dark_mode: 'Dark Mode', light_mode: 'Light Mode', theme: 'Theme',
         personal: 'Personal', shared: 'Shared', owner: 'Owner', admin: 'Admin', member: 'Member', viewer: 'Viewer',

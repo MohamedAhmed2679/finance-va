@@ -172,7 +172,7 @@ function Shell() {
     }, [bills, workspaces, incomes, notifyDaily]);
 
     return (
-        <div className={`app-shell ${isElectron ? 'electron-mode' : ''}`}>
+        <div className={`app-shell ${isElectron ? 'electron-mode' : ''} ${hasAdd ? 'has-fab' : ''}`}>
             <Sidebar active={active} onNavigate={go} />
             <main className="main-content">
                 <ImpersonationBar />

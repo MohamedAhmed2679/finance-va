@@ -118,6 +118,17 @@ export function formatCurrency(amount: number, currency = 'USD', hideAmounts = f
     }
 }
 
+/** Like formatCurrency, but a whole amount has no decimals (EGP 6,290; EGP 62.50 keeps them). For summaries, not for ledgers or exports. */
+export function formatMoney(amount: number, currency = 'USD', hideAmounts = false): string {
+    if (hideAmounts) return '••••';
+    const whole = Math.abs(Math.round(amount * 100)) % 100 === 0;
+    try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(amount);
+    } catch {
+        return formatCurrency(amount, currency, hideAmounts);
+    }
+}
+
 import { useStore } from '../store/useStore';
 
 export function getCategoryInfo(key: string) {

@@ -58,8 +58,8 @@ export function ZayloLogo({ size = 28, onDark = false, mono = false, suffix }: {
  * Brand element: "A motion that moves with you."
  * Layered gradient ribbons that draw in once, then drift very slowly.
  */
-export function ZayloWave({ className = '', intensity = 1 }: { className?: string; intensity?: number }) {
-    const reduce = useReducedMotion();
+export function ZayloWave({ className = '', intensity = 1, still = false }: { className?: string; intensity?: number; still?: boolean }) {
+    const reduce = useReducedMotion() || still;
     const gid = useId().replace(/:/g, '');
     const ribbons = [
         { d: 'M-40 420 C260 120 520 90 820 300 S1300 540 1640 190', w: 92, o: 0.95 },

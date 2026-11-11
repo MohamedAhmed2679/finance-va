@@ -1,11 +1,11 @@
 import { tx } from '../i18n/translations';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Sparkles, RefreshCw, AlertTriangle, MessageCircleQuestion } from 'lucide-react';
+import { RefreshCw, AlertTriangle, MessageCircleQuestion } from 'lucide-react';
 import { getHealthReport, type HealthReport } from '../services/zayloAI';
 import { useStore } from '../store/useStore';
-import { formatCurrency } from '../constants';
+import { formatMoney } from '../constants';
 
 const cacheKey = (ws: string) => `zaylo_health_${ws}`;
 
@@ -38,7 +38,7 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
     return (
         <div className="card health-card">
             <div className="card-head">
-                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={17} style={{ color: 'var(--brass)' }} />{' '}{tx('Money health')}</div>
+                <div className="card-title">{tx('Money health')}</div>
                 {report && <button onClick={run} disabled={loading} className="btn btn-ghost btn-sm btn-icon" aria-label={tx('Refresh summary')}><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></button>}
             </div>
 
@@ -69,7 +69,7 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
                         <ol className="health-tips">
                             {report.tips.map((t, i) => (
                                 <motion.li key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}>
-                                    <div className="health-tip-title">{t.title}{t.saving ? <span className="health-saving">{tx('save ~')}{formatCurrency(t.saving, cur)}/mo</span> : null}</div>
+                                    <div className="health-tip-title">{t.title}{t.saving ? <span className="health-saving">{tx('Could save about')} {formatMoney(t.saving, cur)} {tx('a month')}</span> : null}</div>
                                     <div className="health-tip-detail">{t.detail}</div>
                                 </motion.li>
                             ))}
@@ -81,7 +81,7 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
             ) : (
                 <div>
                     <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 14 }}>{tx('Get a score for this cycle, a two-line read-out and three tips built from your own spending.')}</p>
-                    <button className="btn btn-primary btn-sm" onClick={run} disabled={!hasData || loading}><Sparkles size={15} /> {loading ? tx('Reading your month…') : tx('Check my money health')}</button>
+                    <button className="btn btn-primary btn-sm" onClick={run} disabled={!hasData || loading}>{loading ? tx('Reading your month…') : tx('Check my money health')}</button>
                     {!hasData && <p className="text-xs text-muted mt-2">{tx('Add a few expenses first.')}</p>}
                 </div>
             )}
@@ -91,17 +91,15 @@ export default function HealthCard({ onAsk, compact = false }: { onAsk?: () => v
 }
 
 function ScoreRing({ score }: { score: number }) {
-    const id = useId().replace(/:/g, '');
     const r = 34, c = 2 * Math.PI * r;
-    const label = score >= 80 ? 'Strong' : score >= 50 ? 'Steady' : 'Needs care';
+    const label = tx(score >= 80 ? 'Strong' : score >= 50 ? 'Steady' : 'Needs care');
     return (
         <div className="score-ring" role="img" aria-label={`Money health ${score} out of 100, ${label}`}>
             <svg width="84" height="84" viewBox="0 0 84 84">
-                <defs><linearGradient id={`sr${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#22D3EE" /><stop offset=".45" stopColor="#2563FF" /><stop offset="1" stopColor="#7C3AED" /></linearGradient></defs>
                 <circle cx="42" cy="42" r={r} fill="none" stroke="var(--surface-3)" strokeWidth="8" />
-                <motion.circle cx="42" cy="42" r={r} fill="none" stroke={`url(#sr${id})`} strokeWidth="8" strokeLinecap="round"
+                <motion.circle cx="42" cy="42" r={r} fill="none" stroke="var(--note)" strokeWidth="8" strokeLinecap="round"
                     transform="rotate(-90 42 42)" strokeDasharray={c}
-                    initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - score / 100) }} transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }} />
+                    initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - score / 100) }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} />
             </svg>
             <span className="score-num">{score}<small>{label}</small></span>
         </div>

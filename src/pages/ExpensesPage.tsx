@@ -1,6 +1,7 @@
 import Dialog from '../components/Dialog';
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import CategoryIcon from '../components/CategoryIcon';
 import { useStore, type Expense, type AppFilters, type CategoryKey, type PaymentMethod } from '../store/useStore';
 
 function localDay(iso: string) {
@@ -185,7 +186,7 @@ export default function ExpensesPage() {
                                                 <motion.div key={e.id} layout className="ledger-row expense-row"
                                                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
                                                     style={{ gridTemplateColumns: isViewer ? '40px minmax(0,1fr) auto' : '40px minmax(0,1fr) auto auto' }}>
-                                                    <div className="ledger-icon" style={{ background: `${catInfo.color}1f` }}>{catInfo.emoji}</div>
+                                                    <CategoryIcon category={e.category} />
                                                     <div style={{ minWidth: 0 }}>
                                                         {e.details ? (
                                                             <button type="button" className="ledger-title sc-ledger-link" onClick={() => setViewId(e.id)} aria-label={`${tx('View items')}: ${e.merchant}`}>
