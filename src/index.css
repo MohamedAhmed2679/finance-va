@@ -2356,3 +2356,22 @@ div.sheet-account { cursor: default; }
   .assistant-empty { margin: 0 auto; }
   .ai-feedback .icon-btn { width: 44px; height: 44px; }
 }
+
+/* ---------- Two-step verification ---------- */
+.two-step { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.two-step-head { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 4px; }
+.two-step-head .badge { margin-inline-start: auto; }
+.two-step .keep-hint { margin: 0 0 10px; }
+.two-step-setup { display: grid; gap: 10px; margin-top: 4px; font-size: 14px; }
+.two-step-setup ol { padding-inline-start: 20px; display: grid; gap: 12px; line-height: 1.5; }
+.two-step-qr { display: block; margin: 10px 0 8px; padding: 8px; border-radius: var(--radius-sm); background: #fff; }
+.two-step-secret { display: inline-block; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 13px; letter-spacing: 0.04em; overflow-wrap: anywhere; user-select: all; }
+.code-input { display: block; max-width: 190px; margin-top: 6px; font-size: 22px; letter-spacing: 0.32em; font-variant-numeric: tabular-nums; text-align: center; min-height: 48px; }
+.two-step-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.two-step-gate { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--paper); }
+.two-step-gate .card { width: 100%; max-width: 400px; padding: 28px 24px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.two-step-gate h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.two-step-gate p { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+.two-step-gate .btn-primary { width: 100%; min-height: 48px; }
+.two-step-gate-icon { color: var(--note); }
+.two-step-gate .keep-hint a { color: var(--note); }

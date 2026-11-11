@@ -2,6 +2,7 @@ import AiSettings from '../components/AiSettings';
 import SavedSignInSettings from '../components/SavedSignInSettings';
 import AutoTrackSettings from '../components/AutoTrackSettings';
 import DeleteAccountDialog from '../components/DeleteAccountDialog';
+import TwoStepSettings from '../components/TwoStepSettings';
 import PushSettings from '../components/PushSettings';
 import ZayloIdCard from '../components/ZayloIdCard';
 import { useState, useRef, useEffect } from 'react';
@@ -250,6 +251,7 @@ export default function SettingsPage() {
                             <div className="font-bold mb-5" style={{ fontSize: 16 }}>{tx('Security & Privacy')}</div>
                             <div className="flex-col gap-4">
                                 <BiometricToggle compact />
+                                <TwoStepSettings />
                                 <SavedSignInSettings />
                                 <div style={{ marginTop: 8, padding: '14px 16px', background: 'var(--bg-input)', borderRadius: 12, border: '1px solid var(--border)' }}>
                                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>{tx('Auto-Lock Setup')}</div>

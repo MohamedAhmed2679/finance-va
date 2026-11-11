@@ -22,6 +22,7 @@ CREATE FUNCTION auth.role() RETURNS TEXT LANGUAGE sql STABLE AS $$ SELECT coales
 CREATE FUNCTION auth.jwt() RETURNS JSONB LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role;
 GRANT SELECT ON auth.users TO service_role;
+CREATE TABLE auth.mfa_factors (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, factor_type TEXT NOT NULL DEFAULT 'totp', status TEXT NOT NULL DEFAULT 'unverified', created_at TIMESTAMPTZ DEFAULT now());
 CREATE SCHEMA storage; GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 CREATE TABLE storage.buckets (id TEXT PRIMARY KEY, name TEXT, public BOOLEAN DEFAULT FALSE, file_size_limit BIGINT, allowed_mime_types TEXT[]);
 CREATE TABLE storage.objects (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id TEXT REFERENCES storage.buckets(id), name TEXT, owner UUID, created_at TIMESTAMPTZ DEFAULT now(), metadata JSONB);

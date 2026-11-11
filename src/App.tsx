@@ -32,6 +32,8 @@ import { captureJoinLink } from './services/joinLink';
 captureJoinLink();
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
+import TwoStepGate from './components/TwoStepGate';
+import { needsSecondStep } from './services/mfa';
 import OfflineBanner from './components/OfflineBanner';
 import InvitationsBar from './components/InvitationsBar';
 import { useRememberSignedInAccount } from './hooks/useRememberAccount';
@@ -286,9 +288,19 @@ export default function App() {
         return () => cleanupSessionManager();
     }, [isAuthenticated, checkBillReminders]);
 
+    // Two-step verification: an account that has it on must enter a code before the app opens
+    const [secondStep, setSecondStep] = useState(false);
+    useEffect(() => {
+        if (!isAuthenticated) { setSecondStep(false); return; }
+        let live = true;
+        needsSecondStep().then(n => { if (live) setSecondStep(n); });
+        return () => { live = false; };
+    }, [isAuthenticated]);
+
     useEffect(() => {
         const { unsubscribe } = onAuthStateChange((event, sbUser) => {
             if (sbUser && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+                needsSecondStep().then(setSecondStep);
                 restoreSession().catch(console.error);
             } else if (!sbUser && event === 'SIGNED_OUT' && useStore.getState().isAuthenticated) {
                 useStore.getState().logout();
@@ -310,6 +322,7 @@ export default function App() {
     let content: React.ReactElement;
     if (window.location.pathname === '/app-signin') content = <AppSignInPage />;
     else if (!isAuthenticated) content = <AuthPage onAuth={() => window.history.replaceState({}, '', '/overview')} />;
+    else if (secondStep) content = <TwoStepGate onPassed={() => { setSecondStep(false); restoreSession().catch(console.error); }} />;
     else if (showOnboarding) content = <OnboardingPage />;
     else if (isLocked) content = <LockScreen />;
     else content = <BrowserRouter><Shell /></BrowserRouter>;
