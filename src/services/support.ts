@@ -109,7 +109,7 @@ export async function createRequest(input: NewRequest, ids: { requestId: string;
         related_feature: input.relatedFeature || null, related_ref: input.relatedRef?.trim() || null, diagnostics: input.diagnostics || null,
     };
     const { error } = await db().from('support_requests').upsert(row, { onConflict: 'id', ignoreDuplicates: true });
-    if (error) throw new Error(isMissing(error) ? NOT_READY : 'Your request wasn\'t sent. Check your connection and try again.');
+    if (error) throw new Error(isMissing(error) ? NOT_READY : /too many requests/i.test(error.message || '') ? 'You\'ve sent several requests in a short time. Add to one of your open requests, or try again in an hour.' : 'Your request wasn\'t sent. Check your connection and try again.');
     const msg: Record<string, unknown> = { id: ids.messageId, user_id: user, request_id: ids.requestId, body: input.description.trim(), sender_name: useStore.getState().user?.name || '' };
     if (attachments.length) msg.attachments = attachments;
     const { error: e2 } = await db().from('support_messages').upsert(msg, { onConflict: 'id', ignoreDuplicates: true });

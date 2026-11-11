@@ -11,6 +11,7 @@ process.env.GEMINI_API_KEY = 'test-key';
 let consent: { status: number; body: unknown } | 'network-error' = { status: 200, body: [{ granted: true }] };
 let geminiCalls = 0;
 let consentAuth = '';
+let rate: boolean | 'down' = true;
 vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
     const u = String(url);
     const auth = (init.headers as Record<string, string>)?.Authorization || '';
@@ -19,6 +20,10 @@ vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
         consentAuth = auth;
         if (consent === 'network-error') throw new Error('socket hang up');
         return new Response(JSON.stringify(consent.body), { status: consent.status });
+    }
+    if (u.includes('/rest/v1/rpc/ai_rate_ok')) {
+        if (rate === 'down') return new Response('{}', { status: 500 });
+        return new Response(JSON.stringify(rate), { status: 200 });
     }
     if (u.includes('generativelanguage.googleapis.com')) {
         geminiCalls++;
@@ -31,7 +36,7 @@ const { POST } = await import('../../api/ai/zaylo');
 const call = (body: object, token = 'user-consent-1') => POST(new Request('https://zaylo.cc/api/ai/zaylo', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
 const chat = { action: 'chat', messages: [{ role: 'user', text: 'How do I add a bill?' }], snapshot: { currency: 'EGP' } };
 
-beforeEach(() => { consent = { status: 200, body: [{ granted: true }] }; geminiCalls = 0; consentAuth = ''; });
+beforeEach(() => { consent = { status: 200, body: [{ granted: true }] }; geminiCalls = 0; consentAuth = ''; rate = true; });
 
 describe('AI consent is enforced on the server', () => {
     it('answers when the latest record says yes, checking with the caller\'s own token', async () => {
@@ -66,10 +71,10 @@ describe('AI consent is enforced on the server', () => {
         expect((await call(chat)).status).toBe(503);
         expect(geminiCalls).toBe(0);
     });
-    it('keeps working on a database that doesn\'t have the consent table yet', async () => {
+    it('sends nothing if the consent table is missing', async () => {
         consent = { status: 404, body: { code: 'PGRST205', message: 'Could not find the table' } };
-        expect((await call(chat)).status).toBe(200);
-        expect(geminiCalls).toBe(1);
+        expect((await call(chat)).status).toBe(503);
+        expect(geminiCalls).toBe(0);
     });
     it('lets the status check through without consent (it sends no data)', async () => {
         consent = { status: 200, body: [] };
@@ -81,3 +86,17 @@ describe('AI consent is enforced on the server', () => {
         expect(geminiCalls).toBe(0);
     });
 });
+
+describe('AI rate limit', () => {
+    it('refuses with 429 when the database says the person is over the limit, and sends nothing', async () => {
+        rate = false;
+        expect((await call(chat, 'user-rate-1')).status).toBe(429);
+        expect(geminiCalls).toBe(0);
+    });
+    it('keeps working on the per-server counter if the database limit cannot be checked', async () => {
+        rate = 'down';
+        expect((await call(chat, 'user-rate-2')).status).toBe(200);
+        expect(geminiCalls).toBe(1);
+    });
+});
+

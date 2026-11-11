@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
@@ -16,25 +16,11 @@ import AppSignInPage from './pages/AppSignInPage';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import OverviewPage from './pages/OverviewPage';
-import ExpensesPage from './pages/ExpensesPage';
-import SavingsPage from './pages/SavingsPage';
-import ConverterPage from './pages/ConverterPage';
-import InsightsPage from './pages/InsightsPage';
-import WorkspacesPage from './pages/WorkspacesPage';
-import BillsPage from './pages/BillsPage';
-import EarningsPage from './pages/EarningsPage';
-import ActivityPage from './pages/ActivityPage';
-import SettingsPage from './pages/SettingsPage';
-import ChatPage from './pages/ChatPage';
-import HelpPage from './pages/HelpPage';
 import { AnnouncementBanner, ImpersonationBar } from './components/LiveLayer';
 import { useLiveNotifications, useLiveChatAlerts } from './hooks/useLive';
 import AddExpenseModal from './components/AddExpenseModal';
 import QuickAddMenu from './components/QuickAddMenu';
 import SmartCapture, { type CaptureMode } from './components/SmartCapture';
-import AssistantPage from './pages/AssistantPage';
-import HistoryPage from './pages/HistoryPage';
-import SmartCartPage from './pages/SmartCartPage';
 import MobileTopBar from './components/MobileTopBar';
 import { setTxLanguage } from './i18n/translations';
 import { startDomTranslation } from './i18n/domTranslate';
@@ -46,13 +32,29 @@ import { captureJoinLink } from './services/joinLink';
 captureJoinLink();
 import ExpenseConfirmationCards from './components/ExpenseConfirmationCards';
 import LockScreen from './components/LockScreen';
-import AutoTrackPage from './pages/AutoTrackPage';
 import OfflineBanner from './components/OfflineBanner';
 import InvitationsBar from './components/InvitationsBar';
 import { useRememberSignedInAccount } from './hooks/useRememberAccount';
 import { useAutoTrackDevice } from './autotrack/useAutoTrackDevice';
 import { initSessionManager, cleanupSessionManager } from './services/sessionManager';
 import type { ParsedExpense } from './services/aiExpenseParser';
+
+// Pages other than the first screen load when first opened; the service worker keeps them for offline use.
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const SavingsPage = lazy(() => import('./pages/SavingsPage'));
+const ConverterPage = lazy(() => import('./pages/ConverterPage'));
+const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const WorkspacesPage = lazy(() => import('./pages/WorkspacesPage'));
+const BillsPage = lazy(() => import('./pages/BillsPage'));
+const EarningsPage = lazy(() => import('./pages/EarningsPage'));
+const ActivityPage = lazy(() => import('./pages/ActivityPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
+const AssistantPage = lazy(() => import('./pages/AssistantPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const SmartCartPage = lazy(() => import('./pages/SmartCartPage'));
+const AutoTrackPage = lazy(() => import('./pages/AutoTrackPage'));
 
 let restoring: Promise<void> | null = null;
 let refreshedThisBoot = false;
@@ -178,12 +180,14 @@ function Shell() {
                 <SectionTabs active={active} onNavigate={go} />
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div key={active} {...pageMotion}>
+                        <Suspense fallback={<div className="page" aria-busy="true"><div className="skeleton" style={{ height: 28, width: 220, marginBottom: 20 }} /><div className="skeleton" style={{ height: 180 }} /></div>}>
                         <Routes location={location}>
                             <Route path="/" element={<Navigate to="/overview" replace />} />
                             {Object.entries(pages).map(([key, el]) => <Route key={key} path={`/${key}`} element={el} />)}
                             {Object.entries(REDIRECTS).map(([from, to]) => <Route key={from} path={`/${from}`} element={<Navigate to={`/${to}`} replace />} />)}
                             <Route path="*" element={<Navigate to="/overview" replace />} />
                         </Routes>
+                        </Suspense>
                     </motion.div>
                 </AnimatePresence>
             </main>

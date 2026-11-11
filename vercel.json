@@ -28,7 +28,11 @@
       "destination": "/security.html"
     },
     {
-      "source": "/((?!api/|assets/|console|privacy|terms|security|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/delete-account",
+      "destination": "/delete-account.html"
+    },
+    {
+      "source": "/((?!api/|assets/|console|privacy|terms|security|delete-account|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],

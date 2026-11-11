@@ -130,8 +130,7 @@ async function verifyUser(req: Request): Promise<string | null> {
 /**
  * Has this person allowed AI processing? Reads their latest consent record with their own token
  * (row-level security returns only their rows). Fails closed: if the record can't be read, no data
- * is sent to the AI provider. The one exception is a database that doesn't have the table yet
- * (migration v29 not run), where the earlier behaviour is kept so AI doesn't stop working mid-upgrade.
+ * is sent to the AI provider. That includes a database without the consent table.
  */
 async function consentState(req: Request): Promise<'granted' | 'missing' | 'unavailable' | 'not_installed'> {
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -432,6 +431,24 @@ ${JSON.stringify(b.snapshot || {}).slice(0, 12000)}`;
     return { reply: text.trim() };
 }
 
+/**
+ * One Zaylo AI call against the person's limit (60 in 10 minutes). The count is kept in the database
+ * (public.ai_rate_ok, v30) so it holds whichever server answers. If the database can't be asked, the
+ * per-server counter is used instead, so a database problem never removes the limit.
+ */
+async function rateOk(req: Request, userId: string): Promise<boolean> {
+    if (!allowAiCall(userId)) return false;
+    const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    if (!token || !url || !anon) return true;
+    try {
+        const r = await fetch(`${url}/rest/v1/rpc/ai_rate_ok`, { method: 'POST', headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}' });
+        if (!r.ok) return true;
+        return (await r.json().catch(() => true)) !== false;
+    } catch { return true; }
+}
+
 // ───────────────────────── Handler ─────────────────────────
 async function handler(req: Request): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
@@ -440,12 +457,11 @@ async function handler(req: Request): Promise<Response> {
         const userId = await verifyUser(req);
         if (!userId) return json({ error: 'Sign in to use Zaylo AI.' }, 401);
         const body = await req.json().catch(() => ({}));
-        if (body.action !== 'status' && !allowAiCall(userId)) return json({ error: 'You\'ve used Zaylo AI a lot in the last few minutes. Try again shortly.' }, 429);
+        if (body.action !== 'status' && !(await rateOk(req, userId))) return json({ error: 'You\'ve used Zaylo AI a lot in the last few minutes. Try again shortly.' }, 429);
         if (body.action !== 'status') {
             const consent = await consentState(req);
             if (consent === 'missing') return json({ error: 'AI features are off for your account. Turn them on in Settings, under AI and data.', code: 'ai_consent_required' }, 403);
-            if (consent === 'unavailable') return json({ error: 'Zaylo couldn\'t check your AI permission just now, so nothing was sent. Try again.', code: 'ai_consent_unavailable' }, 503);
-            if (consent === 'not_installed') console.warn('[zaylo-ai] consent_events table not found: run migration v29 to enforce AI consent on the server');
+            if (consent === 'unavailable' || consent === 'not_installed') return json({ error: 'Zaylo couldn\'t check your AI permission just now, so nothing was sent. Try again.', code: 'ai_consent_unavailable' }, 503);
         }
         switch (body.action) {
             case 'status': return json({ ready: Boolean(process.env.GEMINI_API_KEY), model: process.env.GEMINI_MODEL || DEFAULT_MODEL });

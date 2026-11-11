@@ -29,6 +29,12 @@ function serviceWorker(): Plugin {
         }
       }
       visit(entry.fileName)
+      // screens loaded on demand are listed too (so every page opens offline), but not the large
+      // export and receipt-reading libraries, which are cached the first time they are used
+      for (const d of entry.dynamicImports) {
+        const c = bundle[d]
+        if (c && c.type === 'chunk' && c.code.length < 200_000) visit(d)
+      }
       // the fonts the app shows first (Latin + Arabic), so text looks right offline
       for (const f of Object.keys(bundle)) if (/(inter-latin-wght-normal|ibm-plex-sans-arabic-arabic-(400|600)-normal)-[\w-]+\.woff2$/.test(f)) files.add(f)
       const list = [...files].sort().map(f => `/${f}`)

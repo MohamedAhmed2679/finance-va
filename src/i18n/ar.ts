@@ -1139,4 +1139,6 @@ export const AR: Record<string, string> = {
     'Your request was opened, but its description wasn\'t saved. Open the request and send the details again.': 'تم فتح طلبك، لكن لم يُحفظ وصفه. افتح الطلب وأرسل التفاصيل مجددًا.',
     'Messages couldn\'t be loaded. Try again.': 'تعذّر تحميل الرسائل. حاول مرة أخرى.',
     'Support requests aren\'t available yet on this server. Please try again later.': 'طلبات الدعم غير متاحة بعد على هذا الخادم. حاول لاحقًا.',
+    'You\'ve sent several requests in a short time. Add to one of your open requests, or try again in an hour.': 'أرسلت عدة طلبات في وقت قصير. أضف إلى أحد طلباتك المفتوحة، أو حاول مجددًا بعد ساعة.',
+    'How to delete your account': 'طريقة حذف حسابك',
 };

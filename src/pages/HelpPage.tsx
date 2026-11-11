@@ -170,6 +170,7 @@ function Hub({ lang, headingId, open, onAssistant }: { lang: 'en' | 'ar'; headin
                         <a href="https://zaylo.cc/privacy" target="_blank" rel="noreferrer">{tx('Privacy policy')}</a>
                         <a href="https://zaylo.cc/terms" target="_blank" rel="noreferrer">{tx('Terms of service')}</a>
                         <a href="https://zaylo.cc/security" target="_blank" rel="noreferrer">{tx('Security overview')}</a>
+                        <a href="https://zaylo.cc/delete-account" target="_blank" rel="noreferrer">{tx('How to delete your account')}</a>
                     </footer>
                 </>
             )}
