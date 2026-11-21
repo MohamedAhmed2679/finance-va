@@ -444,6 +444,7 @@ export function friendlyAuthError(message: string | undefined, fallback: string)
     if (/email not confirmed/i.test(m)) return 'Confirm your email first. The link is in your inbox (check spam too).';
     if (/user already registered|already been registered/i.test(m)) return 'An account with this email already exists. Sign in instead.';
     if (/new password should be different/i.test(m)) return 'Choose a password you haven\'t used for this account before.';
+    if (/password should (be at least|contain)/i.test(m)) return 'Use at least 8 characters with upper and lower case letters, a number and a symbol.';
     if (/password.*(weak|pwned|leaked|known)/i.test(m)) return 'That password appears in known data leaks. Choose a different one.';
     if (/aal2|mfa/i.test(m)) return 'Enter your two-step verification code first.';
     return m || fallback;

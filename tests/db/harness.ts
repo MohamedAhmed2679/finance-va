@@ -53,7 +53,9 @@ export async function createTestDb(): Promise<TestDb> {
     // Make sure every table created by migrations is usable by the API roles (Supabase grants these).
     // Functions get EXECUTE from the default privileges above, exactly as on Supabase, so a migration's
     // REVOKE stays in force here too (re-granting them all would hide functions that should be locked).
-    await db.exec(`GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;`);
+    // anon is left out: v32 takes every table privilege away from it, as on the live project.
+    await db.exec(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+                   GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
 
     const as = async <T,>(who: string, sql: string, params: unknown[] = []) => {
         return await db.transaction(async tx => {

@@ -56,7 +56,8 @@ const PW_RULES: [RegExp, string][] = [
     [/[A-Z]/, 'an uppercase letter'],
     [/[a-z]/, 'a lowercase letter'],
     [/[0-9]/, 'a number'],
-    [/[^A-Za-z0-9]/, 'a symbol'],
+    // The same symbols Supabase Auth accepts (Authentication > Email > Password requirements)
+    [/[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~]/, 'a symbol such as ! @ # $'],
 ];
 
 function passwordProblem(pw: string): string | null {

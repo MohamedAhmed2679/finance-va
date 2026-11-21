@@ -89,6 +89,8 @@ describe('error sentences', () => {
         ['User already registered', /already exists/],
         ['New password should be different from the old password.', /haven't used/],
         ['Failed to fetch', /Can't reach/],
+        ['Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789', /8 characters/],
+        ['Password should be at least 8 characters.', /8 characters/],
     ])('%s', (raw, expected) => {
         expect(ap.friendlyAuthError(raw, 'fallback')).toMatch(expected);
     });
