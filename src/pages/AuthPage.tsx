@@ -572,6 +572,11 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 <form onSubmit={onRecovery}>
                                     <PasswordField id="rc-pw" value={password} onChange={setPassword} autoComplete="new-password" meter />
                                     {submit('Save new password', 'Saving…')}
+                                    {/* Signed in already (an old reset link, or one opened by mistake): carry on without changing it */}
+                                    <button type="button" className="auth-link" style={{ marginTop: 14 }} disabled={busy}
+                                        onClick={() => { window.history.replaceState({}, '', '/'); setRecovering(false); onAuth(); }}>
+                                        {tx('Keep my current password')}
+                                    </button>
                                 </form>
                             )}
                         </motion.div>
