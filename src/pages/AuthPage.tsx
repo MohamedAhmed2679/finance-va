@@ -6,7 +6,10 @@ import { Eye, EyeOff, Smartphone, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import Dialog from '../components/Dialog';
 import { savedAccounts, rememberAccount, forgetAccount, keepSignedIn, setKeepSignedIn, offerToSavePassword, biometricAvailable, enableBiometricSignIn, biometricCredentials, type SavedAccount } from '../services/savedSignIn';
-import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
+import { signInWithOAuth, signInWithEmail, signUpWithEmail, sendPhoneOtp, verifyPhoneOtp, resetPassword, updatePassword, resendConfirmation, onAuthStateChange, getAuthAvailability, friendlyAuthError, type AuthAvailability } from '../services/authProvider';
+import { isRecovering, setRecovering } from '../services/recovery';
+import { takeAuthLinkError, onAuthLinkError } from '../services/authLinkError';
+import { supabase } from '../lib/supabase';
 import { ZayloWave, ZPattern, ZayloLogo } from '../components/brand/Brand';
 import { canUseGoogleButton, mountGoogleButton } from '../services/googleSignIn';
 import type { AuthResult } from '../services/authProvider';
@@ -111,8 +114,7 @@ const swap = {
 
 export default function AuthPage({ onAuth }: AuthPageProps) {
     const { login } = useStore();
-    const [mode, setMode] = useState<Mode>(() =>
-        window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery') ? 'recovery' : 'signin');
+    const [mode, setMode] = useState<Mode>(() => (isRecovering() ? 'recovery' : 'signin'));
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -128,8 +130,12 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     const [error, setError] = useState(() => {
         const q = new URLSearchParams(window.location.search + '&' + window.location.hash.replace(/^#/, ''));
         const desc = q.get('error_description');
-        return desc ? friendlyAuthError(decodeURIComponent(desc), 'Sign-in did not complete. Try again.') : '';
+        if (desc) return friendlyAuthError(decodeURIComponent(desc.replace(/\+/g, ' ')), 'Sign-in did not complete. Try again.');
+        return takeAuthLinkError();
     });
+    // An email whose sign-in was refused because it isn't confirmed yet (offers to resend the link)
+    const [unconfirmed, setUnconfirmed] = useState('');
+    useEffect(() => onAuthLinkError(m => { setError(m); takeAuthLinkError(); }), []);
     const [notice, setNotice] = useState('');
     const [keep, setKeep] = useState(keepSignedIn);
     const [accounts, setAccounts] = useState<SavedAccount[]>(savedAccounts);
@@ -139,6 +145,21 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     useEffect(() => { getAuthAvailability().then(setAvail); }, []);
 
     const switchMode = (m: Mode) => { setMode(m); setError(''); setNotice(''); };
+
+    // "Set a new password" needs the session the reset link created. Without one, the link didn't work here.
+    useEffect(() => {
+        if (mode !== 'recovery' || !supabase) return;
+        let live = true;
+        (async () => {
+            await supabase.auth.initialize();
+            const { data } = await supabase.auth.getSession();
+            if (!live || data.session) return;
+            setRecovering(false);
+            setMode('forgot');
+            setError(e => e || tx('That reset link has expired, was already used, or was opened in a different browser from the one you asked from. Enter your email to get a new link.'));
+        })();
+        return () => { live = false; };
+    }, [mode]);
 
     // Password-recovery link from email
     useEffect(() => {
@@ -193,10 +214,13 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
     async function onSignIn(e: React.FormEvent) {
         e.preventDefault();
         setLoading('email'); setError('');
+        setUnconfirmed(''); setNotice('');
         const result = await signInWithEmail(email.trim(), password);
         setLoading(null);
         if (!result.success) {
-            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account.' : /confirm/i.test(result.error || '') ? 'Confirm your email first — the link is in your inbox.' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Zaylo team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
+            const notConfirmed = /not confirmed|confirm/i.test(result.error || '');
+            if (notConfirmed) setUnconfirmed(email.trim());
+            setError(/invalid login/i.test(result.error || '') ? 'That email and password don\'t match an account. If you signed up with Google or Microsoft, use that button instead.' : notConfirmed ? 'Confirm your email first. The link is in your inbox (check spam too).' : /banned/i.test(result.error || '') ? 'This account is suspended. Contact the Zaylo team.' : friendlyAuthError(result.error, 'Sign-in failed.'));
             return;
         }
         if (!result.user) return;
@@ -247,7 +271,8 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         if (!result.success) { setError(/registered|exists/i.test(result.error || '') ? 'An account with this email already exists. Sign in instead.' : friendlyAuthError(result.error, 'Couldn\'t create the account.')); return; }
         if (result.needsConfirmation) {
             setMode('signin');
-            setNotice(`Account created. Open the link we sent to ${email.trim()} to confirm it, then sign in.`);
+            setUnconfirmed(email.trim());
+            setNotice(`Account created. Open the link we sent to ${email.trim()} to confirm it, then sign in. Open it on this device to be signed in straight away.`);
             return;
         }
         if (result.user) doLogin(result.user.id, result.user.name, result.user.email, undefined, e164);
@@ -277,12 +302,21 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         if (result.user) doLogin(result.user.id, result.user.name, result.user.email, 'phone', phone);
     }
 
+    async function resend() {
+        if (!unconfirmed) return;
+        setLoading('email'); setError('');
+        const r = await resendConfirmation(unconfirmed);
+        setLoading(null);
+        if (!r.success) { setError(friendlyAuthError(r.error, 'Couldn\'t send the email. Try again in a minute.')); return; }
+        setNotice(`We sent a new confirmation link to ${unconfirmed}.`);
+    }
+
     async function onForgot(e: React.FormEvent) {
         e.preventDefault();
         setLoading('email'); setError('');
         const result = await resetPassword(email.trim());
         setLoading(null);
-        if (!result.success) { setError(result.error || 'Couldn\'t send the reset email.'); return; }
+        if (!result.success) { setError(friendlyAuthError(result.error, 'Couldn\'t send the reset email.')); return; }
         setNotice('If that email has an account, a reset link is on its way.');
     }
 
@@ -293,10 +327,9 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         setLoading('email'); setError('');
         const result = await updatePassword(password);
         setLoading(null);
-        if (!result.success) { setError(result.error || 'Couldn\'t update the password.'); return; }
+        if (!result.success) { setError(friendlyAuthError(result.error, 'Couldn\'t update the password.')); return; }
         setNotice('Password updated. Signing you in…');
-        window.history.replaceState({}, '', '/');
-        setTimeout(() => { setMode('signin'); onAuth(); }, 1200);
+        setTimeout(() => { setRecovering(false); onAuth(); }, 1200);
     }
 
     const titles: Record<Mode, [string, string]> = useMemo(() => ({
@@ -386,7 +419,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                             ))}
                         </div>
                     )}
-                    {(mode === tx('phone') || mode === 'forgot') && (
+                    {(mode === 'phone' || mode === 'forgot') && (
                         <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 18, marginLeft: -10 }} onClick={() => { switchMode('signin'); setCodeSent(false); setCode(''); }}>
                             <ArrowLeft size={16} />{' '}{tx('Back to sign in')}
                         </button>
@@ -400,6 +433,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                             <AnimatePresence>
                                 {error && <motion.div className="auth-msg error" role="alert" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>{error}</motion.div>}
                                 {notice && <motion.div className="auth-msg ok" role="status" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>{notice}</motion.div>}
+                                {mode === 'signin' && unconfirmed && <button type="button" className="auth-link" style={{ marginBottom: 14 }} disabled={busy} onClick={resend}>{tx('Resend the confirmation email')}</button>}
                             </AnimatePresence>
 
                             {offerBio && (
@@ -497,7 +531,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                                 </>
                             )}
 
-                            {mode === tx('phone') && (
+                            {mode === 'phone' && (
                                 <form onSubmit={onPhone}>
                                     <div className="form-group">
                                         <label className="form-label" htmlFor="ph">{tx('Phone number with country code')}</label>

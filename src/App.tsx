@@ -4,7 +4,9 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { useStore } from './store/useStore';
 import { fetchUserProfile } from './services/supabaseSync';
-import { onAuthStateChange, initNativeAuthListener } from './services/authProvider';
+import { onAuthStateChange, initNativeAuthListener, consumeEmailLinkFromUrl } from './services/authProvider';
+import { isRecovering, onRecoveringChange, setRecovering } from './services/recovery';
+import { setAuthLinkError } from './services/authLinkError';
 import { consumeImpersonationLink } from './services/adminApi';
 import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
@@ -59,6 +61,8 @@ const SmartCartPage = lazy(() => import('./pages/SmartCartPage'));
 const AutoTrackPage = lazy(() => import('./pages/AutoTrackPage'));
 
 let restoring: Promise<void> | null = null;
+// A sign-in link (?code=…) in the address bar at start-up, before it is cleaned away
+const BOOT_HAD_CODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('code');
 let refreshedThisBoot = false;
 
 /** Restores a Supabase session into the store (boot, OAuth return, deep link). */
@@ -71,9 +75,22 @@ async function doRestore() {
     const { supabase, isSupabaseReady } = await import('./lib/supabase');
     if (!isSupabaseReady() || !supabase) return;
     await consumeImpersonationLink();
+    const linkError = await consumeEmailLinkFromUrl();
+    if (linkError) setAuthLinkError(linkError);
+    const init = await supabase.auth.initialize();
     const { data } = await supabase.auth.getSession();
     const sbUser = data.session?.user;
-    if (!sbUser) return;
+    if (!sbUser) {
+        // A ?code= link that couldn't be used here (opened in another browser, or expired)
+        if (BOOT_HAD_CODE && init.error) {
+            const { friendlyAuthError } = await import('./services/authProvider');
+            setAuthLinkError(friendlyAuthError(init.error.message, 'That link didn\'t work. Request a new one.'));
+        }
+        if (isRecovering()) setRecovering(false);
+        return;
+    }
+    // A password-reset link: the new password is asked for first (AuthPage), then the app opens.
+    if (isRecovering()) return;
 
     if (useStore.getState().user?.id === sbUser.id) {
         // Same account already in the store: refresh its data from the cloud once per boot.
@@ -289,16 +306,26 @@ export default function App() {
     }, [isAuthenticated, checkBillReminders]);
 
     // Two-step verification: an account that has it on must enter a code before the app opens
-    const [secondStep, setSecondStep] = useState(false);
+    // null = still checking, so the app isn't shown for a moment before the code screen
+    const [secondStep, setSecondStep] = useState<boolean | null>(null);
     useEffect(() => {
-        if (!isAuthenticated) { setSecondStep(false); return; }
+        if (!isAuthenticated) { setSecondStep(null); return; }
         let live = true;
-        needsSecondStep().then(n => { if (live) setSecondStep(n); });
+        const timeout = new Promise<boolean>(r => setTimeout(() => r(false), 5000));
+        Promise.race([needsSecondStep(), timeout]).then(n => { if (live) setSecondStep(n); });
         return () => { live = false; };
     }, [isAuthenticated]);
 
+    // Password reset: stay on "Set a new password" until it's saved, then sign the account in
+    const [recovering, setRecoveringState] = useState(isRecovering);
+    useEffect(() => onRecoveringChange(on => {
+        setRecoveringState(on);
+        if (!on) restoreSession().catch(console.error);
+    }), []);
+
     useEffect(() => {
         const { unsubscribe } = onAuthStateChange((event, sbUser) => {
+            if (event === 'PASSWORD_RECOVERY') { setRecovering(true); return; }
             if (sbUser && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
                 needsSecondStep().then(setSecondStep);
                 restoreSession().catch(console.error);
@@ -312,7 +339,7 @@ export default function App() {
     // Clean OAuth params from the address bar once Supabase has consumed them
     useEffect(() => {
         const url = new URL(window.location.href);
-        if (url.searchParams.has('code') || url.searchParams.has('error')) {
+        if (url.searchParams.has('code') || url.searchParams.has('error') || url.searchParams.has('error_description')) {
             if (url.searchParams.has('error')) console.error('[Auth] OAuth error:', url.searchParams.get('error_description'));
             const t = setTimeout(() => window.history.replaceState({}, '', url.pathname === '/' ? '/overview' : url.pathname), 1200);
             return () => clearTimeout(t);
@@ -321,7 +348,8 @@ export default function App() {
 
     let content: React.ReactElement;
     if (window.location.pathname === '/app-signin') content = <AppSignInPage />;
-    else if (!isAuthenticated) content = <AuthPage onAuth={() => window.history.replaceState({}, '', '/overview')} />;
+    else if (!isAuthenticated || recovering) content = <AuthPage onAuth={() => window.history.replaceState({}, '', '/overview')} />;
+    else if (secondStep === null) content = <div className="app-boot" aria-busy="true" />;
     else if (secondStep) content = <TwoStepGate onPassed={() => { setSecondStep(false); restoreSession().catch(console.error); }} />;
     else if (showOnboarding) content = <OnboardingPage />;
     else if (isLocked) content = <LockScreen />;
