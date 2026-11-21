@@ -1,0 +1,37 @@
+name: Release signing check (temporary)
+# One-off check of the release signing path with a throwaway key. Delete before merging.
+on:
+  push:
+    branches: [fix/auth-and-play-release]
+    paths: ['.github/workflows/release-signing-check.yml']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: gradle }
+      - run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - run: npm ci && npx vite build && npx cap sync android
+      - name: Build release with a throwaway key
+        working-directory: android
+        run: |
+          export ZAYLO_KEYSTORE_PATH="$RUNNER_TEMP/throwaway.jks" ZAYLO_KEYSTORE_PASSWORD=throwaway123 ZAYLO_KEY_ALIAS=t ZAYLO_KEY_PASSWORD=throwaway123
+          export ZAYLO_VERSION_CODE=1999 ZAYLO_VERSION_NAME=1.6.check
+          keytool -genkeypair -keystore "$ZAYLO_KEYSTORE_PATH" -alias t -keyalg RSA -keysize 2048 -validity 1 -storepass throwaway123 -keypass throwaway123 -dname "CN=throwaway"
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease --no-daemon -q
+      - name: Inspect
+        run: |
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$BT/apksigner" verify --print-certs "$APK" | head -3
+          "$BT/aapt2" dump badging "$APK" | grep -E "package:|uses-permission|uses-feature|targetSdk"
+          "$BT/aapt2" dump xmltree --file AndroidManifest.xml "$APK" | grep -E "debuggable|allowBackup|dataExtraction" || true
+          ls -la android/app/build/outputs/bundle/release/
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab | tail -1
