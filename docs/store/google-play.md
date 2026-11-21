@@ -34,7 +34,7 @@ For a local release build, put the same four values in `android/keystore.propert
 **First upload.** Play Console → Create app → Test and release → Internal testing → Create release.
 Accept Play App Signing (Google holds the app signing key; yours is only the upload key) and upload
 the .aab. Add your Google account as a tester, open the opt-in link on the phone, and install from
-Play. Uninstall any earlier sideloaded Zaylo first: it has a different signature.
+Play. Earlier sideloaded test builds were com.financeva.app; the Play app is com.zaylo.cc, so uninstall the old one to avoid two Zaylo icons.
 
 ## Permissions declaration: SMS (READ_SMS, RECEIVE_SMS)
 

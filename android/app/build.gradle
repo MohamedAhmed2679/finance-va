@@ -17,7 +17,9 @@ android {
     namespace = "com.financeva.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.financeva.app"
+        // The Play listing was created as com.zaylo.cc, so that is the Play package. The Java package,
+        // the namespace and the com.financeva.app:// deep links stay as they are.
+        applicationId "com.zaylo.cc"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode zayloVersionCode
