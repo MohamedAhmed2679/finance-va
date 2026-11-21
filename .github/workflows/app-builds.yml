@@ -19,8 +19,10 @@ permissions:
 
 jobs:
   android:
-    name: Android APK
+    name: Android APK + Play bundle
     runs-on: ubuntu-latest
+    env:
+      HAS_UPLOAD_KEY: ${{ secrets.ZAYLO_UPLOAD_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,14 +38,41 @@ jobs:
       - run: npm ci
       - run: npx vite build
       - run: npx cap sync android
-      - name: Build debug APK (installable, debug-signed)
+      - name: Version number for this build
+        run: |
+          # Play refuses an upload whose versionCode isn't higher than the last one
+          echo "ZAYLO_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "ZAYLO_VERSION_NAME=1.6.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+      - name: Release build (signed with the Zaylo upload key)
+        if: env.HAS_UPLOAD_KEY == 'true'
+        working-directory: android
+        env:
+          ZAYLO_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ZAYLO_UPLOAD_KEYSTORE_BASE64 }}
+          ZAYLO_KEYSTORE_PASSWORD: ${{ secrets.ZAYLO_KEYSTORE_PASSWORD }}
+          ZAYLO_KEY_ALIAS: ${{ secrets.ZAYLO_KEY_ALIAS }}
+          ZAYLO_KEY_PASSWORD: ${{ secrets.ZAYLO_KEY_PASSWORD }}
+        run: |
+          export ZAYLO_KEYSTORE_PATH="$RUNNER_TEMP/zaylo-upload.jks"
+          echo "$ZAYLO_UPLOAD_KEYSTORE_BASE64" | base64 -d > "$ZAYLO_KEYSTORE_PATH"
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+          rm -f "$ZAYLO_KEYSTORE_PATH"
+          cp app/build/outputs/apk/release/app-release.apk ../Zaylo-android.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../Zaylo-android.aab
+      - name: Debug build (no upload key in the repository secrets yet)
+        if: env.HAS_UPLOAD_KEY != 'true'
         working-directory: android
         run: |
+          echo "::warning::ZAYLO_UPLOAD_KEYSTORE_BASE64 is not set, so this is a debug build. Play won't accept it and each build has a different signature."
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../Zaylo-android.apk
       - uses: actions/upload-artifact@v4
         with: { name: android, path: Zaylo-android.apk, retention-days: 30 }
+      - name: Keep the Play bundle (private build artifact, not on the public release)
+        if: env.HAS_UPLOAD_KEY == 'true'
+        uses: actions/upload-artifact@v4
+        with: { name: play-bundle, path: Zaylo-android.aab, retention-days: 90 }
 
   apple:
     # iPhone and Mac share one macOS machine: GitHub's Mac runners are often scarce,
@@ -108,7 +137,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-        with: { path: out, merge-multiple: true }
+        # android, ios, macos, windows only: the Play bundle (play-bundle) stays a private artifact
+        with: { path: out, merge-multiple: true, pattern: '[aimw]*' }
       - name: Replace the test-build pre-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

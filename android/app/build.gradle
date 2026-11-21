@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
 
+// Release signing. The upload key never lives in the repository: CI decodes it from GitHub secrets
+// (ZAYLO_UPLOAD_KEYSTORE_BASE64 etc.), a local build reads keystore.properties next to this file.
+def keyProps = new Properties()
+def keyPropsFile = rootProject.file('keystore.properties')
+if (keyPropsFile.exists()) keyPropsFile.withInputStream { keyProps.load(it) }
+def signVal = { String envName, String propName -> System.getenv(envName) ?: keyProps.getProperty(propName) }
+def releaseStore = signVal('ZAYLO_KEYSTORE_PATH', 'storeFile')
+def hasReleaseKey = releaseStore != null && file(releaseStore).exists()
+
+// Play needs a higher versionCode for every upload. CI passes one; local builds use the default.
+def zayloVersionCode = (System.getenv('ZAYLO_VERSION_CODE') ?: '16').toInteger()
+def zayloVersionName = System.getenv('ZAYLO_VERSION_NAME') ?: '1.6.0'
+
 android {
     namespace = "com.financeva.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +20,8 @@ android {
         applicationId "com.financeva.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.5.0"
+        versionCode zayloVersionCode
+        versionName zayloVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +29,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasReleaseKey) {
+            release {
+                storeFile file(releaseStore)
+                storePassword signVal('ZAYLO_KEYSTORE_PASSWORD', 'storePassword')
+                keyAlias signVal('ZAYLO_KEY_ALIAS', 'keyAlias')
+                keyPassword signVal('ZAYLO_KEY_PASSWORD', 'keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasReleaseKey) signingConfig signingConfigs.release
+            debuggable false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

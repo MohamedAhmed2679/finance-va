@@ -11,6 +11,7 @@
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { Provider } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
+import { setRecovering } from './recovery';
 
 /** Deep link the native apps register (Android intent-filter / iOS URL type). */
 export const NATIVE_AUTH_REDIRECT = 'com.financeva.app://auth-callback';
@@ -137,6 +138,11 @@ export async function signUpWithEmail(
         });
 
         if (error) throw error;
+        // With email confirmation on, an email that already has an account comes back as a user with
+        // no identities and no error (so addresses can't be probed). Say so instead of "check your inbox".
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            return { success: false, error: 'User already registered' };
+        }
 
         // When email confirmation is on, Supabase returns a user but no session yet.
         return {
@@ -154,6 +160,17 @@ export async function signUpWithEmail(
     }
 }
 
+/** Sends the sign-up confirmation email again. */
+export async function resendConfirmation(email: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseReady() || !supabase) return { success: true };
+    const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: isNative() ? NATIVE_AUTH_REDIRECT : getOAuthRedirectTo() },
+    });
+    return error ? { success: false, error: error.message } : { success: true };
+}
+
 // ─── Password Reset / Recovery ───────────────────────────────────
 export async function resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseReady() || !supabase) {
@@ -161,8 +178,10 @@ export async function resetPassword(email: string): Promise<{ success: boolean; 
     }
 
     try {
+        // The link must come back to where the request was made: the PKCE secret for it is kept there.
+        // In the phone app that's the app itself (its deep link), not zaylo.cc in the phone's browser.
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + '/?type=recovery',
+            redirectTo: isNative() ? NATIVE_AUTH_REDIRECT : window.location.origin + '/?type=recovery',
         });
         if (error) throw error;
         return { success: true };
@@ -328,21 +347,52 @@ export function initNativeAuthListener(onSignedIn: () => void): () => void {
                     const r = await finishAppGoogleSignIn(idToken, params.get('state') || '');
                     if (!r.success) throw new Error(r.error);
                 } else if (code) {
-                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
                     if (error) throw error;
+                    // A password-reset link: ask for the new password before opening the app
+                    if ((data as { redirectType?: string | null }).redirectType === 'recovery' || params.get('type') === 'recovery') setRecovering(true);
+                } else if (params.get('token_hash') && params.get('type')) {
+                    await verifyEmailLink(params.get('token_hash')!, params.get('type')!);
                 } else if (params.get('access_token') && params.get('refresh_token')) {
                     await supabase.auth.setSession({ access_token: params.get('access_token')!, refresh_token: params.get('refresh_token')! });
                 }
                 onSignedIn();
             } catch (err) {
                 console.error('[Auth] Native OAuth exchange failed', err);
-                import('react-hot-toast').then(({ default: toast }) => toast.error((err as Error).message || 'Sign-in failed. Try again.', { id: 'native-auth' }));
+                import('react-hot-toast').then(({ default: toast }) => toast.error(friendlyAuthError((err as Error).message, 'Sign-in failed. Try again.'), { id: 'native-auth', duration: 8000 }));
             } finally {
                 import('@capacitor/browser').then(({ Browser }) => Browser.close().catch(() => {}));
             }
         }).then(handle => { remove = () => handle.remove(); });
     });
     return () => remove?.();
+}
+
+// ─── Email links that carry a token_hash (work in any browser or device) ───
+type EmailLinkType = 'recovery' | 'signup' | 'email' | 'invite' | 'magiclink' | 'email_change';
+const EMAIL_LINK_TYPES: EmailLinkType[] = ['recovery', 'signup', 'email', 'invite', 'magiclink', 'email_change'];
+
+/** Confirms an email link of the form ?token_hash=…&type=…  Unlike ?code= links, these don't depend on where the request was made. */
+export async function verifyEmailLink(tokenHash: string, type: string): Promise<void> {
+    if (!supabase) return;
+    if (!EMAIL_LINK_TYPES.includes(type as EmailLinkType)) throw new Error('That link is not valid.');
+    if (type === 'recovery') setRecovering(true);
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as EmailLinkType });
+    if (error) { if (type === 'recovery') setRecovering(false); throw error; }
+}
+
+/** Web: handles a token_hash link in the address bar. Returns an error sentence when the link didn't work. */
+export async function consumeEmailLinkFromUrl(): Promise<string | null> {
+    if (typeof window === 'undefined' || !supabase) return null;
+    const url = new URL(window.location.href);
+    const tokenHash = url.searchParams.get('token_hash');
+    const type = url.searchParams.get('type');
+    if (!tokenHash || !type) return null;
+    url.searchParams.delete('token_hash');
+    if (type !== 'recovery') url.searchParams.delete('type');
+    window.history.replaceState({}, '', url.pathname + (url.search || ''));
+    try { await verifyEmailLink(tokenHash, type); return null; }
+    catch (err) { return friendlyAuthError((err as Error).message, 'That link didn\'t work. Request a new one.'); }
 }
 
 // ─── Which sign-in methods are switched on in Supabase ───────────
@@ -388,6 +438,13 @@ export function friendlyAuthError(message: string | undefined, fallback: string)
     if (/AADSTS50020|AADSTS50194/i.test(m)) return 'Microsoft sign-in only accepts accounts from one organisation right now. Use email instead.';
     if (/rate limit|too many/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
     if (/invalid.*phone|phone.*invalid/i.test(m)) return 'That phone number is not valid. Include the country code, for example +20 100 123 4567.';
+    if (/code verifier|flow state|both auth code and code verifier/i.test(m)) return 'That link was opened in a different browser or app from the one you started in, or it has expired. If you were confirming your email, it is confirmed now: sign in. For a password reset, request a new link and open it on this device.';
+    if (/email link is invalid|link.*expired|otp_expired/i.test(m)) return 'That link has expired or was already used. Request a new one.';
     if (/token has expired|otp.*(expired|invalid)/i.test(m)) return 'That code is wrong or has expired. Request a new one.';
+    if (/email not confirmed/i.test(m)) return 'Confirm your email first. The link is in your inbox (check spam too).';
+    if (/user already registered|already been registered/i.test(m)) return 'An account with this email already exists. Sign in instead.';
+    if (/new password should be different/i.test(m)) return 'Choose a password you haven\'t used for this account before.';
+    if (/password.*(weak|pwned|leaked|known)/i.test(m)) return 'That password appears in known data leaks. Choose a different one.';
+    if (/aal2|mfa/i.test(m)) return 'Enter your two-step verification code first.';
     return m || fallback;
 }

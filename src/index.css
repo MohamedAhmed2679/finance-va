@@ -969,6 +969,8 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .toast-container { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
 
 /* ---------- Auth ---------- */
+.app-boot { min-height: 100vh; min-height: 100dvh; background: var(--paper, var(--bg)); }
+
 .auth {
   width: 100%;
   min-height: 100vh;
