@@ -583,7 +583,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
                         </motion.div>
                     </AnimatePresence>
 
-                    <p className="auth-foot">{tx('By continuing you agree to the Terms and Privacy Policy.')}</p>
+                    <p className="auth-foot">{tx('By continuing you confirm you are 13 or older and agree to the Terms and Privacy Policy.')}</p>
                 </div>
             </section>
         </div>

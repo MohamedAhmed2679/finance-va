@@ -100,7 +100,7 @@ export const AR: Record<string, string> = {
     'Forgot password?': 'نسيت كلمة المرور؟', 'Full name': 'الاسم الكامل', 'Phone (optional)': 'الهاتف (اختياري)', 'Country': 'الدولة', 'Choose…': 'اختر…',
     'Sign up with a phone number instead': 'سجّل برقم الهاتف بدلًا من ذلك', 'Phone number with country code': 'رقم الهاتف مع رمز الدولة', '6-digit code': 'رمز من 6 أرقام',
     'Change number': 'تغيير الرقم', 'Resend code': 'إعادة إرسال الرمز', 'Verify and sign in': 'تحقق وسجّل الدخول', 'Text me a code': 'أرسل لي رمزًا',
-    'Verifying…': 'جارٍ التحقق…', 'Sending…': 'جارٍ الإرسال…', 'By continuing you agree to the Terms and Privacy Policy.': 'بالمتابعة فإنك توافق على الشروط وسياسة الخصوصية.',
+    'Verifying…': 'جارٍ التحقق…', 'Sending…': 'جارٍ الإرسال…', 'By continuing you agree to the Terms and Privacy Policy.': 'بالمتابعة فإنك توافق على الشروط وسياسة الخصوصية.', 'By continuing you confirm you are 13 or older and agree to the Terms and Privacy Policy.': 'بالمتابعة تؤكد أن عمرك 13 عامًا أو أكثر وتوافق على الشروط وسياسة الخصوصية.',
     // Bills
     'Due on the': 'مستحقة يوم', 'of every month': 'من كل شهر', 'Next payment in': 'الدفعة القادمة بعد', 'Delete this commitment?': 'حذف هذا الالتزام؟',
     'Track recurring payments and automatically log expenses': 'تابع الدفعات المتكررة وسجّل المصروفات تلقائيًا', 'Add Bill': 'إضافة فاتورة', 'Add New Monthly Commitment': 'إضافة التزام شهري جديد',
