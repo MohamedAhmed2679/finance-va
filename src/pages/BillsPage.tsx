@@ -90,7 +90,7 @@ export default function BillsPage() {
         };
 
         return (
-            <div key={bill.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', opacity: isPaid ? 0.6 : 1, transition: 'all 0.2s ease-in-out' }}>
+            <div key={bill.id} className="card bill-card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px clamp(12px, 4vw, 20px)', opacity: isPaid ? 0.6 : 1, transition: 'all 0.2s ease-in-out' }}>
                 <div onClick={() => !isPaid && !isViewer && markBillPaid(bill.id, currentMonth)} style={{ cursor: isPaid || isViewer ? 'default' : 'pointer' }}>
                     {isPaid ? (
                         <CheckCircle size={28} style={{ color: 'var(--success)' }} />
@@ -99,18 +99,18 @@ export default function BillsPage() {
                     )}
                 </div>
 
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
                         <span style={{ fontSize: 16, fontWeight: 700 }}>{bill.name}</span>
                         {cat && <span className="badge" style={{ background: `${cat.color}20`, color: cat.color }}>{cat.emoji} {cat.label}</span>}
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CalendarDays size={14} />{' '}{tx('Due on the')}{' '}{bill.dueDate}{daySuffix(bill.dueDate)}{' '}{tx('of every month')}
+                        <CalendarDays size={14} style={{ flexShrink: 0 }} />{' '}{tx('Due on the')}{' '}{bill.dueDate}{daySuffix(bill.dueDate)}{' '}{tx('of every month')}
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: isPaid ? 'var(--text-muted)' : 'var(--text)' }}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 'clamp(15px, 4.4vw, 18px)', whiteSpace: 'nowrap', fontWeight: 700, color: isPaid ? 'var(--text-muted)' : 'var(--text)' }}>
                         {bill.amount.toLocaleString(lang, { style: 'currency', currency: bill.currency })}
                     </div>
                     {isPaid && (() => {
