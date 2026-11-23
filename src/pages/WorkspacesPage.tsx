@@ -80,7 +80,7 @@ export default function WorkspacesPage() {
                                 <span className="ws-card-icon" aria-hidden>{ws.icon}</span>
                                 <div className="ws-card-title">
                                     <h2>{ws.name}{ws.isArchived && <span className="badge badge-warning">{tx('Archived')}</span>}</h2>
-                                    <p>{ws.type === 'shared' ? tx('Shared') : tx('Personal')} · {ws.currency} · {ws.members.length} {ws.members.length === 1 ? tx('member') : tx('members')}</p>
+                                    <p>{ws.members.length > 1 ? tx('Shared') : tx('Only you')} · {ws.currency} · {ws.members.length} {ws.members.length === 1 ? tx('member') : tx('members')}</p>
                                 </div>
                                 {active ? <span className="badge badge-primary"><Check size={12} />{' '}{tx('Current')}</span>
                                     : !ws.isArchived && <button className="btn btn-secondary btn-sm" onClick={() => { setActiveWorkspace(ws.id); toast.success(`Switched to ${ws.name}`); }}>{tx('Switch')}</button>}

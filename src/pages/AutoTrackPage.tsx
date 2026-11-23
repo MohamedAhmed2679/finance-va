@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ClipboardPaste, RotateCcw, Link2, Check, EyeOff, Settings2, Repeat } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ClipboardPaste, RotateCcw, CheckCheck, Link2, Check, EyeOff, Settings2, Repeat } from 'lucide-react';
 import { tx } from '../i18n/translations';
 import { useStore } from '../store/useStore';
 import { CATEGORIES, formatCurrency } from '../constants';
@@ -17,6 +17,7 @@ import {
     addTransfer, deleteTransfer, type AutoTrackItem, type Transfer,
 } from '../autotrack/service';
 import type { OwnAccount } from '../autotrack/classify';
+import { planBulk, summarise, type BulkAction } from '../autotrack/bulk';
 
 type Tab = 'review' | 'added' | 'ignored' | 'transfers';
 type Target = 'income' | 'expense' | 'transfer';
@@ -38,6 +39,7 @@ export default function AutoTrackPage({ onOpenSettings }: { onOpenSettings?: () 
     const [pasting, setPasting] = useState<string | null>(null);
     const [addingTransfer, setAddingTransfer] = useState(false);
     const [busyId, setBusyId] = useState('');
+    const [bulk, setBulk] = useState(false);
 
     const refresh = useCallback(async () => {
         try {
@@ -107,6 +109,13 @@ export default function AutoTrackPage({ onOpenSettings }: { onOpenSettings?: () 
                 ))}
             </div>
 
+            {tab === 'review' && groups.review.length > 1 && (
+                <div className="at-bulk">
+                    <span>{groups.review.length} {tx('alerts waiting')}</span>
+                    <button className="btn btn-primary btn-sm" onClick={() => setBulk(true)}><CheckCheck size={15} />{' '}{tx('Approve all')}</button>
+                </div>
+            )}
+
             {items === null ? <div className="card at-empty">{tx('Loading…')}</div>
                 : tab === 'transfers' ? (
                     <TransfersView transfers={transfers} onAdd={() => setAddingTransfer(true)} onDelete={id => act(id, () => deleteTransfer(id), 'Transfer removed.')} />
@@ -131,6 +140,11 @@ export default function AutoTrackPage({ onOpenSettings }: { onOpenSettings?: () 
             {editing && <ConfirmSheet it={editing} accounts={accounts} onClose={() => setEditing(null)} onDone={async () => { setEditing(null); await refresh(); loadData(); }} />}
             {linking && <LinkSheet it={linking} expenses={expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId)} incomes={incomes.filter(i => i.workspaceId === activeWorkspaceId)} transfers={transfers}
                 onClose={() => setLinking(null)} onLink={(kind, id) => act(linking.id, async () => { await linkItem(linking.id, kind, id); setLinking(null); }, 'Linked. No new record was added.')} />}
+            {bulk && <BulkSheet items={groups.review} records={{
+                expenses: expenses.filter(e => !e.deleted && e.workspaceId === activeWorkspaceId),
+                incomes: incomes.filter(i => i.workspaceId === activeWorkspaceId),
+                transfers,
+            }} onClose={() => setBulk(false)} onDone={async () => { setBulk(false); await refresh(); loadData(); }} />}
             {pasting !== null && <PasteSheet initial={pasting} fromLink={Boolean(pasting)} onClose={() => setPasting(null)} onDone={async () => { setPasting(null); setTab('review'); await refresh(); loadData(); }} />}
             {addingTransfer && <TransferSheet accounts={accounts} onClose={() => setAddingTransfer(false)} onSave={async t => { await addTransfer(activeWorkspaceId, t); setAddingTransfer(false); toast.success(tx('Transfer added.')); refresh(); }} />}
         </div>
@@ -315,6 +329,71 @@ function LinkSheet({ it, expenses, incomes, transfers, onClose, onLink }: {
                     </ul>
                 )}
                 <div className="at-actions" style={{ justifyContent: 'flex-end' }}><button className="btn btn-secondary" onClick={onClose}>{tx('Cancel')}</button></div>
+            </Dialog>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────── approve all
+
+function BulkSheet({ items, records, onClose, onDone }: {
+    items: AutoTrackItem[]; records: Parameters<typeof planBulk>[1]; onClose: () => void; onDone: () => void;
+}) {
+    const [incomeToo, setIncomeToo] = useState(false);
+    const [running, setRunning] = useState(false);
+    const [done, setDone] = useState(0);
+    const plan = useMemo<BulkAction[]>(() => planBulk(items, records).map(a =>
+        incomeToo && a.kind === 'skip' && a.why === 'Money received: income or not?' ? { kind: 'post', item: a.item, target: 'income' } : a), [items, records, incomeToo]);
+    const s = summarise(plan);
+    const work = plan.filter(a => a.kind !== 'skip');
+    const moneyIn = plan.filter(a => a.kind === 'skip' && a.why === 'Money received: income or not?').length + (incomeToo ? plan.filter(a => a.kind === 'post' && a.target === 'income' && a.item.suggested_target !== 'income').length : 0);
+
+    async function run() {
+        setRunning(true);
+        let ok = 0, failed = 0, i = 0;
+        const step = async (a: BulkAction) => {
+            try {
+                if (a.kind === 'link') await linkItem(a.item.id, a.target, a.recordId);
+                else if (a.kind === 'post') await confirmItem(a.item.id, a.target, { category: a.target === 'expense' ? a.category : undefined });
+                else if (a.kind === 'ignore') await ignoreItem(a.item.id);
+                ok++;
+            } catch { failed++; }
+            setDone(d => d + 1);
+        };
+        // a few at a time: fast, without flooding the server
+        const lanes = Array.from({ length: 4 }, async () => { while (i < work.length) await step(work[i++]); });
+        await Promise.all(lanes);
+        if (failed) toast.error(`${tx('Approved')} ${ok}. ${failed} ${tx('could not be saved and are still waiting.')}`);
+        else toast.success(`${tx('Approved')} ${ok}.`);
+        onDone();
+    }
+
+    const rows: [string, number][] = [
+        ['Linked to a record you already have (not counted twice)', s.link],
+        ['Added to Expenses', s.expense], ['Added to Income & Earnings', s.income], ['Added to Transfers', s.transfer],
+        ['Not recorded (not a transaction)', s.ignore], ['Left for you to check', s.skip],
+    ];
+    return (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget && !running) onClose(); }}>
+            <Dialog labelledBy="at-bulk-title" onClose={() => { if (!running) onClose(); }} style={{ maxWidth: 480 }}>
+                <div className="modal-header"><h2 className="modal-title" id="at-bulk-title">{tx('Approve all')}</h2></div>
+                <p className="at-note" style={{ marginTop: 0 }}>{tx('Each alert goes where it belongs. If you already have a record with the same amount around that date, the alert is linked to it instead of being added again. You can undo any of them from the Added tab.')}</p>
+                <ul className="at-bulk-list">
+                    {rows.filter(([, n]) => n > 0).map(([label, n]) => <li key={label}><span>{tx(label)}</span><strong>{n}</strong></li>)}
+                </ul>
+                {moneyIn > 0 && (
+                    <label className="at-check"><input type="checkbox" checked={incomeToo} disabled={running} onChange={e => setIncomeToo(e.target.checked)} /> {tx('Also record money I received as income')} <span className="at-note">({tx('leave off if some of it is loans, gifts or repayments')})</span></label>
+                )}
+                {running && (
+                    <div className="at-progress" role="status" aria-live="polite">
+                        <div className="at-progress-bar"><span style={{ width: `${work.length ? (done / work.length) * 100 : 100}%` }} /></div>
+                        <span>{tx('Approving')} {done} / {work.length}</span>
+                    </div>
+                )}
+                <div className="at-actions" style={{ justifyContent: 'flex-end' }}>
+                    <button className="btn btn-secondary" onClick={onClose} disabled={running}>{tx('Cancel')}</button>
+                    <button className="btn btn-primary" onClick={run} disabled={running || work.length === 0} data-autofocus="">{running ? tx('Approving…') : `${tx('Approve')} ${work.length}`}</button>
+                </div>
             </Dialog>
         </div>
     );

@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { t, tx } from '../i18n/translations';
 import { getActiveCycleDates } from '../constants';
-import { Plus, Trash2, DollarSign, PiggyBank } from 'lucide-react';
+import { Plus, Trash2, PiggyBank } from 'lucide-react';
 import CurrencyDisplay from '../components/CurrencyDisplay';
 
 export default function SavingsPage() {
@@ -66,7 +66,7 @@ export default function SavingsPage() {
 
         cycleDatesEvaluated.forEach(cycleKey => {
             const [start, end] = cycleKey.split('_');
-            const cycleFixedInc = wsIncomes.filter(i => i.type === 'fixed').reduce((s, i) => s + toBase(i, cur), 0);
+            const cycleFixedInc = wsIncomes.filter(i => i.type === 'fixed' && (!i.date || i.date <= end)).reduce((s, i) => s + toBase(i, cur), 0);
             const cycleVarInc = wsIncomes.filter(i => i.type === 'variable' && i.date! >= start && i.date! <= end).reduce((s, i) => s + toBase(i, cur), 0);
             const cycleExp = wsExpenses.filter(e => e.purchaseAt.slice(0, 10) >= start && e.purchaseAt.slice(0, 10) <= end).reduce((s, e) => s + toBase(e, cur), 0);
 
@@ -80,7 +80,8 @@ export default function SavingsPage() {
     }, [incomes, expenses, activeWorkspaceId, cycleStartDay, cur]);
 
     const totalManualSaved = wsGoals.reduce((s, g) => s + g.savedAmount, 0);
-    const totalSaved = totalManualSaved + rolloverSavings;
+    // Goals progress counts only money put into goals; leftover from past cycles is shown on its own.
+    const totalSaved = totalManualSaved;
     const totalTarget = wsGoals.reduce((s, g) => s + g.targetAmount, 0);
 
     return (
@@ -99,10 +100,10 @@ export default function SavingsPage() {
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.8px' }}>{tx('Total Progress')}</div>
                             <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-1px', color: 'var(--primary-light)' }}><CurrencyDisplay amount={totalSaved} currency={cur} hideAmounts={hideAmounts} /></div>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>of <CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} /> target</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tx('of')}{' '}<CurrencyDisplay amount={totalTarget} currency={cur} hideAmounts={hideAmounts} />{' '}{tx('target')}</div>
                             {rolloverSavings > 0 && (
                                 <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PiggyBank size={12} /> <CurrencyDisplay amount={rolloverSavings} currency={cur} hideAmounts={hideAmounts} />{' '}{tx('from past cycle rollovers')}
+                                    <PiggyBank size={12} /> <CurrencyDisplay amount={rolloverSavings} currency={cur} hideAmounts={hideAmounts} />{' '}{tx('left over in past cycles (not counted in goals)')}
                                 </div>
                             )}
                         </div>
@@ -136,8 +137,8 @@ export default function SavingsPage() {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">{t(lang, 'target_amount')}</label>
-                                <div className="input-with-icon">
-                                    <DollarSign size={16} className="input-icon" />
+                                <div className="input-with-icon cur">
+                                    <span className="input-icon" style={{ fontSize: 12, fontWeight: 700 }}>{cur}</span>
                                     <input type="number" className="form-input" value={target} onChange={e => setTarget(e.target.value)} placeholder="1000.00" step="0.01" min="1" required />
                                 </div>
                             </div>
@@ -178,8 +179,8 @@ export default function SavingsPage() {
 
                                 {fundsId === goal.id ? (
                                     <form onSubmit={handleAddFunds} style={{ display: 'flex', gap: 8 }} className="animate-fadeIn">
-                                        <div className="input-with-icon" style={{ flex: 1 }}>
-                                            <DollarSign size={14} className="input-icon" />
+                                        <div className="input-with-icon cur" style={{ flex: 1 }}>
+                                            <span className="input-icon" style={{ fontSize: 12, fontWeight: 700 }}>{cur}</span>
                                             <input type="number" className="form-input" value={fundsAmt} onChange={e => setFundsAmt(e.target.value)} placeholder={tx('Amount to add')} step="0.01" min="0.01" autoFocus required />
                                         </div>
                                         <button type="submit" className="btn btn-primary btn-sm">{tx('Add')}</button>

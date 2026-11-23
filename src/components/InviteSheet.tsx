@@ -129,7 +129,7 @@ export default function InviteSheet({ ws, onClose }: { ws: Workspace; onClose: (
                         <select id="invite-days" className="form-input form-select" value={days} onChange={e => setDays(+e.target.value)}>
                             <option value={1}>{tx('1 day')}</option><option value={7}>{tx('7 days')}</option><option value={14}>{tx('14 days')}</option><option value={30}>{tx('30 days')}</option>
                         </select>
-                        <p className="text-xs text-muted mt-2">{tx('Anyone with the link can join as a')}{' '}{role}{' '}{tx('after signing in. Turn it off any time.')}</p>
+                        <p className="text-xs text-muted mt-2">{tx(role === 'admin' ? 'Anyone with the link can join as an' : 'Anyone with the link can join as a')}{' '}{tx(role)}{' '}{tx('after signing in. Turn it off any time.')}</p>
                         <button className="btn btn-primary w-full btn-lg mt-4" onClick={makeLink} disabled={busy}><Link2 size={16} /> {busy ? tx('Creating…') : tx('Create and copy link')}</button>
 
                         {fresh && (

@@ -124,15 +124,23 @@ export default function InsightsPage() {
                 {/* Payment method */}
                 <div className="card animate-fadeIn" style={{ animationDelay: '300ms' }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>{tx('Payment Methods')}</div>
-                    <div style={{ height: 160 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={pmData} cx="50%" cy="50%" outerRadius={70} dataKey="value" strokeWidth={0} paddingAngle={3} label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`} labelLine={false}>
-                                    {pmData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v) => formatCurrency(Number(v ?? 0), cur)} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    {/* labels sat outside the pie and were cut off on phones: a legend lists them instead */}
+                    <div className="pm-wrap">
+                        <div style={{ width: 150, height: 150, flexShrink: 0 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={pmData} cx="50%" cy="50%" innerRadius={42} outerRadius={70} dataKey="value" strokeWidth={0} paddingAngle={3}>
+                                        {pmData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip contentStyle={CHART_TOOLTIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--ink-3)' }} formatter={(v) => formatCurrency(Number(v ?? 0), cur)} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <ul className="pm-legend">
+                            {pmData.map((d, i) => (
+                                <li key={d.name}><span className="pm-dot" style={{ background: COLORS[i % COLORS.length] }} /><span className="pm-name">{d.name}</span><strong>{Math.round(d.value / (pmData.reduce((a, d) => a + d.value, 0) || 1) * 100)}%</strong></li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
             </div>

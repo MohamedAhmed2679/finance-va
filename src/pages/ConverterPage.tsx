@@ -80,7 +80,7 @@ export default function ConverterPage() {
                 <button className="btn btn-ghost btn-sm" onClick={() => fetchRates('USD')}><RefreshCw size={14} />{' '}{tx('Refresh')}</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 24, alignItems: 'start' }}>
                 {/* Main converter */}
                 <div className="card">
                     <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Real-Time Converter')}</div>
@@ -96,7 +96,7 @@ export default function ConverterPage() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 12, alignItems: 'center', marginBottom: 24 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', gap: 12, alignItems: 'center', marginBottom: 24 }}>
                         <CurrencySelect label={t(lang, 'from')} value={fromCur} onChange={setFromCur} />
                         <button onClick={swap} className="btn btn-ghost btn-icon" style={{ border: '1px solid var(--border-default)', marginTop: 24 }}>
                             <ArrowLeftRight size={18} />
@@ -114,7 +114,7 @@ export default function ConverterPage() {
                         <div className="animate-slideUp" style={{ marginTop: 24, padding: 24, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
                             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{amount} {fromCur} =</div>
                             <div className="amount" style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-1.5px', color: 'var(--accent)', marginBottom: 8 }}>
-                                {result.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} {toCur}
+                                {result.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {toCur}
                             </div>
                             {rate && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>1 {fromCur} = {rate.toFixed(4)} {toCur}</div>}
                         </div>

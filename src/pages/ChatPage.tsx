@@ -247,7 +247,7 @@ export default function ChatPage() {
 
                 <aside className="card chat-members" aria-label={side === 'gallery' ? tx('Gallery') : tx('Members')}>
                     <div className="seg side-tabs" role="tablist" aria-label={tx('Side panel')}>
-                        <button role="tab" aria-selected={side === tx('members')} className={side === tx('members') ? 'active' : ''} onClick={() => setSide('members')}><Users size={14} />{' '}{tx('Members')}</button>
+                        <button role="tab" aria-selected={side === 'members'} className={side === 'members' ? 'active' : ''} onClick={() => setSide('members')}><Users size={14} />{' '}{tx('Members')}</button>
                         <button role="tab" aria-selected={side === 'gallery'} className={side === 'gallery' ? 'active' : ''} onClick={() => setSide('gallery')}><Images size={14} />{' '}{tx('Gallery')}</button>
                         {showMembers && <button className="icon-btn" onClick={() => setShowMembers(false)} aria-label={tx('Hide panel')}><X size={16} /></button>}
                     </div>

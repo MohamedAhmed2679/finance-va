@@ -639,6 +639,7 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 
 .input-with-icon { position: relative; }
 .input-with-icon .form-input { padding-left: 40px; }
+.input-with-icon.cur .form-input { padding-left: 54px; }
 .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
 
 .search-bar {
@@ -1381,7 +1382,7 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .health-top { display: flex; gap: 16px; align-items: center; }
 .score-ring { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
 .score-num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-size: 24px; font-weight: 650; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-.score-num small { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-top: 4px; }
+.score-num small { display: block; max-width: 58px; margin: 4px auto 0; font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.15; text-transform: uppercase; color: var(--ink-3); overflow-wrap: anywhere; }
 .health-headline { font-size: 16.5px; font-weight: 650; letter-spacing: -0.01em; }
 .health-summary { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
 .health-alerts { list-style: none; margin-top: 14px; display: grid; gap: 6px; }
@@ -1491,6 +1492,8 @@ textarea.form-input { min-height: 88px; resize: vertical; }
 .seg > button span { font-weight: 500; opacity: .7; }
 .side-tabs { margin-bottom: 14px; align-items: center; }
 .chat-members { display: flex; flex-direction: column; max-height: calc(100dvh - 220px); overflow: hidden; }
+/* phones: the members/gallery panel shows only when asked for (it used to sit under the tab bar) */
+@media (max-width: 860px) { .chat-layout:not(.show-members) .chat-members { display: none; } }
 .chat-members > .ledger, .chat-members > form { overflow-y: auto; }
 .chat-gallery { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
 .chat-gallery > .card-head { display: none; }
@@ -1944,6 +1947,12 @@ fieldset.form-group legend { padding: 0; margin-bottom: 8px; }
 .at-target input { margin-top: 3px; }
 .at-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; margin: 10px 0; }
 .at-check input { margin-top: 3px; }
+.at-bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; margin-bottom: 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+.at-bulk-list { list-style: none; padding: 0; margin: 8px 0 12px; display: grid; gap: 6px; }
+.at-bulk-list li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 8px 12px; border-radius: 10px; background: var(--note-soft); }
+.at-progress { display: grid; gap: 6px; font-size: 13px; margin: 8px 0; }
+.at-progress-bar { height: 8px; border-radius: 99px; background: var(--note-soft); overflow: hidden; }
+.at-progress-bar span { display: block; height: 100%; background: var(--note); transition: width .2s; }
 .at-link-option { width: 100%; display: flex; justify-content: space-between; gap: 12px; text-align: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
 .at-link-option:hover, .at-link-option:focus-visible { border-color: var(--note); }
 .at-ledger-badge { display: inline-block; margin-inline-start: 6px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--note-soft); color: var(--note); }
@@ -2449,3 +2458,16 @@ div.sheet-account { cursor: default; }
   .overview-charts { grid-template-columns: minmax(0, 1fr); }
   .note { padding: 24px 20px 20px; }
 }
+
+/* Insights: payment methods legend */
+.pm-wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.pm-legend { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 140px; display: grid; gap: 8px; }
+.pm-legend li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.pm-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.pm-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* phones: hide the tab bar and add button while typing (the keyboard pushes them over the form) */
+@media (max-width: 860px) { body.kb-open .tabbar, body.kb-open .quick-add-container { display: none !important; } }
+
+/* currency picker: on phones the code and flag are enough */
+@media (max-width: 520px) { .cur-name { display: none; } }

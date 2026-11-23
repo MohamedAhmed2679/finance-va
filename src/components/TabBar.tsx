@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MoreHorizontal } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -17,6 +17,16 @@ export default function TabBar({ active, onNavigate, addSlot = true }: TabBarPro
     const extra = GROUPS.filter(g => !TAB_GROUPS.includes(g.key));
     const activeGroup = groupOf(active)?.key;
     const moreActive = !activeGroup || !TAB_GROUPS.includes(activeGroup);
+
+    // While the on-screen keyboard is up, the bar would float over the form being typed in: hide it.
+    useEffect(() => {
+        const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'
+            || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'range', 'color', 'file'].includes((el as HTMLInputElement).type)));
+        const on = (e: FocusEvent) => { if (typing(e.target)) document.body.classList.add('kb-open'); };
+        const off = () => setTimeout(() => { if (!typing(document.activeElement)) document.body.classList.remove('kb-open'); }, 50);
+        document.addEventListener('focusin', on); document.addEventListener('focusout', off);
+        return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); document.body.classList.remove('kb-open'); };
+    }, []);
 
     const go = (key: string) => { setMoreOpen(false); onNavigate(key); };
 

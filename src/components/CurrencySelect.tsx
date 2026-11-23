@@ -42,15 +42,15 @@ export default function CurrencySelect({ value, onChange, label, disabled }: Cur
                 style={{ 
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                     cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--bg-card)',
-                    textAlign: 'left'
+                    textAlign: 'left', minWidth: 0, gap: 6
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ fontSize: 16 }}>{selected.flag}</span>
                     <span style={{ fontWeight: 600 }}>{selected.code}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{selected.name}</span>
+                    <span className="cur-name" style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{selected.name}</span>
                 </div>
-                <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
+                <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             </button>
 
             {open && (

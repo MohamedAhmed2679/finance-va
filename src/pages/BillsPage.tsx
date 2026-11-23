@@ -105,7 +105,7 @@ export default function BillsPage() {
                         {cat && <span className="badge" style={{ background: `${cat.color}20`, color: cat.color }}>{cat.emoji} {cat.label}</span>}
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CalendarDays size={14} style={{ flexShrink: 0 }} />{' '}{tx('Due on the')}{' '}{bill.dueDate}{daySuffix(bill.dueDate)}{' '}{tx('of every month')}
+                        <CalendarDays size={14} style={{ flexShrink: 0 }} /><span>{tx('Due on the')}{' '}{bill.dueDate}{lang === 'ar' ? '' : daySuffix(bill.dueDate)}{' '}{tx('of every month')}</span>
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@ export default function BillsPage() {
 
                         return (
                             <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>
-                                {tx('Next payment in')}{' '}{diffDays} days
+                                {tx('Next payment in')}{' '}{diffDays}{' '}{tx('days')}
                             </div>
                         );
                     })()}
@@ -246,7 +246,7 @@ export default function BillsPage() {
                         <div>
                             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
                                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                                {t(lang, 'pending_next_month') || tx('Pending for next month')} ({paidBills.length})
+                                {tx('Paid · back next month')} ({paidBills.length})
                             </h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                 {paidBills.map(b => renderBillCard(b, true))}

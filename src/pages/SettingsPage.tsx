@@ -308,21 +308,21 @@ export default function SettingsPage() {
                             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{tx('Categories')}</div>
                             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>{tx('Customize your expense categories.')}</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8, marginBottom: 24 }}>
                                 {categories.map(cat => (
-                                    <div key={cat.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-input)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div key={cat.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '10px 8px 10px 10px', background: 'var(--bg-input)', borderRadius: 10, border: '1px solid var(--border)', minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                                             <div style={{ width: 24, height: 24, borderRadius: 6, background: `${cat.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{cat.emoji}</div>
-                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{cat.label}</div>
+                                            <div style={{ fontSize: 12.5, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cat.label}>{cat.label}</div>
                                         </div>
-                                        {cat.key !== 'other' && <Trash2 size={14} style={{ color: 'var(--danger)', cursor: 'pointer', opacity: 0.6 }} onClick={() => deleteCategory(cat.key)} />}
+                                        {cat.key !== 'other' && <button type="button" className="btn-icon-plain" aria-label={`${tx('Delete')} ${cat.label}`} onClick={() => deleteCategory(cat.key)} style={{ flexShrink: 0, background: 'none', border: 0, padding: 2, cursor: 'pointer', color: 'var(--danger)', opacity: 0.7, display: 'inline-flex' }}><Trash2 size={14} /></button>}
                                     </div>
                                 ))}
                             </div>
 
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignItems: 'center', flexWrap: 'wrap' }}>
                                 <input className="form-input" style={{ width: 60 }} value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} placeholder={tx('Emoji')} maxLength={2} />
-                                <input className="form-input" style={{ flex: 1 }} value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder={tx('New category name')} />
+                                <input className="form-input" style={{ flex: '1 1 150px', minWidth: 150 }} value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder={tx('New category name')} />
                                 <input type="color" className="form-input" style={{ width: 44, padding: 4 }} value={newCatColor} onChange={e => setNewCatColor(e.target.value)} />
                                 <button className="btn btn-primary" onClick={() => { if (newCatName) { addCategory({ key: newCatName.toLowerCase().replace(/\s+/g, '_'), label: newCatName, emoji: newCatEmoji, color: newCatColor }); setNewCatName(''); } }}>
                                     <Plus size={16} />{' '}{tx('Add')}
