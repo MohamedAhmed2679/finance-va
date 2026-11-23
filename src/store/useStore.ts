@@ -679,7 +679,7 @@ export const useStore = create<AppState>()(
 
                 const newBill = { ...bill, id: generateId(), createdByUid: userId, createdAt: now };
                 const ws = s.workspaces.find(w => w.id === bill.workspaceId);
-                const log: ActivityEntry | null = ws ? { id: generateId(), uid: bill.createdByUid, userName: s.user?.name || 'User', action: 'added bill', entityType: 'bill', entityId: newBill.id, timestamp: now } : null;
+                const log: ActivityEntry | null = ws ? { id: generateId(), uid: userId, userName: s.user?.name || 'User', action: 'added bill', entityType: 'bill', entityId: newBill.id, timestamp: now } : null;
 
                 enqueue('bill', 'upsert', newBill.id, newBill).catch(reportSyncError);
                 if (log) logActivityToCloud({ workspaceId: ws!.id, userId: log.uid, userName: log.userName, action: log.action, entityType: 'bill', entityId: newBill.id }).catch(reportSyncError);
